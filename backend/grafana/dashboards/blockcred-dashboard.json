@@ -1,0 +1,135 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "BlockCred Monitoring Dashboard",
+    "tags": ["blockcred", "blockchain", "credentials"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "blockcred_users_total",
+            "legendFormat": "{{status}} Users"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "displayMode": "list",
+              "orientation": "horizontal"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 80}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Blockchain Nodes",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "blockcred_blockchain_nodes_active",
+            "legendFormat": "Active Nodes"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "green", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "HTTP Requests Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(blockcred_http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}} ({{status}})"
+          }
+        ],
+        "yAxes": [
+          {"label": "Requests/sec", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(blockcred_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(blockcred_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "yAxes": [
+          {"label": "Seconds", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Login Attempts",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(blockcred_login_attempts_total[5m])",
+            "legendFormat": "{{user_type}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Attempts/sec", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Certificates Issued",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(blockcred_certificates_issued_total[5m])",
+            "legendFormat": "{{type}} - {{institution}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Certificates/sec", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "5s"
+  }
+}

@@ -1,0 +1,52 @@
+groups:
+  - name: blockcred_alerts
+    rules:
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: rate(blockcred_http_requests_total{status=~"4..|5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second"
+
+      # High response time alert
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(blockcred_http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }} seconds"
+
+      # No active blockchain nodes
+      - alert: NoActiveBlockchainNodes
+        expr: blockcred_blockchain_nodes_active == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No active blockchain nodes"
+          description: "There are no active blockchain nodes in the system"
+
+      # High number of failed logins
+      - alert: HighFailedLogins
+        expr: rate(blockcred_login_attempts_total{status="failure"}[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of failed login attempts"
+          description: "Failed login rate is {{ $value }} attempts per second"
+
+      # Large number of pending users
+      - alert: ManyPendingUsers
+        expr: blockcred_users_total{status="pending"} > 10
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Many users pending approval"
+          description: "{{ $value }} users are waiting for admin approval"
