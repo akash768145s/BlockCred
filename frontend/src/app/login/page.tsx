@@ -2,23 +2,26 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Shield, User, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [loginType, setLoginType] = useState("admin"); // "admin" or "student"
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
+        setSuccess("");
 
         try {
-            const endpoint = loginType === "admin" ? "/api/login" : "/api/student-login";
-            const response = await fetch(`http://localhost:8080${endpoint}`, {
+            // Try enhanced login first (supports all roles)
+            const response = await fetch(`http://localhost:8080/api/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -29,13 +32,35 @@ export default function LoginPage() {
             const data = await response.json();
 
             if (data.success) {
-                if (loginType === "admin") {
-                    localStorage.setItem("admin_session", JSON.stringify(data.data));
-                    router.push("/dashboard");
-                } else {
-                    localStorage.setItem("student_session", JSON.stringify(data.data));
-                    router.push("/student-dashboard");
-                }
+                // Store user session with role information
+                localStorage.setItem("token", data.data.token);
+                localStorage.setItem("user", JSON.stringify({
+                    id: data.data.user_id,
+                    role: data.data.role,
+                    role_name: data.data.role_name,
+                    permissions: data.data.permissions
+                }));
+
+                setSuccess("Login successful! Redirecting...");
+
+                // Redirect based on role
+                setTimeout(() => {
+                    if (data.data.role === "ssn_main_admin") {
+                        router.push("/admin-dashboard");
+                    } else if (data.data.role === "coe") {
+                        router.push("/coe-dashboard");
+                    } else if (data.data.role === "department_faculty") {
+                        router.push("/faculty-dashboard");
+                    } else if (data.data.role === "club_coordinator") {
+                        router.push("/club-dashboard");
+                    } else if (data.data.role === "external_verifier") {
+                        router.push("/verifier-dashboard");
+                    } else if (data.data.role === "student") {
+                        router.push("/student-dashboard");
+                    } else {
+                        router.push("/dashboard");
+                    }
+                }, 1000);
             } else {
                 setError(data.message);
             }
@@ -47,119 +72,167 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-            <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">BlockCred</h1>
-                    <p className="text-gray-600">
-                        {loginType === "admin" ? "Admin Dashboard Login" : "Student Portal Login"}
-                    </p>
-                </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-20">
+                <div className="w-full h-full" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                }}></div>
+            </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                            I am a:
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <label className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${loginType === "admin"
-                                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                                    : "border-gray-300 hover:border-gray-400"
-                                }`}>
-                                <input
-                                    type="radio"
-                                    value="admin"
-                                    checked={loginType === "admin"}
-                                    onChange={(e) => setLoginType(e.target.value)}
-                                    className="sr-only"
-                                />
-                                <div className="text-center">
-                                    <div className="text-lg font-medium">Admin</div>
-                                    <div className="text-xs text-gray-500">System Administrator</div>
-                                </div>
-                            </label>
-                            <label className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${loginType === "student"
-                                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                                    : "border-gray-300 hover:border-gray-400"
-                                }`}>
-                                <input
-                                    type="radio"
-                                    value="student"
-                                    checked={loginType === "student"}
-                                    onChange={(e) => setLoginType(e.target.value)}
-                                    className="sr-only"
-                                />
-                                <div className="text-center">
-                                    <div className="text-lg font-medium">Student</div>
-                                    <div className="text-xs text-gray-500">Registered Student</div>
-                                </div>
-                            </label>
+            <div className="relative max-w-md w-full">
+                {/* Main Login Card */}
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-8">
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4">
+                            <Shield className="w-8 h-8 text-white" />
                         </div>
+                        <h1 className="text-3xl font-bold text-white mb-2">BlockCred</h1>
+                        <p className="text-white/70">Secure Credential Management System</p>
                     </div>
 
-                    <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                            {loginType === "admin" ? "Username" : "Student ID"}
-                        </label>
-                        <input
-                            type="text"
-                            id="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            placeholder={loginType === "admin" ? "Enter admin username" : "Enter your Student ID"}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                            Password
-                        </label>
-                        <input
-                            type="password"
-                            id="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
-                            placeholder={loginType === "admin" ? "Enter admin password" : "Enter your password"}
-                            required
-                        />
-                    </div>
-
-                    {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                            {error}
+                    {/* Login Form */}
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Username Field */}
+                        <div className="space-y-2">
+                            <label htmlFor="username" className="block text-sm font-medium text-white/90">
+                                Username or Email
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <User className="h-5 w-5 text-white/50" />
+                                </div>
+                                <input
+                                    type="text"
+                                    id="username"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    placeholder="Enter your username or email"
+                                    required
+                                />
+                            </div>
                         </div>
-                    )}
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                    >
-                        {loading ? "Signing in..." : "Sign In"}
-                    </button>
-                </form>
+                        {/* Password Field */}
+                        <div className="space-y-2">
+                            <label htmlFor="password" className="block text-sm font-medium text-white/90">
+                                Password
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Lock className="h-5 w-5 text-white/50" />
+                                </div>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    id="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    placeholder="Enter your password"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/50 hover:text-white/70 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
+                        </div>
 
-                <div className="mt-6 text-center">
-                    <p className="text-gray-600">
-                        New user?{" "}
+                        {/* Error Message */}
+                        {error && (
+                            <div className="flex items-center space-x-2 bg-red-500/20 border border-red-500/30 text-red-200 px-4 py-3 rounded-xl">
+                                <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                                <span className="text-sm">{error}</span>
+                            </div>
+                        )}
+
+                        {/* Success Message */}
+                        {success && (
+                            <div className="flex items-center space-x-2 bg-green-500/20 border border-green-500/30 text-green-200 px-4 py-3 rounded-xl">
+                                <CheckCircle className="h-5 w-5 flex-shrink-0" />
+                                <span className="text-sm">{success}</span>
+                            </div>
+                        )}
+
+                        {/* Login Button */}
                         <button
-                            onClick={() => router.push("/register")}
-                            className="text-blue-600 hover:text-blue-700 font-medium"
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
                         >
-                            Register here
+                            {loading ? (
+                                <div className="flex items-center justify-center space-x-2">
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <span>Signing in...</span>
+                                </div>
+                            ) : (
+                                "Sign In"
+                            )}
                         </button>
-                    </p>
+                    </form>
+
+                    {/* Register Link */}
+                    <div className="mt-6 text-center">
+                        <p className="text-white/70">
+                            New user?{" "}
+                            <button
+                                onClick={() => router.push("/register")}
+                                className="text-blue-300 hover:text-blue-200 font-medium transition-colors"
+                            >
+                                Register here
+                            </button>
+                        </p>
+                    </div>
                 </div>
 
-                <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-medium text-gray-900 mb-2">Demo Credentials:</h3>
-                    <p className="text-sm text-gray-600">Username: admin</p>
-                    <p className="text-sm text-gray-600">Password: admin123</p>
+                {/* Demo Credentials */}
+                <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+                    <h3 className="font-medium text-white/90 mb-3 text-center">Demo Credentials</h3>
+                    <div className="grid grid-cols-1 gap-3 text-sm">
+                        <div className="flex justify-between items-center">
+                            <span className="text-white/70">Admin:</span>
+                            <span className="text-white">admin@ssn.edu.in / admin123</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-white/70">COE:</span>
+                            <span className="text-white">coe@ssn.edu.in / coe123</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-white/70">Faculty:</span>
+                            <span className="text-white">faculty@ssn.edu.in / faculty123</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-white/70">Club:</span>
+                            <span className="text-white">club@ssn.edu.in / club123</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-white/70">Verifier:</span>
+                            <span className="text-white">verifier@external.com / verifier123</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Features */}
+                <div className="mt-6 grid grid-cols-3 gap-4 text-center">
+                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
+                        <Shield className="h-6 w-6 text-blue-300 mx-auto mb-2" />
+                        <p className="text-xs text-white/70">Secure</p>
+                    </div>
+                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
+                        <User className="h-6 w-6 text-purple-300 mx-auto mb-2" />
+                        <p className="text-xs text-white/70">Role-Based</p>
+                    </div>
+                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
+                        <Lock className="h-6 w-6 text-green-300 mx-auto mb-2" />
+                        <p className="text-xs text-white/70">Blockchain</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
