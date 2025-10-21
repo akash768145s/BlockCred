@@ -72,8 +72,10 @@ const AdminDashboard: React.FC = () => {
 
             if (response.ok) {
                 const data = await response.json();
+                console.log('Users API Response:', data);
                 // Ensure we have an array of users
                 const usersData = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+                console.log('Processed users data:', usersData);
                 setUsers(usersData);
             } else {
                 console.error('Failed to fetch users:', response.statusText);
@@ -304,13 +306,22 @@ const AdminDashboard: React.FC = () => {
                             <option value="student">Student</option>
                         </select>
                     </div>
-                    <button
-                        onClick={() => setShowCreateUser(true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create User
-                    </button>
+                    <div className="flex items-center space-x-2">
+                        <button
+                            onClick={() => fetchUsers()}
+                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center"
+                        >
+                            <Search className="h-4 w-4 mr-2" />
+                            Refresh
+                        </button>
+                        <button
+                            onClick={() => setShowCreateUser(true)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create User
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -487,6 +498,16 @@ const AdminDashboard: React.FC = () => {
                             <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
                                 SSN Main Administrator
                             </span>
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem('token');
+                                    localStorage.removeItem('user');
+                                    router.push('/login');
+                                }}
+                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                            >
+                                Logout
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -571,6 +592,9 @@ const CreateUserModal: React.FC<{
 
         try {
             const token = localStorage.getItem('token');
+            console.log('Creating user with data:', formData);
+            console.log('Using token:', token);
+
             const response = await fetch('http://localhost:8080/api/admin/onboard', {
                 method: 'POST',
                 headers: {
@@ -580,15 +604,18 @@ const CreateUserModal: React.FC<{
                 body: JSON.stringify(formData),
             });
 
+            const data = await response.json();
+            console.log('User creation response:', data);
+
             if (response.ok) {
+                alert('User created successfully!');
                 onUserCreated();
             } else {
-                const errorData = await response.json();
-                alert(`Error: ${errorData.message}`);
+                alert(`Error: ${data.message || 'Failed to create user'}`);
             }
         } catch (error) {
             console.error('Error creating user:', error);
-            alert('Failed to create user');
+            alert('Failed to create user. Please check if the backend server is running.');
         } finally {
             setLoading(false);
         }
