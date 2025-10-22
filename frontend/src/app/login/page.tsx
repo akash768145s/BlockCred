@@ -32,35 +32,42 @@ export default function LoginPage() {
             const data = await response.json();
 
             if (data.success) {
-                // Store user session with role information
-                localStorage.setItem("token", data.data.token);
+                const user = data.data?.user;
+                const token = data.data?.token;
+                if (!user || !token) {
+                    setError("Invalid server response.");
+                    setLoading(false);
+                    return;
+                }
+                // Store user session with role information (fallback role_name)
+                localStorage.setItem("token", token);
                 localStorage.setItem("user", JSON.stringify({
-                    id: data.data.user_id,
-                    role: data.data.role,
-                    role_name: data.data.role_name,
-                    permissions: data.data.permissions
+                    id: user.id,
+                    role: user.role,
+                    role_name: user.role || "user",
+                    permissions: [],
                 }));
 
                 setSuccess("Login successful! Redirecting...");
 
                 // Redirect based on role
                 setTimeout(() => {
-                    if (data.data.role === "ssn_main_admin") {
+                    if (user.role === "ssn_main_admin") {
                         router.push("/admin-dashboard");
-                    } else if (data.data.role === "coe") {
+                    } else if (user.role === "coe") {
                         router.push("/coe-dashboard");
-                    } else if (data.data.role === "department_faculty") {
+                    } else if (user.role === "department_faculty") {
                         router.push("/faculty-dashboard");
-                    } else if (data.data.role === "club_coordinator") {
+                    } else if (user.role === "club_coordinator") {
                         router.push("/club-dashboard");
-                    } else if (data.data.role === "external_verifier") {
+                    } else if (user.role === "external_verifier") {
                         router.push("/verifier-dashboard");
-                    } else if (data.data.role === "student") {
+                    } else if (user.role === "student") {
                         router.push("/student-dashboard");
                     } else {
                         router.push("/dashboard");
                     }
-                }, 1000);
+                }, 300);
             } else {
                 setError(data.message);
             }
@@ -190,32 +197,6 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {/* Demo Credentials */}
-                <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                    <h3 className="font-medium text-white/90 mb-3 text-center">Demo Credentials</h3>
-                    <div className="grid grid-cols-1 gap-3 text-sm">
-                        <div className="flex justify-between items-center">
-                            <span className="text-white/70">Admin:</span>
-                            <span className="text-white">admin@ssn.edu.in / admin123</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-white/70">COE:</span>
-                            <span className="text-white">coe@ssn.edu.in / coe123</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-white/70">Faculty:</span>
-                            <span className="text-white">faculty@ssn.edu.in / faculty123</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-white/70">Club:</span>
-                            <span className="text-white">club@ssn.edu.in / club123</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-white/70">Verifier:</span>
-                            <span className="text-white">verifier@external.com / verifier123</span>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Features */}
                 <div className="mt-6 grid grid-cols-3 gap-4 text-center">

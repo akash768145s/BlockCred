@@ -51,7 +51,7 @@ const VerifierDashboard: React.FC = () => {
     const fetchCredentials = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/verifier/credentials', {
+            const response = await fetch('http://localhost:8080/api/credentials', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -367,6 +367,16 @@ const VerifierDashboard: React.FC = () => {
                             <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
                                 External Verifier
                             </span>
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem('token');
+                                    localStorage.removeItem('user');
+                                    router.push('/login');
+                                }}
+                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                            >
+                                Logout
+                            </button>
                         </div>
                     </div>
                 </div>

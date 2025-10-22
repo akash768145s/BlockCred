@@ -92,7 +92,7 @@ const AdminDashboard: React.FC = () => {
     const fetchCredentials = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/credentials/all', {
+            const response = await fetch('http://localhost:8080/api/credentials', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -111,6 +111,30 @@ const AdminDashboard: React.FC = () => {
         } catch (error) {
             console.error('Error fetching credentials:', error);
             setCredentials([]);
+        }
+    };
+
+    const approveUser = async (userId: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8080/api/users/${userId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                await fetchUsers();
+            } else {
+                const data = await response.json().catch(() => ({}));
+                console.error('Failed to approve user:', data.message || response.statusText);
+                alert(`Failed to approve user: ${data.message || response.statusText}`);
+            }
+        } catch (error) {
+            console.error('Error approving user:', error);
+            alert('Error approving user.');
         }
     };
 
@@ -392,6 +416,15 @@ const AdminDashboard: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
+                                            {!user.is_approved && (
+                                                <button
+                                                    onClick={() => approveUser(user.id)}
+                                                    className="text-green-600 hover:text-green-900"
+                                                    title="Approve"
+                                                >
+                                                    <CheckCircle className="h-4 w-4" />
+                                                </button>
+                                            )}
                                             <button className="text-blue-600 hover:text-blue-900">
                                                 <Eye className="h-4 w-4" />
                                             </button>
