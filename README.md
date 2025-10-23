@@ -137,7 +137,7 @@ cd backend
 go mod init blockcred-backend
 go get github.com/gorilla/mux
 go get github.com/gorilla/handlers
-go run main-complete.go
+go run ./cmd/server/main.go
 ```
 
 ### Frontend Setup
