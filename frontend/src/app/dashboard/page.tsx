@@ -114,7 +114,7 @@ const Dashboard: React.FC = () => {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading dashboard...</p>
+                    <p className="mt-4 text-body text-gray-600">Loading dashboard...</p>
                 </div>
             </div>
         );
@@ -124,8 +124,8 @@ const Dashboard: React.FC = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-                    <p className="text-gray-600 mb-4">You need to be logged in to access this page.</p>
+                    <h1 className="text-h2 text-gray-900 mb-4">Access Denied</h1>
+                    <p className="text-body text-gray-600 mb-4">You need to be logged in to access this page.</p>
                     <button
                         onClick={() => router.push('/login')}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -146,12 +146,12 @@ const Dashboard: React.FC = () => {
                         <div className="flex items-center space-x-4">
                             {getRoleIcon(user.role)}
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Welcome to BlockCred</h1>
-                                <p className="text-gray-600">{getDashboardDescription(user.role)}</p>
+                                <h1 className="text-h2 text-gray-900">Welcome to BlockCred</h1>
+                                <p className="text-body text-gray-600">{getDashboardDescription(user.role)}</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
+                            <span className={`px-3 py-1 rounded-full text-small font-weight-medium ${getRoleColor(user.role)}`}>
                                 {user.role_name}
                             </span>
                             <button
@@ -175,10 +175,10 @@ const Dashboard: React.FC = () => {
                     <div className="mb-6">
                         {getRoleIcon(user.role)}
                     </div>
-                    <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                    <h2 className="text-h1 text-gray-900 mb-4">
                         Redirecting to {user.role_name} Dashboard...
                     </h2>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-body text-gray-600 mb-6">
                         You will be automatically redirected to your role-specific dashboard.
                     </p>
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>

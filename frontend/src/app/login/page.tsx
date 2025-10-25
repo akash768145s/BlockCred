@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, User, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { User, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import Image from "next/image";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
@@ -34,43 +35,53 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-20">
+        <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Subtle Background Pattern */}
+            <div className="absolute inset-0 opacity-5">
                 <div className="w-full h-full" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2306B6D4' fill-opacity='1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
                 }}></div>
             </div>
 
+            {/* Decorative Background Elements */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#06B6D4] opacity-5 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#06B6D4] opacity-5 rounded-full blur-3xl"></div>
+
             <div className="relative max-w-md w-full">
                 {/* Main Login Card */}
-                <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-8">
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4">
-                            <Shield className="w-8 h-8 text-white" />
+                        <div className="mb-2">
+                            <Image
+                                src="/logob.png"
+                                alt="BlockCred"
+                                width={300}
+                                height={300}
+                                className="mx-auto"
+                                priority
+                            />
                         </div>
-                        <h1 className="text-3xl font-bold text-white mb-2">BlockCred</h1>
-                        <p className="text-white/70">Secure Credential Management System</p>
+                        <p className="text-body text-[#64748B]">Secure Credential Management System</p>
                     </div>
 
                     {/* Login Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Username Field */}
                         <div className="space-y-2">
-                            <label htmlFor="username" className="block text-sm font-medium text-white/90">
+                            <label htmlFor="username" className="block text-small font-weight-medium text-[#1E293B]">
                                 Username or Email
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <User className="h-5 w-5 text-white/50" />
+                                    <User className="h-5 w-5 text-[#94A3B8]" />
                                 </div>
                                 <input
                                     type="text"
                                     id="username"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    className="w-full pl-10 pr-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all duration-200"
                                     placeholder="Enter your username or email"
                                     required
                                 />
@@ -79,26 +90,26 @@ export default function LoginPage() {
 
                         {/* Password Field */}
                         <div className="space-y-2">
-                            <label htmlFor="password" className="block text-sm font-medium text-white/90">
+                            <label htmlFor="password" className="block text-small font-weight-medium text-[#1E293B]">
                                 Password
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-white/50" />
+                                    <Lock className="h-5 w-5 text-[#94A3B8]" />
                                 </div>
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     id="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    className="w-full pl-10 pr-12 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all duration-200"
                                     placeholder="Enter your password"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/50 hover:text-white/70 transition-colors"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#94A3B8] hover:text-[#1E293B] transition-colors"
                                 >
                                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </button>
@@ -107,17 +118,17 @@ export default function LoginPage() {
 
                         {/* Error Message */}
                         {error && (
-                            <div className="flex items-center space-x-2 bg-red-500/20 border border-red-500/30 text-red-200 px-4 py-3 rounded-xl">
+                            <div className="flex items-center space-x-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                                 <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                                <span className="text-sm">{error}</span>
+                                <span className="text-small">{error}</span>
                             </div>
                         )}
 
                         {/* Success Message */}
                         {success && (
-                            <div className="flex items-center space-x-2 bg-green-500/20 border border-green-500/30 text-green-200 px-4 py-3 rounded-xl">
+                            <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
                                 <CheckCircle className="h-5 w-5 flex-shrink-0" />
-                                <span className="text-sm">{success}</span>
+                                <span className="text-small">{success}</span>
                             </div>
                         )}
 
@@ -125,7 +136,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                            className="w-full bg-[#06B6D4] text-white py-3 px-4 rounded-lg hover:bg-[#0891B2] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-weight-medium shadow-md hover:shadow-lg"
                         >
                             {loading ? (
                                 <div className="flex items-center justify-center space-x-2">
@@ -140,35 +151,18 @@ export default function LoginPage() {
 
                     {/* Register Link */}
                     <div className="mt-6 text-center">
-                        <p className="text-white/70">
+                        <p className="text-body text-[#64748B]">
                             New user?{" "}
                             <button
                                 onClick={() => router.push("/register")}
-                                className="text-blue-300 hover:text-blue-200 font-medium transition-colors"
+                                className="text-[#06B6D4] hover:text-[#0891B2] font-weight-medium transition-colors"
                             >
                                 Register here
                             </button>
                         </p>
                     </div>
                 </div>
-
-
-                {/* Features */}
-                <div className="mt-6 grid grid-cols-3 gap-4 text-center">
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
-                        <Shield className="h-6 w-6 text-blue-300 mx-auto mb-2" />
-                        <p className="text-xs text-white/70">Secure</p>
-                    </div>
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
-                        <User className="h-6 w-6 text-purple-300 mx-auto mb-2" />
-                        <p className="text-xs text-white/70">Role-Based</p>
-                    </div>
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
-                        <Lock className="h-6 w-6 text-green-300 mx-auto mb-2" />
-                        <p className="text-xs text-white/70">Blockchain</p>
-                    </div>
-                </div>
             </div>
-        </div >
+        </div>
     );
 }

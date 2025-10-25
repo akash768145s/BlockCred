@@ -67,9 +67,9 @@ export default function RegisterPage() {
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
             <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">BlockCred</h1>
-                    <p className="text-gray-600">Student Registration</p>
-                    <p className="text-sm text-gray-500 mt-2">
+                    <h1 className="text-h1 text-gray-900 mb-2">BlockCred</h1>
+                    <p className="text-body text-gray-600">Student Registration</p>
+                    <p className="text-small text-gray-500 mt-2">
                         Register to join the blockchain credential ecosystem
                     </p>
                 </div>
@@ -77,7 +77,7 @@ export default function RegisterPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="name" className="block text-small font-weight-medium text-gray-700 mb-2">
                                 Full Name *
                             </label>
                             <input
@@ -93,7 +93,7 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="email" className="block text-small font-weight-medium text-gray-700 mb-2">
                                 Email Address *
                             </label>
                             <input
@@ -109,7 +109,7 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="phone" className="block text-small font-weight-medium text-gray-700 mb-2">
                                 Phone Number *
                             </label>
                             <input
@@ -125,7 +125,7 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="password" className="block text-small font-weight-medium text-gray-700 mb-2">
                                 Password *
                             </label>
                             <input
@@ -141,7 +141,7 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="tenth_marks" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="tenth_marks" className="block text-small font-weight-medium text-gray-700 mb-2">
                                 10th Grade Marks (%) *
                             </label>
                             <input
@@ -159,7 +159,7 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="school_name" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="school_name" className="block text-small font-weight-medium text-gray-700 mb-2">
                                 School Name *
                             </label>
                             <input
@@ -175,7 +175,7 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="passing_year" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="passing_year" className="block text-small font-weight-medium text-gray-700 mb-2">
                                 Passing Year *
                             </label>
                             <input
@@ -208,18 +208,18 @@ export default function RegisterPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                        className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-weight-medium"
                     >
                         {loading ? "Registering..." : "Register"}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center">
-                    <p className="text-gray-600">
+                    <p className="text-body text-gray-600">
                         Already have an account?{" "}
                         <button
                             onClick={() => router.push("/login")}
-                            className="text-green-600 hover:text-green-700 font-medium"
+                            className="text-green-600 hover:text-green-700 font-weight-medium"
                         >
                             Login here
                         </button>
@@ -227,8 +227,8 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-                    <h3 className="font-medium text-gray-900 mb-2">How it works:</h3>
-                    <ol className="text-sm text-gray-600 space-y-1">
+                    <h3 className="font-weight-medium text-gray-900 mb-2">How it works:</h3>
+                    <ol className="text-small text-gray-600 space-y-1">
                         <li>1. Fill out the registration form with your 10th marksheet details</li>
                         <li>2. A unique Student ID will be generated based on your information</li>
                         <li>3. Admin will review and approve your registration</li>
