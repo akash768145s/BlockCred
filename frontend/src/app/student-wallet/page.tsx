@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React from 'react';
 import {
     Shield,
     FileText,
@@ -20,130 +19,44 @@ import {
     ExternalLink,
     Verified
 } from 'lucide-react';
-
-interface Credential {
-    id: number;
-    type: string;
-    title: string;
-    student_id: string;
-    student_name: string;
-    issued_by: string;
-    issued_date: string;
-    status: string;
-    description: string;
-    blockchain_hash?: string;
-    verification_url?: string;
-}
-
-interface StudentProfile {
-    id: number;
-    name: string;
-    student_id: string;
-    email: string;
-    department: string;
-    semester: string;
-    graduation_year: string;
-    is_verified: boolean;
-}
+import { useStudentWallet } from '@/hooks/useStudentWallet';
+import { getCredentialIcon, getCredentialColor, getStatusIcon, formatDate } from '@/lib/utils';
 
 const StudentWallet: React.FC = () => {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const [credentials, setCredentials] = useState<Credential[]>([]);
-    const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [shareUrl, setShareUrl] = useState('');
-    const [showQR, setShowQR] = useState(false);
-    const [copied, setCopied] = useState(false);
+    const {
+        data,
+        loading,
+        error,
+        shareUrl,
+        showQR,
+        copied,
+        handleCopyToClipboard,
+        toggleQR,
+        goBackToDashboard,
+    } = useStudentWallet();
 
-    useEffect(() => {
-        const studentId = searchParams.get('id') || localStorage.getItem('student_id');
-        if (studentId) {
-            fetchStudentData(studentId);
-            generateShareUrl(studentId);
-        } else {
-            // If no student ID, redirect to login
-            router.push('/login');
-        }
-    }, [searchParams, router]);
-
-    const fetchStudentData = async (studentId: string) => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8080/api/student/${studentId}/credentials`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setCredentials(data.data?.credentials || []);
-                setStudentProfile(data.data?.profile || null);
-            }
-        } catch (error) {
-            console.error('Error fetching student data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const generateShareUrl = (studentId: string) => {
-        const baseUrl = window.location.origin;
-        const url = `${baseUrl}/student-wallet?id=${studentId}`;
-        setShareUrl(url);
-    };
-
-    const copyToClipboard = async () => {
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch (error) {
-            console.error('Failed to copy:', error);
-        }
-    };
-
-    const getCredentialIcon = (type: string) => {
-        switch (type) {
-            case 'marksheet':
+    const getCredentialIconComponent = (type: string) => {
+        const iconName = getCredentialIcon(type);
+        switch (iconName) {
+            case 'FileText':
                 return <FileText className="h-6 w-6 text-blue-600" />;
-            case 'degree':
+            case 'GraduationCap':
                 return <GraduationCap className="h-6 w-6 text-green-600" />;
-            case 'noc':
+            case 'Shield':
                 return <Shield className="h-6 w-6 text-yellow-600" />;
-            case 'bonafide':
-                return <FileText className="h-6 w-6 text-purple-600" />;
-            case 'participation_cert':
+            case 'Award':
                 return <Award className="h-6 w-6 text-pink-600" />;
             default:
                 return <FileText className="h-6 w-6 text-gray-600" />;
         }
     };
 
-    const getCredentialColor = (type: string) => {
-        switch (type) {
-            case 'marksheet':
-                return 'bg-blue-100 text-blue-800';
-            case 'degree':
-                return 'bg-green-100 text-green-800';
-            case 'noc':
-                return 'bg-yellow-100 text-yellow-800';
-            case 'bonafide':
-                return 'bg-purple-100 text-purple-800';
-            case 'participation_cert':
-                return 'bg-pink-100 text-pink-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
-        }
-    };
-
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'verified':
+    const getStatusIconComponent = (status: string) => {
+        const iconName = getStatusIcon(status);
+        switch (iconName) {
+            case 'CheckCircle':
                 return <CheckCircle className="h-5 w-5 text-green-500" />;
-            case 'issued':
+            case 'Clock':
                 return <Clock className="h-5 w-5 text-yellow-500" />;
             default:
                 return <Clock className="h-5 w-5 text-gray-500" />;
@@ -157,24 +70,24 @@ const StudentWallet: React.FC = () => {
                     <User className="h-8 w-8 text-white" />
                 </div>
                 <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-gray-900">{studentProfile?.name}</h2>
-                    <p className="text-gray-600">{studentProfile?.student_id}</p>
-                    <p className="text-sm text-gray-500">{studentProfile?.email}</p>
+                    <h2 className="text-2xl font-bold text-gray-900">{data?.profile?.name}</h2>
+                    <p className="text-gray-600">{data?.profile?.student_id}</p>
+                    <p className="text-sm text-gray-500">{data?.profile?.email}</p>
                 </div>
                 <div className="text-right">
                     <div className="flex items-center space-x-2 mb-2">
-                        {studentProfile?.is_verified ? (
+                        {data?.profile?.is_verified ? (
                             <Verified className="h-5 w-5 text-green-500" />
                         ) : (
                             <Clock className="h-5 w-5 text-yellow-500" />
                         )}
-                        <span className={`text-sm font-medium ${studentProfile?.is_verified ? 'text-green-600' : 'text-yellow-600'
+                        <span className={`text-sm font-medium ${data?.profile?.is_verified ? 'text-green-600' : 'text-yellow-600'
                             }`}>
-                            {studentProfile?.is_verified ? 'Verified Student' : 'Pending Verification'}
+                            {data?.profile?.is_verified ? 'Verified Student' : 'Pending Verification'}
                         </span>
                     </div>
-                    <p className="text-sm text-gray-500">{studentProfile?.department}</p>
-                    <p className="text-sm text-gray-500">Semester {studentProfile?.semester}</p>
+                    <p className="text-sm text-gray-500">{data?.profile?.department}</p>
+                    <p className="text-sm text-gray-500">Semester {data?.profile?.semester}</p>
                 </div>
             </div>
         </div>
@@ -192,14 +105,14 @@ const StudentWallet: React.FC = () => {
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
                     />
                     <button
-                        onClick={copyToClipboard}
+                        onClick={handleCopyToClipboard}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
                     >
                         <Copy className="h-4 w-4" />
                         <span>{copied ? 'Copied!' : 'Copy'}</span>
                     </button>
                     <button
-                        onClick={() => setShowQR(!showQR)}
+                        onClick={toggleQR}
                         className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors flex items-center space-x-2"
                     >
                         <QrCode className="h-4 w-4" />
@@ -229,7 +142,7 @@ const StudentWallet: React.FC = () => {
     const renderCredentials = () => (
         <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Academic Credentials</h3>
-            {credentials.length === 0 ? (
+            {(!data?.credentials || data.credentials.length === 0) ? (
                 <div className="bg-white rounded-lg shadow-md border p-8 text-center">
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h4 className="text-lg font-medium text-gray-900 mb-2">No Credentials Yet</h4>
@@ -237,12 +150,12 @@ const StudentWallet: React.FC = () => {
                 </div>
             ) : (
                 <div className="grid gap-4">
-                    {credentials.map((credential) => (
+                    {data.credentials.map((credential) => (
                         <div key={credential.id} className="bg-white rounded-lg shadow-md border p-6">
                             <div className="flex items-start justify-between">
                                 <div className="flex items-start space-x-4">
                                     <div className="flex-shrink-0">
-                                        {getCredentialIcon(credential.type)}
+                                        {getCredentialIconComponent(credential.type)}
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-center space-x-2 mb-2">
@@ -254,20 +167,20 @@ const StudentWallet: React.FC = () => {
                                         <p className="text-gray-600 mb-2">{credential.description}</p>
                                         <div className="flex items-center space-x-4 text-sm text-gray-500">
                                             <span>Issued by: {credential.issued_by}</span>
-                                            <span>Date: {new Date(credential.issued_date).toLocaleDateString()}</span>
+                                            <span>Date: {formatDate(credential.issued_date)}</span>
                                         </div>
-                                        {credential.blockchain_hash && (
+                                        {credential.blockchain_tx && (
                                             <div className="mt-2 text-xs text-gray-500">
-                                                <span className="font-medium">Blockchain Hash:</span> {credential.blockchain_hash.substring(0, 20)}...
+                                                <span className="font-medium">Blockchain TX:</span> {credential.blockchain_tx.substring(0, 20)}...
                                             </div>
                                         )}
                                     </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    {getStatusIcon(credential.status)}
+                                    {getStatusIconComponent(credential.status)}
                                     <span className={`text-sm font-medium ${credential.status === 'verified' ? 'text-green-600' :
-                                            credential.status === 'issued' ? 'text-yellow-600' :
-                                                'text-gray-600'
+                                        credential.status === 'issued' ? 'text-yellow-600' :
+                                            'text-gray-600'
                                         }`}>
                                         {credential.status}
                                     </span>
@@ -284,9 +197,9 @@ const StudentWallet: React.FC = () => {
                                         <span>Download</span>
                                     </button>
                                 </div>
-                                {credential.verification_url && (
+                                {credential.blockchain_tx && (
                                     <a
-                                        href={credential.verification_url}
+                                        href={`https://etherscan.io/tx/${credential.blockchain_tx}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-purple-600 hover:text-purple-800 flex items-center space-x-1"
@@ -329,7 +242,7 @@ const StudentWallet: React.FC = () => {
                         </div>
                         <div className="flex items-center space-x-4">
                             <button
-                                onClick={() => router.push('/student-dashboard')}
+                                onClick={goBackToDashboard}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                             >
                                 Back to Dashboard
@@ -341,7 +254,7 @@ const StudentWallet: React.FC = () => {
 
             {/* Main Content */}
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {studentProfile && renderProfile()}
+                {data?.profile && renderProfile()}
                 {renderShareSection()}
                 {renderCredentials()}
             </div>

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"sync"
 	"time"
 	"blockcred-backend/internal/models"
@@ -75,4 +76,20 @@ func (s *MemoryStore) ListCredentials() []models.Credential {
 	out := make([]models.Credential, len(s.credentials))
 	copy(out, s.credentials)
 	return out
+}
+
+func (s *MemoryStore) UpdateUser(userID int, updates models.User) (models.User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	for i, user := range s.users {
+		if user.ID == userID {
+			// Update the user with new values
+			updates.ID = user.ID
+			updates.CreatedAt = user.CreatedAt
+			s.users[i] = updates
+			return updates, nil
+		}
+	}
+	return models.User{}, fmt.Errorf("user not found")
 }

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BlockCred Admin Dashboard",
+  title: "BlockCred",
   description: "Blockchain-based credential management system",
 };
 

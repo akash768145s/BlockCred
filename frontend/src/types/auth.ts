@@ -92,6 +92,8 @@ export interface Credential {
     type: string;
     title: string;
     institution: string;
+    student_id?: string;
+    student_name?: string;
     department?: string;
     semester?: string;
     subject?: string;

@@ -552,7 +552,7 @@ const IssueCertificateModal: React.FC<{
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/club/issue-participation-cert', {
+            const response = await fetch('http://localhost:8080/api/credentials/issue', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

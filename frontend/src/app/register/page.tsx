@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -16,7 +17,9 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
     const router = useRouter();
+    const { register } = useAuth();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
@@ -31,45 +34,33 @@ export default function RegisterPage() {
         setError("");
         setSuccess("");
 
-        try {
-            const response = await fetch("http://localhost:8080/api/register", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    name: formData.name,
-                    email: formData.email,
-                    phone: formData.phone,
-                    password: formData.password,
-                    tenth_marks: parseInt(formData.tenth_marks),
-                    school_name: formData.school_name,
-                    passing_year: parseInt(formData.passing_year),
-                }),
+        const result = await register({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            password: formData.password,
+            tenth_marks: parseInt(formData.tenth_marks),
+            school_name: formData.school_name,
+            passing_year: parseInt(formData.passing_year),
+        });
+
+        if (result.success) {
+            setSuccess(result.message);
+            // Reset form
+            setFormData({
+                name: "",
+                email: "",
+                phone: "",
+                password: "",
+                tenth_marks: "",
+                school_name: "",
+                passing_year: "",
             });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setSuccess(`Registration successful! Your Student ID: ${data.data.student_id}. Awaiting admin approval.`);
-                // Reset form
-                setFormData({
-                    name: "",
-                    email: "",
-                    phone: "",
-                    password: "",
-                    tenth_marks: "",
-                    school_name: "",
-                    passing_year: "",
-                });
-            } else {
-                setError(data.message);
-            }
-        } catch (err) {
-            setError("Connection error. Please ensure the backend server is running.");
-        } finally {
-            setLoading(false);
+        } else {
+            setError(result.message);
         }
+
+        setLoading(false);
     };
 
     return (

@@ -544,7 +544,7 @@ const IssueCredentialModal: React.FC<{
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/coe/issue-marksheet', {
+            const response = await fetch('http://localhost:8080/api/credentials/issue', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

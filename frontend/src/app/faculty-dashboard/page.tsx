@@ -553,11 +553,9 @@ const IssueCertificateModal: React.FC<{
 
         try {
             const token = localStorage.getItem('token');
-            const endpoint = formData.type === 'noc'
-                ? 'http://localhost:8080/api/faculty/issue-noc'
-                : 'http://localhost:8080/api/faculty/issue-bonafide';
 
-            const response = await fetch(endpoint, {
+            // Use the correct endpoint that exists in the backend
+            const response = await fetch('http://localhost:8080/api/credentials/issue', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -567,14 +565,28 @@ const IssueCertificateModal: React.FC<{
             });
 
             if (response.ok) {
-                onCertificateIssued();
+                const data = await response.json();
+                if (data.success) {
+                    alert('Certificate issued successfully!');
+                    onCertificateIssued();
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
             } else {
-                const errorData = await response.json();
-                alert(`Error: ${errorData.message}`);
+                // Handle non-JSON responses (like 404 HTML pages)
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    alert(`Error: ${errorData.message}`);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Non-JSON response:', errorText);
+                    alert(`Server error: ${response.status} ${response.statusText}`);
+                }
             }
         } catch (error) {
             console.error('Error issuing certificate:', error);
-            alert('Failed to issue certificate');
+            alert('Failed to issue certificate. Please check if the backend server is running.');
         } finally {
             setLoading(false);
         }

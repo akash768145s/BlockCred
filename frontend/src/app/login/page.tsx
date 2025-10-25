@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shield, User, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
@@ -11,7 +12,9 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
     const router = useRouter();
+    const { login } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -19,63 +22,15 @@ export default function LoginPage() {
         setError("");
         setSuccess("");
 
-        try {
-            // Try enhanced login first (supports all roles)
-            const response = await fetch(`http://localhost:8080/api/login`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ username, password }),
-            });
+        const result = await login({ username, password });
 
-            const data = await response.json();
-
-            if (data.success) {
-                const user = data.data?.user;
-                const token = data.data?.token;
-                if (!user || !token) {
-                    setError("Invalid server response.");
-                    setLoading(false);
-                    return;
-                }
-                // Store user session with role information (fallback role_name)
-                localStorage.setItem("token", token);
-                localStorage.setItem("user", JSON.stringify({
-                    id: user.id,
-                    role: user.role,
-                    role_name: user.role || "user",
-                    permissions: [],
-                }));
-
-                setSuccess("Login successful! Redirecting...");
-
-                // Redirect based on role
-                setTimeout(() => {
-                    if (user.role === "ssn_main_admin") {
-                        router.push("/admin-dashboard");
-                    } else if (user.role === "coe") {
-                        router.push("/coe-dashboard");
-                    } else if (user.role === "department_faculty") {
-                        router.push("/faculty-dashboard");
-                    } else if (user.role === "club_coordinator") {
-                        router.push("/club-dashboard");
-                    } else if (user.role === "external_verifier") {
-                        router.push("/verifier-dashboard");
-                    } else if (user.role === "student") {
-                        router.push("/student-dashboard");
-                    } else {
-                        router.push("/dashboard");
-                    }
-                }, 300);
-            } else {
-                setError(data.message);
-            }
-        } catch (err) {
-            setError("Connection error. Please ensure the backend server is running.");
-        } finally {
-            setLoading(false);
+        if (result.success) {
+            setSuccess(result.message);
+        } else {
+            setError(result.message);
         }
+
+        setLoading(false);
     };
 
     return (

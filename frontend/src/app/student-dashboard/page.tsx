@@ -1,72 +1,68 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-interface Certificate {
-    id: number;
-    type: string;
-    title: string;
-    institution: string;
-    issued_date: string;
-    status: string;
-    description: string;
-}
-
-interface Student {
-    id: number;
-    name: string;
-    email: string;
-    phone: string;
-    student_id: string;
-    tenth_marks: number;
-    school_name: string;
-    passing_year: number;
-    is_approved: boolean;
-    node_assigned: boolean;
-    created_at: string;
-    certificates: Certificate[];
-}
+import { useAuth } from "@/hooks/useAuth";
+import { useStudentData } from "@/hooks/useApi";
 
 export default function StudentDashboard() {
-    const [student, setStudent] = useState<Student | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const router = useRouter();
+    const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
+    const { student, loading, error, fetchStudentData } = useStudentData(user?.id || null);
 
+    // Handle redirects in useEffect to avoid setState during render
     useEffect(() => {
-        // Check if student is logged in
-        const session = localStorage.getItem("student_session");
-        if (!session) {
-            router.push("/login");
+        console.log('useEffect running:', {
+            authLoading,
+            isAuthenticated: isAuthenticated(),
+            userRole: user?.role,
+            userId: user?.id
+        });
+
+        // Wait for auth to finish loading
+        if (authLoading) {
+            console.log('Auth still loading, waiting...');
             return;
         }
 
-        const sessionData = JSON.parse(session);
-        fetchStudentData(sessionData.user_id);
-    }, [router]);
-
-    const fetchStudentData = async (userId: number) => {
-        try {
-            const response = await fetch(`http://localhost:8080/api/student/${userId}`);
-            const data = await response.json();
-
-            if (data.success) {
-                setStudent(data.data);
-            } else {
-                setError(data.message);
-            }
-        } catch (err) {
-            setError("Failed to fetch student data");
-        } finally {
-            setLoading(false);
+        if (!isAuthenticated()) {
+            console.log('Not authenticated, redirecting to login');
+            router.push('/login');
+            return;
         }
-    };
 
-    const logout = () => {
-        localStorage.removeItem("student_session");
-        router.push("/login");
-    };
+        if (user && user.role !== 'student') {
+            console.log('User is not a student, redirecting to login');
+            router.push('/login');
+            return;
+        }
+
+        console.log('All checks passed, staying on dashboard');
+    }, [authLoading, isAuthenticated, user, router]);
+
+    // Show loading while checking authentication
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading authentication...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Show loading while checking authentication
+    if (!user || !isAuthenticated()) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Checking authentication...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
@@ -84,6 +80,12 @@ export default function StudentDashboard() {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-red-600 mb-4">{error || "Student not found"}</p>
+                    <div className="text-sm text-gray-500 mb-4">
+                        <p>Debug Info:</p>
+                        <p>User ID: {user?.id}</p>
+                        <p>User Role: {user?.role}</p>
+                        <p>Loading: {loading.toString()}</p>
+                    </div>
                     <button
                         onClick={() => router.push("/login")}
                         className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
@@ -202,7 +204,7 @@ export default function StudentDashboard() {
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-600">Total Certificates</span>
                                     <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                                        {student.certificates.length}
+                                        {student.certificates?.length || 0}
                                     </span>
                                 </div>
                             </div>
@@ -232,7 +234,7 @@ export default function StudentDashboard() {
                         </button>
                     </div>
 
-                    {student.certificates.length === 0 ? (
+                    {(!student.certificates || student.certificates.length === 0) ? (
                         <div className="bg-white rounded-lg shadow p-8 text-center">
                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,7 +248,7 @@ export default function StudentDashboard() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {student.certificates.map((certificate) => (
+                            {(student.certificates || []).map((certificate) => (
                                 <div key={certificate.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6">
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex-1">
@@ -254,8 +256,8 @@ export default function StudentDashboard() {
                                             <p className="text-sm text-gray-600">{certificate.institution}</p>
                                         </div>
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${certificate.status === 'issued'
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-yellow-100 text-yellow-800'
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-yellow-100 text-yellow-800'
                                             }`}>
                                             {certificate.status}
                                         </span>

@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import {
     Users,
     UserPlus,
@@ -20,178 +19,38 @@ import {
     XCircle,
     Clock
 } from 'lucide-react';
-
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    role: string;
-    department?: string;
-    institution?: string;
-    club_name?: string;
-    is_active: boolean;
-    is_approved: boolean;
-    created_at: string;
-}
-
-interface Credential {
-    id: number;
-    type: string;
-    title: string;
-    student_id: string;
-    student_name: string;
-    issued_by: string;
-    issued_date: string;
-    status: string;
-}
+import { useAuth } from '@/hooks/useAuth';
+import { useUsers, useCredentials, useDashboardStats } from '@/hooks/useApi';
+import { getRoleIcon, getRoleDisplayName, getRoleColor, formatDate } from '@/lib/utils';
 
 const AdminDashboard: React.FC = () => {
-    const router = useRouter();
     const [activeTab, setActiveTab] = useState('overview');
-    const [users, setUsers] = useState<User[]>([]);
-    const [credentials, setCredentials] = useState<Credential[]>([]);
-    const [loading, setLoading] = useState(true);
     const [showCreateUser, setShowCreateUser] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
 
-    useEffect(() => {
-        fetchUsers();
-        fetchCredentials();
-    }, []);
+    const { logout } = useAuth();
+    const { users, loading: usersLoading, error: usersError, approveUser } = useUsers();
+    const { credentials, loading: credentialsLoading, error: credentialsError } = useCredentials();
+    const { stats, loading: statsLoading, error: statsError } = useDashboardStats();
 
-    const fetchUsers = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/users', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Users API Response:', data);
-                // Ensure we have an array of users
-                const usersData = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-                console.log('Processed users data:', usersData);
-                setUsers(usersData);
-            } else {
-                console.error('Failed to fetch users:', response.statusText);
-                setUsers([]);
-            }
-        } catch (error) {
-            console.error('Error fetching users:', error);
-            setUsers([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchCredentials = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/credentials', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                // Ensure we have an array of credentials
-                const credentialsData = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-                setCredentials(credentialsData);
-            } else {
-                console.error('Failed to fetch credentials:', response.statusText);
-                setCredentials([]);
-            }
-        } catch (error) {
-            console.error('Error fetching credentials:', error);
-            setCredentials([]);
-        }
-    };
-
-    const approveUser = async (userId: number) => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8080/api/users/${userId}/approve`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                await fetchUsers();
-            } else {
-                const data = await response.json().catch(() => ({}));
-                console.error('Failed to approve user:', data.message || response.statusText);
-                alert(`Failed to approve user: ${data.message || response.statusText}`);
-            }
-        } catch (error) {
-            console.error('Error approving user:', error);
-            alert('Error approving user.');
-        }
-    };
-
-    const getRoleIcon = (role: string) => {
-        switch (role) {
-            case 'ssn_main_admin':
+    const getRoleIconComponent = (role: string) => {
+        const iconName = getRoleIcon(role as any);
+        switch (iconName) {
+            case 'Shield':
                 return <Shield className="h-5 w-5 text-red-500" />;
-            case 'coe':
+            case 'FileText':
                 return <FileText className="h-5 w-5 text-blue-500" />;
-            case 'department_faculty':
+            case 'GraduationCap':
                 return <GraduationCap className="h-5 w-5 text-green-500" />;
-            case 'club_coordinator':
+            case 'Award':
                 return <Award className="h-5 w-5 text-purple-500" />;
-            case 'external_verifier':
+            case 'Eye':
                 return <Eye className="h-5 w-5 text-yellow-500" />;
-            case 'student':
+            case 'Users':
                 return <Users className="h-5 w-5 text-gray-500" />;
             default:
                 return <Users className="h-5 w-5 text-gray-500" />;
-        }
-    };
-
-    const getRoleDisplayName = (role: string) => {
-        switch (role) {
-            case 'ssn_main_admin':
-                return 'SSN Main Admin';
-            case 'coe':
-                return 'Controller of Examinations';
-            case 'department_faculty':
-                return 'Department Faculty';
-            case 'club_coordinator':
-                return 'Club Coordinator';
-            case 'external_verifier':
-                return 'External Verifier';
-            case 'student':
-                return 'Student';
-            default:
-                return role;
-        }
-    };
-
-    const getRoleColor = (role: string) => {
-        switch (role) {
-            case 'ssn_main_admin':
-                return 'bg-red-100 text-red-800';
-            case 'coe':
-                return 'bg-blue-100 text-blue-800';
-            case 'department_faculty':
-                return 'bg-green-100 text-green-800';
-            case 'club_coordinator':
-                return 'bg-purple-100 text-purple-800';
-            case 'external_verifier':
-                return 'bg-yellow-100 text-yellow-800';
-            case 'student':
-                return 'bg-gray-100 text-gray-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
         }
     };
 
@@ -202,97 +61,102 @@ const AdminDashboard: React.FC = () => {
         return matchesSearch && matchesRole;
     });
 
-    const stats = {
-        totalUsers: Array.isArray(users) ? users.length : 0,
-        pendingApproval: Array.isArray(users) ? users.filter(u => !u.is_approved).length : 0,
-        activeUsers: Array.isArray(users) ? users.filter(u => u.is_active).length : 0,
-        totalCredentials: Array.isArray(credentials) ? credentials.length : 0,
-        issuedToday: Array.isArray(credentials) ? credentials.filter(c => {
-            const today = new Date().toISOString().split('T')[0];
-            return c.issued_date === today;
-        }).length : 0
-    };
+    const loading = usersLoading || credentialsLoading || statsLoading;
 
     const renderOverview = () => (
         <div className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-md border">
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white">
                     <div className="flex items-center">
-                        <Users className="h-8 w-8 text-blue-600" />
+                        <div className="p-3 bg-white bg-opacity-20 rounded-lg">
+                            <Users className="h-8 w-8" />
+                        </div>
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Total Users</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
+                            <p className="text-sm font-medium opacity-90">Total Users</p>
+                            <p className="text-3xl font-bold">{stats?.total_users || 0}</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
+                <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-6 rounded-xl shadow-lg text-white">
                     <div className="flex items-center">
-                        <Clock className="h-8 w-8 text-yellow-600" />
+                        <div className="p-3 bg-white bg-opacity-20 rounded-lg">
+                            <Clock className="h-8 w-8" />
+                        </div>
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Pending Approval</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.pendingApproval}</p>
+                            <p className="text-sm font-medium opacity-90">Pending Approval</p>
+                            <p className="text-3xl font-bold">{stats?.pending_users || 0}</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
+                <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white">
                     <div className="flex items-center">
-                        <CheckCircle className="h-8 w-8 text-green-600" />
+                        <div className="p-3 bg-white bg-opacity-20 rounded-lg">
+                            <CheckCircle className="h-8 w-8" />
+                        </div>
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Active Users</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.activeUsers}</p>
+                            <p className="text-sm font-medium opacity-90">Active Users</p>
+                            <p className="text-3xl font-bold">{(stats?.total_users || 0) - (stats?.pending_users || 0)}</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
+                <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white">
                     <div className="flex items-center">
-                        <FileText className="h-8 w-8 text-purple-600" />
+                        <div className="p-3 bg-white bg-opacity-20 rounded-lg">
+                            <FileText className="h-8 w-8" />
+                        </div>
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Total Credentials</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalCredentials}</p>
+                            <p className="text-sm font-medium opacity-90">Total Credentials</p>
+                            <p className="text-3xl font-bold">{stats?.total_credentials || 0}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white p-6 rounded-lg shadow-md border">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <button
                         onClick={() => setShowCreateUser(true)}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="group p-6 border-2 border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-lg transition-all duration-200 text-left bg-gradient-to-br from-white to-blue-50"
                     >
-                        <div className="flex items-center mb-2">
-                            <UserPlus className="h-5 w-5 text-blue-600" />
-                            <span className="ml-2 font-medium text-gray-900">Create COE</span>
+                        <div className="flex items-center mb-3">
+                            <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                                <UserPlus className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <span className="ml-3 font-semibold text-gray-900">Create COE</span>
                         </div>
-                        <p className="text-sm text-gray-600">Add new Controller of Examinations</p>
+                        <p className="text-sm text-gray-600 group-hover:text-gray-700">Add new Controller of Examinations</p>
                     </button>
 
                     <button
                         onClick={() => setShowCreateUser(true)}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="group p-6 border-2 border-gray-200 rounded-xl hover:border-green-300 hover:shadow-lg transition-all duration-200 text-left bg-gradient-to-br from-white to-green-50"
                     >
-                        <div className="flex items-center mb-2">
-                            <GraduationCap className="h-5 w-5 text-green-600" />
-                            <span className="ml-2 font-medium text-gray-900">Create Faculty</span>
+                        <div className="flex items-center mb-3">
+                            <div className="p-3 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
+                                <GraduationCap className="h-6 w-6 text-green-600" />
+                            </div>
+                            <span className="ml-3 font-semibold text-gray-900">Create Faculty</span>
                         </div>
-                        <p className="text-sm text-gray-600">Add new Department Faculty</p>
+                        <p className="text-sm text-gray-600 group-hover:text-gray-700">Add new Department Faculty</p>
                     </button>
 
                     <button
                         onClick={() => setShowCreateUser(true)}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="group p-6 border-2 border-gray-200 rounded-xl hover:border-purple-300 hover:shadow-lg transition-all duration-200 text-left bg-gradient-to-br from-white to-purple-50"
                     >
-                        <div className="flex items-center mb-2">
-                            <Award className="h-5 w-5 text-purple-600" />
-                            <span className="ml-2 font-medium text-gray-900">Create Club Coordinator</span>
+                        <div className="flex items-center mb-3">
+                            <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                                <Award className="h-6 w-6 text-purple-600" />
+                            </div>
+                            <span className="ml-3 font-semibold text-gray-900">Create Club Coordinator</span>
                         </div>
-                        <p className="text-sm text-gray-600">Add new Club Coordinator</p>
+                        <p className="text-sm text-gray-600 group-hover:text-gray-700">Add new Club Coordinator</p>
                     </button>
                 </div>
             </div>
@@ -332,7 +196,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                         <button
-                            onClick={() => fetchUsers()}
+                            onClick={() => window.location.reload()}
                             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center"
                         >
                             <Search className="h-4 w-4 mr-2" />
@@ -382,7 +246,7 @@ const AdminDashboard: React.FC = () => {
                                         <div className="flex items-center">
                                             <div className="flex-shrink-0 h-10 w-10">
                                                 <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                                    {getRoleIcon(user.role)}
+                                                    {getRoleIconComponent(user.role)}
                                                 </div>
                                             </div>
                                             <div className="ml-4">
@@ -412,27 +276,43 @@ const AdminDashboard: React.FC = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(user.created_at).toLocaleDateString()}
+                                        {formatDate(user.created_at)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
                                             {!user.is_approved && (
                                                 <button
                                                     onClick={() => approveUser(user.id)}
-                                                    className="text-green-600 hover:text-green-900"
-                                                    title="Approve"
+                                                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                                                    title="Approve User"
                                                 >
-                                                    <CheckCircle className="h-4 w-4" />
+                                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                                    Approve
                                                 </button>
                                             )}
-                                            <button className="text-blue-600 hover:text-blue-900">
-                                                <Eye className="h-4 w-4" />
+                                            {user.is_approved && (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                                    Approved
+                                                </span>
+                                            )}
+                                            <button
+                                                className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                                title="View Details"
+                                            >
+                                                <Eye className="h-3 w-3" />
                                             </button>
-                                            <button className="text-gray-600 hover:text-gray-900">
-                                                <Edit className="h-4 w-4" />
+                                            <button
+                                                className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                                title="Edit User"
+                                            >
+                                                <Edit className="h-3 w-3" />
                                             </button>
-                                            <button className="text-red-600 hover:text-red-900">
-                                                <Trash2 className="h-4 w-4" />
+                                            <button
+                                                className="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                                title="Delete User"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
                                             </button>
                                         </div>
                                     </td>
@@ -478,13 +358,13 @@ const AdminDashboard: React.FC = () => {
                                         <div className="text-sm text-gray-500">{credential.type}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.student_name}
+                                        {credential.student_id}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {credential.issued_by}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(credential.issued_date).toLocaleDateString()}
+                                        {formatDate(credential.issued_date)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${credential.status === 'issued' ? 'bg-green-100 text-green-800' :
@@ -517,27 +397,25 @@ const AdminDashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <div className="bg-white shadow-sm border-b">
+            <div className="bg-gradient-to-r from-gray-900 to-gray-800 shadow-xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
+                    <div className="flex justify-between items-center py-8">
                         <div className="flex items-center space-x-4">
-                            <Shield className="h-8 w-8 text-red-600" />
+                            <div className="p-3 bg-red-500 rounded-xl shadow-lg">
+                                <Shield className="h-8 w-8 text-white" />
+                            </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-                                <p className="text-gray-600">Manage users and credentials</p>
+                                <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+                                <p className="text-gray-300 text-lg">Manage users and credentials</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            <span className="px-4 py-2 rounded-full text-sm font-semibold bg-red-500 text-white shadow-lg">
                                 SSN Main Administrator
                             </span>
                             <button
-                                onClick={() => {
-                                    localStorage.removeItem('token');
-                                    localStorage.removeItem('user');
-                                    router.push('/login');
-                                }}
-                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                                onClick={logout}
+                                className="px-6 py-3 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
                             >
                                 Logout
                             </button>
@@ -547,35 +425,44 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="bg-white border-b">
+            <div className="bg-white border-b shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex space-x-8">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview'
+                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${activeTab === 'overview'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
-                            Overview
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <span>Overview</span>
+                            </div>
                         </button>
                         <button
                             onClick={() => setActiveTab('users')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'users'
+                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${activeTab === 'users'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
-                            Users
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <span>Users</span>
+                            </div>
                         </button>
                         <button
                             onClick={() => setActiveTab('credentials')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'credentials'
+                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${activeTab === 'credentials'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
-                            Credentials
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <span>Credentials</span>
+                            </div>
                         </button>
                     </nav>
                 </div>
@@ -594,7 +481,7 @@ const AdminDashboard: React.FC = () => {
                     onClose={() => setShowCreateUser(false)}
                     onUserCreated={() => {
                         setShowCreateUser(false);
-                        fetchUsers();
+                        window.location.reload();
                     }}
                 />
             )}

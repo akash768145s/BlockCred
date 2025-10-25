@@ -74,6 +74,18 @@ func (u *UserService) RegisterStudent(in RegisterStudentInput) models.User {
 	return u.store.CreateUser(user)
 }
 
+func (u *UserService) Approve(userID int) (models.User, error) {
+	users := u.store.ListUsers()
+	for _, user := range users {
+		if user.ID == userID {
+			user.IsApproved = true
+			user.IsActive = true
+			return u.store.UpdateUser(userID, user)
+		}
+	}
+	return models.User{}, fmt.Errorf("user not found")
+}
+
 func generateStudentID(name, school string, passingYear int, marks int) string {
 	nameInit := initials(name)
 	schoolInit := initials(school)
