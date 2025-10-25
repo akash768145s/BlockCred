@@ -11,14 +11,14 @@ import (
 )
 
 type UserService struct {
-	store *store.MemoryStore
+	store store.Store
 }
 
-func NewUserService(s *store.MemoryStore) *UserService {
+func NewUserService(s store.Store) *UserService {
 	return &UserService{store: s}
 }
 
-func (u *UserService) List() []models.User {
+func (u *UserService) List() ([]models.User, error) {
 	return u.store.ListUsers()
 }
 
@@ -43,7 +43,7 @@ type RegisterStudentInput struct {
 	PassingYear int    `json:"passing_year"`
 }
 
-func (u *UserService) Onboard(in OnboardInput) models.User {
+func (u *UserService) Onboard(in OnboardInput) (models.User, error) {
 	user := models.User{
 		Name:        in.Name,
 		Email:       strings.TrimSpace(in.Email),
@@ -59,7 +59,7 @@ func (u *UserService) Onboard(in OnboardInput) models.User {
 	return u.store.CreateUser(user)
 }
 
-func (u *UserService) RegisterStudent(in RegisterStudentInput) models.User {
+func (u *UserService) RegisterStudent(in RegisterStudentInput) (models.User, error) {
 	studentID := generateStudentID(in.Name, in.SchoolName, in.PassingYear, in.TenthMarks)
 	user := models.User{
 		Name:       in.Name,
@@ -74,16 +74,15 @@ func (u *UserService) RegisterStudent(in RegisterStudentInput) models.User {
 	return u.store.CreateUser(user)
 }
 
-func (u *UserService) Approve(userID int) (models.User, error) {
-	users := u.store.ListUsers()
-	for _, user := range users {
-		if user.ID == userID {
-			user.IsApproved = true
-			user.IsActive = true
-			return u.store.UpdateUser(userID, user)
-		}
+func (u *UserService) Approve(userID string) (models.User, error) {
+	user, err := u.store.GetUserByID(userID)
+	if err != nil {
+		return models.User{}, fmt.Errorf("user not found: %w", err)
 	}
-	return models.User{}, fmt.Errorf("user not found")
+	
+	user.IsApproved = true
+	user.IsActive = true
+	return u.store.UpdateUser(userID, user)
 }
 
 func generateStudentID(name, school string, passingYear int, marks int) string {

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -14,7 +15,18 @@ import (
 )
 
 func New(cfg config.Config) http.Handler {
-	st := store.NewMemoryStore()
+	// Try to initialize MongoDB store, fallback to memory store if it fails
+	var st store.Store
+	var err error
+	
+	st, err = store.NewMongoDBStore(cfg.MongoURI, cfg.MongoDatabase)
+	if err != nil {
+		log.Printf("⚠️  MongoDB connection failed: %v", err)
+		log.Printf("🔄 Falling back to memory store")
+		st = store.NewMemoryStore()
+	} else {
+		log.Printf("✅ Connected to MongoDB")
+	}
 
 	authSvc := services.NewAuthService(st)
 	userSvc := services.NewUserService(st)

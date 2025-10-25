@@ -8,14 +8,14 @@ import (
 )
 
 type CredentialService struct {
-	store *store.MemoryStore
+	store store.Store
 }
 
-func NewCredentialService(s *store.MemoryStore) *CredentialService {
+func NewCredentialService(s store.Store) *CredentialService {
 	return &CredentialService{store: s}
 }
 
-func (c *CredentialService) List() []models.Credential {
+func (c *CredentialService) List() ([]models.Credential, error) {
 	return c.store.ListCredentials()
 }
 
@@ -36,7 +36,7 @@ type IssueCredentialInput struct {
 	IssuedBy    string                `json:"issued_by"`
 }
 
-func (c *CredentialService) IssueCredential(in IssueCredentialInput) models.Credential {
+func (c *CredentialService) IssueCredential(in IssueCredentialInput) (models.Credential, error) {
 	credential := models.Credential{
 		Type:        in.Type,
 		Title:       in.Title,

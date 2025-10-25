@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -12,10 +11,10 @@ import (
 )
 
 type AuthMiddleware struct {
-	store *store.MemoryStore
+	store store.Store
 }
 
-func NewAuthMiddleware(s *store.MemoryStore) *AuthMiddleware {
+func NewAuthMiddleware(s store.Store) *AuthMiddleware {
 	return &AuthMiddleware{store: s}
 }
 
@@ -58,22 +57,19 @@ func (m *AuthMiddleware) validateToken(token string) (models.User, error) {
 		return models.User{}, errors.New("invalid token format")
 	}
 
-	// Extract user ID from token
-	var userID int
-	_, err := fmt.Sscanf(token, "token-%d", &userID)
-	if err != nil {
+	// Extract user ID from token (now using ObjectID hex string)
+	userIDHex := strings.TrimPrefix(token, "token-")
+	if userIDHex == "" {
 		return models.User{}, errors.New("invalid token")
 	}
 
 	// Find user by ID
-	users := m.store.ListUsers()
-	for _, user := range users {
-		if user.ID == userID {
-			return user, nil
-		}
+	user, err := m.store.GetUserByID(userIDHex)
+	if err != nil {
+		return models.User{}, errors.New("user not found")
 	}
 
-	return models.User{}, errors.New("user not found")
+	return user, nil
 }
 
 func (m *AuthMiddleware) RequireRole(requiredRole models.UserRole) func(http.HandlerFunc) http.HandlerFunc {

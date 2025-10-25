@@ -50,9 +50,24 @@ backend/
    go mod tidy
    ```
 
-2. **Run the server:**
+2. **Set up MongoDB Atlas:**
+   - Create a MongoDB Atlas account at https://cloud.mongodb.com
+   - Create a new cluster
+   - Get your connection string (format: `mongodb+srv://username:password@cluster.mongodb.net/`)
+   - Set environment variables:
+     ```bash
+     export MONGO_URI="mongodb+srv://username:password@cluster.mongodb.net/"
+     export MONGO_DATABASE="blockcred"
+     ```
+
+3. **Run with Air (Hot Reload):**
    ```bash
-   go run ./cmd/server
+   air
+   ```
+   
+   Or run directly:
+   ```bash
+   go run main.go
    ```
 
 3. **Test endpoints:**
@@ -99,6 +114,16 @@ Environment variables:
 - `PORT` - Server port (default: 8080)
 - `JWT_SECRET` - JWT signing secret
 - `ALLOWED_ORIGIN` - CORS allowed origin (default: http://localhost:3000)
+- `MONGO_URI` - MongoDB connection string (default: mongodb+srv://username:password@cluster.mongodb.net/)
+- `MONGO_DATABASE` - MongoDB database name (default: blockcred)
+
+### MongoDB Atlas Setup
+1. Go to https://cloud.mongodb.com
+2. Create a free cluster
+3. Create a database user
+4. Whitelist your IP address (or use 0.0.0.0/0 for development)
+5. Get your connection string from "Connect" → "Connect your application"
+6. Set the `MONGO_URI` environment variable
 
 ## Development
 

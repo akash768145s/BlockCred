@@ -1,14 +1,20 @@
 package main
 
 import (
+	"blockcred-backend/internal/config"
+	"blockcred-backend/internal/router"
 	"log"
 	"net/http"
 	"os"
-	"blockcred-backend/internal/config"
-	"blockcred-backend/internal/router"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
+	}
+
 	cfg := config.Load()
 
 	r := router.New(cfg)

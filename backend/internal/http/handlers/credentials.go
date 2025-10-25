@@ -13,7 +13,11 @@ type CredentialHandler struct {
 }
 
 func (h *CredentialHandler) List(w http.ResponseWriter, r *http.Request) {
-	list := h.Credentials.List()
+	list, err := h.Credentials.List()
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, false, "failed to retrieve credentials", nil)
+		return
+	}
 	httpx.JSON(w, http.StatusOK, true, "credentials retrieved", list)
 }
 
@@ -24,6 +28,10 @@ func (h *CredentialHandler) Issue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	credential := h.Credentials.IssueCredential(in)
+	credential, err := h.Credentials.IssueCredential(in)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, false, "failed to issue credential", nil)
+		return
+	}
 	httpx.JSON(w, http.StatusCreated, true, "credential issued", map[string]any{"credential_id": credential.ID})
 }
