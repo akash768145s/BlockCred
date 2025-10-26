@@ -31,6 +31,15 @@ export interface User {
     department?: string;
     institution?: string;
     club_name?: string;
+    dob?: string;
+    school_name?: string;
+    father_name?: string;
+    aadhar_number?: string;
+    tenth_school?: string;
+    tenth_marks?: number;
+    twelfth_school?: string;
+    twelfth_marks?: number;
+    cutoff?: number;
     is_active: boolean;
     is_approved: boolean;
     node_assigned: boolean;

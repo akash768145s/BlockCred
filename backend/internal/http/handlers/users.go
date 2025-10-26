@@ -70,3 +70,26 @@ func (h *UserHandler) Approve(w http.ResponseWriter, r *http.Request) {
 
 	httpx.JSON(w, http.StatusOK, true, "user approved successfully", user)
 }
+
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userIDStr, ok := vars["id"]
+	if !ok {
+		httpx.JSON(w, http.StatusBadRequest, false, "user ID required", nil)
+		return
+	}
+
+	var in services.UpdateUserInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, false, "invalid request", nil)
+		return
+	}
+
+	user, err := h.Users.UpdateUser(userIDStr, in)
+	if err != nil {
+		httpx.JSON(w, http.StatusNotFound, false, err.Error(), nil)
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, true, "user updated successfully", user)
+}

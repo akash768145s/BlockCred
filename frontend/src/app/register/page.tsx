@@ -10,9 +10,17 @@ export default function RegisterPage() {
         email: "",
         phone: "",
         password: "",
-        tenth_marks: "",
+        dob: "",
         school_name: "",
-        passing_year: "",
+        photo: null as File | null,
+        father_name: "",
+        aadhar_number: "",
+        tenth_school: "",
+        tenth_marks: "",
+        twelfth_school: "",
+        twelfth_marks: "",
+        twelfth_marksheet: null as File | null,
+        cutoff: "",
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -21,10 +29,11 @@ export default function RegisterPage() {
     const router = useRouter();
     const { register } = useAuth();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, files } = e.target as HTMLInputElement;
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value,
+            [name]: files ? files[0] : value,
         });
     };
 
@@ -39,9 +48,17 @@ export default function RegisterPage() {
             email: formData.email,
             phone: formData.phone,
             password: formData.password,
-            tenth_marks: parseInt(formData.tenth_marks),
+            dob: formData.dob,
             school_name: formData.school_name,
-            passing_year: parseInt(formData.passing_year),
+            photo: formData.photo,
+            father_name: formData.father_name,
+            aadhar_number: formData.aadhar_number,
+            tenth_school: formData.tenth_school,
+            tenth_marks: parseInt(formData.tenth_marks),
+            twelfth_school: formData.twelfth_school,
+            twelfth_marks: parseInt(formData.twelfth_marks),
+            twelfth_marksheet: formData.twelfth_marksheet,
+            cutoff: parseInt(formData.cutoff),
         });
 
         if (result.success) {
@@ -52,9 +69,17 @@ export default function RegisterPage() {
                 email: "",
                 phone: "",
                 password: "",
-                tenth_marks: "",
+                dob: "",
                 school_name: "",
-                passing_year: "",
+                photo: null,
+                father_name: "",
+                aadhar_number: "",
+                tenth_school: "",
+                tenth_marks: "",
+                twelfth_school: "",
+                twelfth_marks: "",
+                twelfth_marksheet: null,
+                cutoff: "",
             });
         } else {
             setError(result.message);
@@ -93,22 +118,6 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-small font-weight-medium text-gray-700 mb-2">
-                                Email Address *
-                            </label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
-                                placeholder="Enter your email"
-                                required
-                            />
-                        </div>
-
-                        <div>
                             <label htmlFor="phone" className="block text-small font-weight-medium text-gray-700 mb-2">
                                 Phone Number *
                             </label>
@@ -125,35 +134,32 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-small font-weight-medium text-gray-700 mb-2">
-                                Password *
+                            <label htmlFor="email" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                Email ID *
                             </label>
                             <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                value={formData.password}
+                                type="email"
+                                id="email"
+                                name="email"
+                                value={formData.email}
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
-                                placeholder="Create a password"
+                                placeholder="Enter your email"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="tenth_marks" className="block text-small font-weight-medium text-gray-700 mb-2">
-                                10th Grade Marks (%) *
+                            <label htmlFor="dob" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                Date of Birth *
                             </label>
                             <input
-                                type="number"
-                                id="tenth_marks"
-                                name="tenth_marks"
-                                value={formData.tenth_marks}
+                                type="date"
+                                id="dob"
+                                name="dob"
+                                value={formData.dob}
                                 onChange={handleChange}
-                                min="0"
-                                max="100"
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
-                                placeholder="Enter your 10th marks"
                                 required
                             />
                         </div>
@@ -175,19 +181,183 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="passing_year" className="block text-small font-weight-medium text-gray-700 mb-2">
-                                Passing Year *
+                            <label htmlFor="photo" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                Photo *
+                            </label>
+                            <input
+                                type="file"
+                                id="photo"
+                                name="photo"
+                                onChange={handleChange}
+                                accept="image/*"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="father_name" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                Father Name *
+                            </label>
+                            <input
+                                type="text"
+                                id="father_name"
+                                name="father_name"
+                                value={formData.father_name}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                placeholder="Enter your father's name"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="aadhar_number" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                Aadhar Number *
+                            </label>
+                            <input
+                                type="text"
+                                id="aadhar_number"
+                                name="aadhar_number"
+                                value={formData.aadhar_number}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                placeholder="Enter your Aadhar number"
+                                pattern="[0-9]{12}"
+                                maxLength={12}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="tenth_school" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                10th Grade School *
+                            </label>
+                            <select
+                                id="tenth_school"
+                                name="tenth_school"
+                                value={formData.tenth_school}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                required
+                            >
+                                <option value="">Select your 10th school</option>
+                                <option value="SSN School of Advanced Software Engineering">SSN School of Advanced Software Engineering</option>
+                                <option value="SSN College of Engineering">SSN College of Engineering</option>
+                                <option value="SSN School of Management">SSN School of Management</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label htmlFor="tenth_marks" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                10th Grade Marks (%) *
+                            </label>
+                            <select
+                                id="tenth_marks"
+                                name="tenth_marks"
+                                value={formData.tenth_marks}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                required
+                            >
+                                <option value="">Select your 10th marks</option>
+                                <option value="95">95% and above</option>
+                                <option value="90">90-94%</option>
+                                <option value="85">85-89%</option>
+                                <option value="80">80-84%</option>
+                                <option value="75">75-79%</option>
+                                <option value="70">70-74%</option>
+                                <option value="65">65-69%</option>
+                                <option value="60">60-64%</option>
+                                <option value="55">55-59%</option>
+                                <option value="50">50-54%</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label htmlFor="twelfth_school" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                12th Grade School *
+                            </label>
+                            <select
+                                id="twelfth_school"
+                                name="twelfth_school"
+                                value={formData.twelfth_school}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                required
+                            >
+                                <option value="">Select your 12th school</option>
+                                <option value="SSN School of Advanced Software Engineering">SSN School of Advanced Software Engineering</option>
+                                <option value="SSN College of Engineering">SSN College of Engineering</option>
+                                <option value="SSN School of Management">SSN School of Management</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label htmlFor="twelfth_marks" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                12th Grade Marks (%) *
                             </label>
                             <input
                                 type="number"
-                                id="passing_year"
-                                name="passing_year"
-                                value={formData.passing_year}
+                                id="twelfth_marks"
+                                name="twelfth_marks"
+                                value={formData.twelfth_marks}
                                 onChange={handleChange}
-                                min="2000"
-                                max="2030"
+                                min="0"
+                                max="100"
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
-                                placeholder="Enter passing year"
+                                placeholder="Enter your 12th marks"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="twelfth_marksheet" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                12th Mark Sheet (PDF) *
+                            </label>
+                            <input
+                                type="file"
+                                id="twelfth_marksheet"
+                                name="twelfth_marksheet"
+                                onChange={handleChange}
+                                accept=".pdf"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="cutoff" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                Cut-off Marks *
+                            </label>
+                            <input
+                                type="number"
+                                id="cutoff"
+                                name="cutoff"
+                                value={formData.cutoff}
+                                onChange={handleChange}
+                                min="0"
+                                max="100"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                placeholder="Enter cut-off marks"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="password" className="block text-small font-weight-medium text-gray-700 mb-2">
+                                Password *
+                            </label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                placeholder="Create a password"
                                 required
                             />
                         </div>
@@ -229,11 +399,13 @@ export default function RegisterPage() {
                 <div className="mt-8 p-4 bg-blue-50 rounded-lg">
                     <h3 className="font-weight-medium text-gray-900 mb-2">How it works:</h3>
                     <ol className="text-small text-gray-600 space-y-1">
-                        <li>1. Fill out the registration form with your 10th marksheet details</li>
-                        <li>2. A unique Student ID will be generated based on your information</li>
-                        <li>3. Admin will review and approve your registration</li>
-                        <li>4. Once approved, a blockchain node will be assigned to you</li>
-                        <li>5. Your credentials will be stored securely on the blockchain</li>
+                        <li>1. Fill out the registration form with your personal details and academic records</li>
+                        <li>2. Select your 10th grade school and marks from the dropdown</li>
+                        <li>3. Upload your photo and 12th mark sheet PDF</li>
+                        <li>4. A unique Student ID will be generated based on your information</li>
+                        <li>5. Admin will review and approve your registration</li>
+                        <li>6. Once approved, a blockchain node will be assigned to you</li>
+                        <li>7. Your credentials will be stored securely on the blockchain</li>
                     </ol>
                 </div>
             </div>

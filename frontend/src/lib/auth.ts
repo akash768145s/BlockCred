@@ -12,9 +12,17 @@ export interface RegisterData {
     email: string;
     phone: string;
     password: string;
-    tenth_marks: number;
+    dob: string;
     school_name: string;
-    passing_year: number;
+    photo: File | null;
+    father_name: string;
+    aadhar_number: string;
+    tenth_school: string;
+    tenth_marks: number;
+    twelfth_school: string;
+    twelfth_marks: number;
+    twelfth_marksheet: File | null;
+    cutoff: number;
 }
 
 export interface CreateUserData {
@@ -48,12 +56,34 @@ export class AuthService {
     }
 
     static async register(data: RegisterData): Promise<{ success: boolean; data: { student_id: string }; message: string }> {
+        const formData = new FormData();
+
+        // Add text fields
+        formData.append('name', data.name);
+        formData.append('email', data.email);
+        formData.append('phone', data.phone);
+        formData.append('password', data.password);
+        formData.append('dob', data.dob);
+        formData.append('school_name', data.school_name);
+        formData.append('father_name', data.father_name);
+        formData.append('aadhar_number', data.aadhar_number);
+        formData.append('tenth_school', data.tenth_school);
+        formData.append('tenth_marks', data.tenth_marks.toString());
+        formData.append('twelfth_school', data.twelfth_school);
+        formData.append('twelfth_marks', data.twelfth_marks.toString());
+        formData.append('cutoff', data.cutoff.toString());
+
+        // Add files if they exist
+        if (data.photo) {
+            formData.append('photo', data.photo);
+        }
+        if (data.twelfth_marksheet) {
+            formData.append('twelfth_marksheet', data.twelfth_marksheet);
+        }
+
         const response = await fetch(`${API_BASE_URL}/register`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
+            body: formData,
         });
 
         const result = await response.json();

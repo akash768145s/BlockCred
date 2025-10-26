@@ -113,8 +113,8 @@ func IsValidRole(role string) bool {
 }
 
 // CanPerformAction checks if a user can perform a specific action
-func (u *User) CanPerformAction(permission string) bool {
-	perms := GetRolePermissions(u.Role)
+func CanPerformAction(role UserRole, permission string) bool {
+	perms := GetRolePermissions(role)
 	
 	switch permission {
 	case "can_onboard_sub_admins":

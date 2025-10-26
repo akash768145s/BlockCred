@@ -59,6 +59,9 @@ func New(cfg config.Config) http.Handler {
 	
 	// Add user approval endpoint
 	api.HandleFunc("/users/{id}/approve", authMiddleware.RequireAuth(users.Approve)).Methods("POST")
+	
+	// Add user update endpoint
+	api.HandleFunc("/admin/users/{id}", authMiddleware.RequireAuth(users.UpdateUser)).Methods("PUT")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: cfg.AllowedOrigins,

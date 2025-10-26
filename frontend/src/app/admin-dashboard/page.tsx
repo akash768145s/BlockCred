@@ -26,6 +26,7 @@ import { getRoleIcon, getRoleDisplayName, getRoleColor, formatDate } from '@/lib
 const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const [showCreateUser, setShowCreateUser] = useState(false);
+    const [editingUser, setEditingUser] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
 
@@ -226,7 +227,13 @@ const AdminDashboard: React.FC = () => {
                                     Role
                                 </th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Department/Club
+                                    Department
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                    10th School
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                    12th School
                                 </th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
                                     Status
@@ -262,6 +269,12 @@ const AdminDashboard: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
                                         {user.department || user.club_name || user.institution || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
+                                        {user.tenth_school || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
+                                        {user.twelfth_school || '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center space-x-2">
@@ -303,6 +316,7 @@ const AdminDashboard: React.FC = () => {
                                                 <Eye className="h-3.5 w-3.5" />
                                             </button>
                                             <button
+                                                onClick={() => setEditingUser(user)}
                                                 className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
                                                 title="Edit User"
                                             >
@@ -367,11 +381,10 @@ const AdminDashboard: React.FC = () => {
                                         {formatDate(credential.issued_date)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                                            credential.status === 'issued' ? 'bg-green-100 text-green-700' :
+                                        <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${credential.status === 'issued' ? 'bg-green-100 text-green-700' :
                                             credential.status === 'verified' ? 'bg-[#06B6D4]/10 text-[#06B6D4]' :
-                                            'bg-orange-100 text-orange-700'
-                                        }`}>
+                                                'bg-orange-100 text-orange-700'
+                                            }`}>
                                             {credential.status}
                                         </span>
                                     </td>
@@ -431,31 +444,28 @@ const AdminDashboard: React.FC = () => {
                     <nav className="flex space-x-8">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${
-                                activeTab === 'overview'
-                                    ? 'border-[#06B6D4] text-[#06B6D4]'
-                                    : 'border-transparent text-[#64748B] hover:text-[#1E293B] hover:border-gray-300'
-                            }`}
+                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${activeTab === 'overview'
+                                ? 'border-[#06B6D4] text-[#06B6D4]'
+                                : 'border-transparent text-[#64748B] hover:text-[#1E293B] hover:border-gray-300'
+                                }`}
                         >
                             Overview
                         </button>
                         <button
                             onClick={() => setActiveTab('users')}
-                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${
-                                activeTab === 'users'
-                                    ? 'border-[#06B6D4] text-[#06B6D4]'
-                                    : 'border-transparent text-[#64748B] hover:text-[#1E293B] hover:border-gray-300'
-                            }`}
+                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${activeTab === 'users'
+                                ? 'border-[#06B6D4] text-[#06B6D4]'
+                                : 'border-transparent text-[#64748B] hover:text-[#1E293B] hover:border-gray-300'
+                                }`}
                         >
                             Users
                         </button>
                         <button
                             onClick={() => setActiveTab('credentials')}
-                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${
-                                activeTab === 'credentials'
-                                    ? 'border-[#06B6D4] text-[#06B6D4]'
-                                    : 'border-transparent text-[#64748B] hover:text-[#1E293B] hover:border-gray-300'
-                            }`}
+                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${activeTab === 'credentials'
+                                ? 'border-[#06B6D4] text-[#06B6D4]'
+                                : 'border-transparent text-[#64748B] hover:text-[#1E293B] hover:border-gray-300'
+                                }`}
                         >
                             Credentials
                         </button>
@@ -476,6 +486,18 @@ const AdminDashboard: React.FC = () => {
                     onClose={() => setShowCreateUser(false)}
                     onUserCreated={() => {
                         setShowCreateUser(false);
+                        window.location.reload();
+                    }}
+                />
+            )}
+
+            {/* Edit User Modal */}
+            {editingUser && (
+                <EditUserModal
+                    user={editingUser}
+                    onClose={() => setEditingUser(null)}
+                    onUserUpdated={() => {
+                        setEditingUser(null);
                         window.location.reload();
                     }}
                 />
@@ -675,6 +697,268 @@ const CreateUserModal: React.FC<{
                                 className="px-6 py-3 bg-[#06B6D4] text-white rounded-lg hover:bg-[#0891B2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-md"
                             >
                                 {loading ? 'Creating...' : 'Create User'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Edit User Modal Component
+const EditUserModal: React.FC<{
+    user: any;
+    onClose: () => void;
+    onUserUpdated: () => void;
+}> = ({ user, onClose, onUserUpdated }) => {
+    const [formData, setFormData] = useState({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        department: user.department || '',
+        tenth_school: user.tenth_school || '',
+        twelfth_school: user.twelfth_school || '',
+        tenth_marks: user.tenth_marks || '',
+        twelfth_marks: user.twelfth_marks || '',
+        cutoff: user.cutoff || '',
+        dob: user.dob || '',
+        father_name: user.father_name || '',
+        aadhar_number: user.aadhar_number || '',
+        school_name: user.school_name || ''
+    });
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8080/api/admin/users/${user.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update user');
+            }
+
+            onUserUpdated();
+        } catch (error) {
+            console.error('Error updating user:', error);
+            alert('Failed to update user. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="p-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-[#1E293B]">Edit User Details</h2>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <XCircle className="h-6 w-6" />
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    Full Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter full name"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter email"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    Phone
+                                </label>
+                                <input
+                                    type="tel"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter phone number"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    Department
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.department}
+                                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter department"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    10th School
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.tenth_school}
+                                    onChange={(e) => setFormData({ ...formData, tenth_school: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter 10th school"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    12th School
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.twelfth_school}
+                                    onChange={(e) => setFormData({ ...formData, twelfth_school: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter 12th school"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    10th Marks
+                                </label>
+                                <input
+                                    type="number"
+                                    value={formData.tenth_marks}
+                                    onChange={(e) => setFormData({ ...formData, tenth_marks: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter 10th marks"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    12th Marks
+                                </label>
+                                <input
+                                    type="number"
+                                    value={formData.twelfth_marks}
+                                    onChange={(e) => setFormData({ ...formData, twelfth_marks: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter 12th marks"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    Cut-off Marks
+                                </label>
+                                <input
+                                    type="number"
+                                    value={formData.cutoff}
+                                    onChange={(e) => setFormData({ ...formData, cutoff: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter cut-off marks"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    Date of Birth
+                                </label>
+                                <input
+                                    type="date"
+                                    value={formData.dob}
+                                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    Father Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.father_name}
+                                    onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter father's name"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    Aadhar Number
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.aadhar_number}
+                                    onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter Aadhar number"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                    School Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.school_name}
+                                    onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
+                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    placeholder="Enter school name"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-4 pt-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-6 py-3 border border-gray-300 rounded-lg text-[#1E293B] hover:bg-[#F8FAFC] transition-colors font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="px-6 py-3 bg-[#06B6D4] text-white rounded-lg hover:bg-[#0891B2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-md"
+                            >
+                                {loading ? 'Updating...' : 'Update User'}
                             </button>
                         </div>
                     </form>

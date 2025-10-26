@@ -155,18 +155,57 @@ export default function StudentDashboard() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-blue-100 text-sm">School</p>
-                                    <p className="text-sm">{student.school_name}</p>
+                                    <p className="text-blue-100 text-sm">Date of Birth</p>
+                                    <p className="text-sm">{student.dob || 'Not provided'}</p>
                                 </div>
                                 <div>
-                                    <p className="text-blue-100 text-sm">Passing Year</p>
-                                    <p className="text-sm">{student.passing_year}</p>
+                                    <p className="text-blue-100 text-sm">Father Name</p>
+                                    <p className="text-sm">{student.father_name || 'Not provided'}</p>
                                 </div>
                             </div>
 
-                            <div>
-                                <p className="text-blue-100 text-sm">10th Grade Marks</p>
-                                <p className="text-lg font-semibold">{student.tenth_marks}%</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-blue-100 text-sm">Aadhar Number</p>
+                                    <p className="text-sm">{student.aadhar_number || 'Not provided'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-blue-100 text-sm">Department</p>
+                                    <p className="text-sm">{student.department || 'Not assigned'}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-blue-100 text-sm">10th School</p>
+                                    <p className="text-sm">{student.tenth_school || 'Not provided'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-blue-100 text-sm">10th Marks</p>
+                                    <p className="text-sm">{student.tenth_marks ? `${student.tenth_marks}%` : 'Not provided'}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-blue-100 text-sm">12th School</p>
+                                    <p className="text-sm">{student.twelfth_school || 'Not provided'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-blue-100 text-sm">12th Marks</p>
+                                    <p className="text-sm">{student.twelfth_marks ? `${student.twelfth_marks}%` : 'Not provided'}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-blue-100 text-sm">Cut-off Marks</p>
+                                    <p className="text-sm">{student.cutoff ? `${student.cutoff}%` : 'Not provided'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-blue-100 text-sm">Current School</p>
+                                    <p className="text-sm">{student.school_name || 'Not provided'}</p>
+                                </div>
                             </div>
 
                             <div className="flex items-center space-x-4 pt-4 border-t border-blue-400">
@@ -191,8 +230,11 @@ export default function StudentDashboard() {
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-600">Registration Status</span>
-                                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                                        Approved
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${student.is_approved
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-yellow-100 text-yellow-800'
+                                        }`}>
+                                        {student.is_approved ? 'Approved' : 'Pending Approval'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
@@ -206,6 +248,31 @@ export default function StudentDashboard() {
                                     <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
                                         {student.certificates?.length || 0}
                                     </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Information Card */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Important Information</h3>
+                            <div className="space-y-3">
+                                <div className="flex items-start space-x-3">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                                    <p className="text-sm text-gray-600">
+                                        You can view all your personal and academic details above.
+                                    </p>
+                                </div>
+                                <div className="flex items-start space-x-3">
+                                    <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                                    <p className="text-sm text-gray-600">
+                                        Certificate access requires admin approval. Once approved, you'll be able to request and view certificates.
+                                    </p>
+                                </div>
+                                <div className="flex items-start space-x-3">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                                    <p className="text-sm text-gray-600">
+                                        Your blockchain node will be assigned after approval for secure credential storage.
+                                    </p>
                                 </div>
                             </div>
                         </div>
