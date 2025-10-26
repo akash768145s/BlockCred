@@ -9,7 +9,17 @@ type Store interface {
 	ListUsers() ([]models.User, error)
 	GetUserByEmail(email string) (models.User, error)
 	GetUserByID(id string) (models.User, error)
+	GetUserByStudentID(studentID string) (models.User, error)
 	UpdateUser(userID string, updates models.User) (models.User, error)
+
+	// Certificate operations
+	CreateCertificate(cert models.Certificate) (models.Certificate, error)
+	GetCertificateByID(id string) (models.Certificate, error)
+	GetCertificateByCertID(certID string) (models.Certificate, error)
+	ListCertificates() ([]models.Certificate, error)
+	ListCertificatesByStudent(studentID string) ([]models.Certificate, error)
+	ListCertificatesByIssuer(issuerID string) ([]models.Certificate, error)
+	UpdateCertificate(certID string, updates models.Certificate) (models.Certificate, error)
 
 	// Credential operations
 	CreateCredential(credential models.Credential) (models.Credential, error)

@@ -85,7 +85,7 @@ const FacultyDashboard: React.FC = () => {
     const fetchCredentials = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/credentials', {
+            const response = await fetch('http://localhost:8080/api/certificates', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -95,11 +95,8 @@ const FacultyDashboard: React.FC = () => {
             if (response.ok) {
                 const data = await response.json();
                 const allCredentials = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-                const facultyCredentials = allCredentials.filter((cred: any) =>
-                    cred.credential?.type === 'bonafide' ||
-                    cred.credential?.type === 'noc' ||
-                    cred.type === 'bonafide' ||
-                    cred.type === 'noc'
+                const facultyCredentials = allCredentials.filter((cert: any) =>
+                    cert.cert_type === 'bonafide' || cert.cert_type === 'noc'
                 );
                 setCredentials(facultyCredentials);
             } else {
@@ -120,7 +117,7 @@ const FacultyDashboard: React.FC = () => {
 
     const filteredCredentials = (Array.isArray(credentials) ? credentials : []).filter(credential => {
         if (filterType === 'all') return true;
-        return credential.type === filterType;
+        return (credential.cert_type || credential.type) === filterType;
     });
 
     const stats = {
@@ -392,17 +389,17 @@ const FacultyDashboard: React.FC = () => {
                             {filteredCredentials.map((credential) => (
                                 <tr key={credential.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">{credential.title}</div>
-                                        <div className="text-sm text-gray-500">{credential.type.toUpperCase()}</div>
+                                        <div className="text-sm font-medium text-gray-900">{credential.title || (credential.cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm text-gray-500">{(credential.cert_type || credential.type || 'certificate').replace('_', ' ').toUpperCase()}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.student_name}
+                                        {credential.student_name || credential.metadata?.student_name || 'Unknown Student'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.purpose}
+                                        {credential.purpose || credential.metadata?.description || 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(credential.issued_date).toLocaleDateString()}
+                                        {new Date(credential.issued_date || credential.issued_at).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${credential.status === 'issued' ? 'bg-green-100 text-green-800' :
@@ -554,39 +551,109 @@ const IssueCertificateModal: React.FC<{
         try {
             const token = localStorage.getItem('token');
 
-            // Use the correct endpoint that exists in the backend
-            const response = await fetch('http://localhost:8080/api/credentials/issue', {
+            // Create a sample PDF file for bonafide/NOC
+            const samplePdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 100
+>>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+(${formData.type.toUpperCase()} Certificate) Tj
+0 -20 Td
+(Student: ${formData.student_id}) Tj
+0 -20 Td
+(Purpose: ${formData.purpose}) Tj
+0 -20 Td
+(Valid Until: ${formData.valid_until}) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000204 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+353
+%%EOF`;
+
+            // Convert to base64
+            const base64Content = btoa(samplePdfContent);
+
+            const certificateData = {
+                student_id: formData.student_id,
+                cert_type: formData.type === 'noc' ? 'noc' : 'bonafide',
+                file_data: base64Content,
+                file_name: `${formData.type}_${formData.student_id}_${Date.now()}.pdf`,
+                metadata: {
+                    student_name: students.find(s => s.student_id === formData.student_id)?.name || 'Unknown Student',
+                    student_email: students.find(s => s.student_id === formData.student_id)?.email || '',
+                    issuer_name: 'Department Faculty',
+                    issuer_role: 'department_faculty',
+                    institution: 'SSN College of Engineering',
+                    course: students.find(s => s.student_id === formData.student_id)?.department || 'Computer Science',
+                    academic_year: '2024-25',
+                    valid_from: new Date().toISOString(),
+                    valid_until: formData.valid_until || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                    description: formData.description || `${formData.type} certificate for ${formData.purpose}`
+                }
+            };
+
+            const response = await fetch('http://localhost:8080/api/certificates/issue', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(certificateData),
             });
 
             if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
-                    alert('Certificate issued successfully!');
-                    onCertificateIssued();
-                } else {
-                    alert(`Error: ${data.message}`);
-                }
+                const result = await response.json();
+                alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
+                onCredentialIssued();
             } else {
-                // Handle non-JSON responses (like 404 HTML pages)
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    const errorData = await response.json();
-                    alert(`Error: ${errorData.message}`);
-                } else {
-                    const errorText = await response.text();
-                    console.error('Non-JSON response:', errorText);
-                    alert(`Server error: ${response.status} ${response.statusText}`);
-                }
+                const errorData = await response.json();
+                alert(`Error: ${errorData.message}`);
             }
         } catch (error) {
             console.error('Error issuing certificate:', error);
-            alert('Failed to issue certificate. Please check if the backend server is running.');
+            alert('Failed to issue certificate');
         } finally {
             setLoading(false);
         }

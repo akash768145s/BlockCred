@@ -142,8 +142,28 @@ export class AuthService {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify({
             id: user.id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            student_id: user.student_id,
             role: user.role,
             role_name: user.role,
+            department: user.department,
+            institution: user.institution,
+            club_name: user.club_name,
+            dob: user.dob,
+            school_name: user.school_name,
+            father_name: user.father_name,
+            aadhar_number: user.aadhar_number,
+            tenth_school: user.tenth_school,
+            tenth_marks: user.tenth_marks,
+            twelfth_school: user.twelfth_school,
+            twelfth_marks: user.twelfth_marks,
+            cutoff: user.cutoff,
+            is_active: user.is_active,
+            is_approved: user.is_approved,
+            node_assigned: user.node_assigned,
+            created_at: user.created_at,
             permissions: user.permissions || [],
         }));
     }

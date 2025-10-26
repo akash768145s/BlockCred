@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudentData } from "@/hooks/useApi";
@@ -9,6 +9,66 @@ export default function StudentDashboard() {
     const router = useRouter();
     const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
     const { student, loading, error, fetchStudentData } = useStudentData(user?.id || null);
+    const [certificates, setCertificates] = useState([]);
+    const [certificatesLoading, setCertificatesLoading] = useState(false);
+
+    // Fetch certificates from the new API
+    const fetchCertificates = async () => {
+        if (!user?.student_id) {
+            return;
+        }
+
+        setCertificatesLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8080/api/certificates/student/${user.student_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data) {
+                    setCertificates(data.data);
+                }
+            } else {
+                console.error('Failed to fetch certificates:', response.statusText);
+                setCertificates([]);
+            }
+        } catch (error) {
+            console.error('Error fetching certificates:', error);
+            setCertificates([]);
+        } finally {
+            setCertificatesLoading(false);
+        }
+    };
+
+    // Fetch certificates when component mounts or user changes
+    useEffect(() => {
+        if (user?.student_id) {
+            fetchCertificates();
+        }
+    }, [user?.student_id]);
+
+    const verifyCertificate = async (certId: string) => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/certificates/verify/${certId}`);
+            const result = await response.json();
+
+            if (result.success && result.data.is_valid) {
+                const studentName = result.data.metadata?.student_name || 'Unknown Student';
+                const issuerName = result.data.metadata?.issuer_name || 'Unknown Issuer';
+                alert(`✅ Certificate is valid!\n\nStudent: ${studentName}\nIssuer: ${issuerName}\nType: ${result.data.cert_type}\nStatus: ${result.data.status}`);
+            } else {
+                alert(`❌ Certificate verification failed: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('Error verifying certificate:', error);
+            alert('Failed to verify certificate');
+        }
+    };
 
     // Handle redirects in useEffect to avoid setState during render
     useEffect(() => {
@@ -246,7 +306,7 @@ export default function StudentDashboard() {
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-600">Total Certificates</span>
                                     <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                                        {student.certificates?.length || 0}
+                                        {certificates.length}
                                     </span>
                                 </div>
                             </div>
@@ -294,14 +354,22 @@ export default function StudentDashboard() {
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-semibold text-gray-900">My Certificates</h2>
                         <button
-                            onClick={() => fetchStudentData(student.id)}
+                            onClick={() => {
+                                fetchStudentData(student.id);
+                                fetchCertificates();
+                            }}
                             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                         >
                             Refresh
                         </button>
                     </div>
 
-                    {(!student.certificates || student.certificates.length === 0) ? (
+                    {certificatesLoading ? (
+                        <div className="bg-white rounded-lg shadow p-8 text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                            <p className="mt-4 text-gray-600">Loading certificates...</p>
+                        </div>
+                    ) : (!certificates || certificates.length === 0) ? (
                         <div className="bg-white rounded-lg shadow p-8 text-center">
                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,34 +383,98 @@ export default function StudentDashboard() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {(student.certificates || []).map((certificate) => (
-                                <div key={certificate.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-gray-900">{certificate.title}</h3>
-                                            <p className="text-sm text-gray-600">{certificate.institution}</p>
-                                        </div>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${certificate.status === 'issued'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-yellow-100 text-yellow-800'
-                                            }`}>
-                                            {certificate.status}
-                                        </span>
+                            {certificates.map((certificate) => (
+                                <div key={certificate.id} className="relative bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border-2 border-blue-200">
+                                    {/* Verified Stamp */}
+                                    <div className="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-2 shadow-lg">
+                                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
                                     </div>
 
-                                    <div className="space-y-2 text-sm">
-                                        <div>
-                                            <span className="text-gray-500">Type:</span>
-                                            <span className="ml-2 capitalize">{certificate.type}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">Issued:</span>
-                                            <span className="ml-2">{certificate.issued_date}</span>
-                                        </div>
-                                        {certificate.description && (
+                                    {/* Certificate Header */}
+                                    <div className="mb-4">
+                                        <div className="flex items-center mb-2">
+                                            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                                                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
                                             <div>
-                                                <span className="text-gray-500">Description:</span>
-                                                <p className="ml-2 text-gray-700">{certificate.description}</p>
+                                                <h3 className="font-bold text-lg text-gray-900">{certificate.title || certificate.cert_type?.replace('_', ' ').toUpperCase()}</h3>
+                                                <p className="text-sm text-gray-600">{certificate.institution || 'SSN College of Engineering'}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Status Badge */}
+                                        <div className="flex items-center justify-between">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${certificate.status === 'issued'
+                                                ? 'bg-green-100 text-green-800 border border-green-200'
+                                                : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                                                }`}>
+                                                ✓ {certificate.status?.toUpperCase()}
+                                            </span>
+                                            <span className="text-xs text-gray-500">
+                                                {new Date(certificate.issued_date || certificate.issued_at).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Certificate Details */}
+                                    <div className="space-y-3 text-sm">
+                                        {certificate.cert_id && (
+                                            <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-gray-600 font-medium">Certificate ID:</span>
+                                                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                                        {certificate.cert_id.substring(0, 12)}...
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {certificate.ipfs_url && (
+                                            <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-gray-600 font-medium">IPFS Storage:</span>
+                                                    <a
+                                                        href={certificate.ipfs_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-blue-600 hover:text-blue-800 text-xs font-semibold underline flex items-center"
+                                                    >
+                                                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                        View Certificate
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {certificate.tx_hash && (
+                                            <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-gray-600 font-medium">Blockchain Tx:</span>
+                                                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                                        {certificate.tx_hash.substring(0, 12)}...
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Verification Button */}
+                                        {certificate.cert_id && (
+                                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+                                                <button
+                                                    onClick={() => verifyCertificate(certificate.cert_id)}
+                                                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 px-4 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-semibold text-sm flex items-center justify-center"
+                                                >
+                                                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                    </svg>
+                                                    Verify Certificate
+                                                </button>
                                             </div>
                                         )}
                                     </div>

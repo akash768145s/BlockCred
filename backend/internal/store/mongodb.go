@@ -14,10 +14,11 @@ import (
 )
 
 type MongoDBStore struct {
-	client     *mongo.Client
-	database   *mongo.Database
-	users      *mongo.Collection
-	credentials *mongo.Collection
+	client       *mongo.Client
+	database     *mongo.Database
+	users        *mongo.Collection
+	credentials  *mongo.Collection
+	certificates *mongo.Collection
 }
 
 func NewMongoDBStore(uri, database string) (*MongoDBStore, error) {
@@ -36,10 +37,11 @@ func NewMongoDBStore(uri, database string) (*MongoDBStore, error) {
 
 	db := client.Database(database)
 	store := &MongoDBStore{
-		client:      client,
-		database:    db,
-		users:       db.Collection("users"),
-		credentials: db.Collection("credentials"),
+		client:       client,
+		database:     db,
+		users:        db.Collection("users"),
+		credentials:  db.Collection("credentials"),
+		certificates: db.Collection("certificates"),
 	}
 
 	// Create indexes
@@ -190,6 +192,21 @@ func (s *MongoDBStore) GetUserByID(id string) (models.User, error) {
 	return user, nil
 }
 
+func (s *MongoDBStore) GetUserByStudentID(studentID string) (models.User, error) {
+	ctx := context.Background()
+	
+	var user models.User
+	err := s.users.FindOne(ctx, bson.M{"student_id": studentID}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return models.User{}, fmt.Errorf("user not found")
+		}
+		return models.User{}, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, nil
+}
+
 func (s *MongoDBStore) UpdateUser(userID string, updates models.User) (models.User, error) {
 	ctx := context.Background()
 	
@@ -214,6 +231,135 @@ func (s *MongoDBStore) UpdateUser(userID string, updates models.User) (models.Us
 
 	// Return the updated user
 	return s.GetUserByID(userID)
+}
+
+// Certificate operations
+
+func (s *MongoDBStore) CreateCertificate(cert models.Certificate) (models.Certificate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	result, err := s.certificates.InsertOne(ctx, cert)
+	if err != nil {
+		return models.Certificate{}, fmt.Errorf("failed to create certificate: %w", err)
+	}
+
+	var createdCert models.Certificate
+	err = s.certificates.FindOne(ctx, bson.M{"_id": result.InsertedID}).Decode(&createdCert)
+	if err != nil {
+		return models.Certificate{}, fmt.Errorf("failed to retrieve created certificate: %w", err)
+	}
+
+	return createdCert, nil
+}
+
+func (s *MongoDBStore) GetCertificateByID(id string) (models.Certificate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return models.Certificate{}, fmt.Errorf("invalid certificate ID: %w", err)
+	}
+
+	var cert models.Certificate
+	err = s.certificates.FindOne(ctx, bson.M{"_id": objectID}).Decode(&cert)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return models.Certificate{}, fmt.Errorf("certificate not found")
+		}
+		return models.Certificate{}, fmt.Errorf("failed to get certificate: %w", err)
+	}
+
+	return cert, nil
+}
+
+func (s *MongoDBStore) GetCertificateByCertID(certID string) (models.Certificate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var cert models.Certificate
+	err := s.certificates.FindOne(ctx, bson.M{"cert_id": certID}).Decode(&cert)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return models.Certificate{}, fmt.Errorf("certificate not found")
+		}
+		return models.Certificate{}, fmt.Errorf("failed to get certificate: %w", err)
+	}
+
+	return cert, nil
+}
+
+func (s *MongoDBStore) ListCertificates() ([]models.Certificate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cursor, err := s.certificates.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list certificates: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var certificates []models.Certificate
+	if err = cursor.All(ctx, &certificates); err != nil {
+		return nil, fmt.Errorf("failed to decode certificates: %w", err)
+	}
+
+	return certificates, nil
+}
+
+func (s *MongoDBStore) ListCertificatesByStudent(studentID string) ([]models.Certificate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cursor, err := s.certificates.Find(ctx, bson.M{"student_id": studentID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list certificates: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var certificates []models.Certificate
+	if err = cursor.All(ctx, &certificates); err != nil {
+		return nil, fmt.Errorf("failed to decode certificates: %w", err)
+	}
+
+	return certificates, nil
+}
+
+func (s *MongoDBStore) ListCertificatesByIssuer(issuerID string) ([]models.Certificate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cursor, err := s.certificates.Find(ctx, bson.M{"issuer_id": issuerID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list certificates: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var certificates []models.Certificate
+	if err = cursor.All(ctx, &certificates); err != nil {
+		return nil, fmt.Errorf("failed to decode certificates: %w", err)
+	}
+
+	return certificates, nil
+}
+
+func (s *MongoDBStore) UpdateCertificate(certID string, updates models.Certificate) (models.Certificate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	updates.UpdatedAt = time.Now()
+	
+	result, err := s.certificates.ReplaceOne(ctx, bson.M{"cert_id": certID}, updates)
+	if err != nil {
+		return models.Certificate{}, fmt.Errorf("failed to update certificate: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return models.Certificate{}, fmt.Errorf("certificate not found")
+	}
+
+	return s.GetCertificateByCertID(certID)
 }
 
 func (s *MongoDBStore) CreateCredential(c models.Credential) (models.Credential, error) {

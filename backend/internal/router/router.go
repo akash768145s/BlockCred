@@ -31,11 +31,23 @@ func New(cfg config.Config) http.Handler {
 	authSvc := services.NewAuthService(st)
 	userSvc := services.NewUserService(st)
 	credSvc := services.NewCredentialService(st)
+	
+	// Initialize IPFS and Blockchain services
+	ipfsService := services.NewIPFSService(cfg)
+	blockchainService, err := services.NewBlockchainService(cfg)
+	if err != nil {
+		log.Printf("⚠️  Blockchain service initialization failed: %v", err)
+		log.Printf("🔄 Certificate issuance will be limited")
+		blockchainService = nil
+	}
+	
+	certSvc := services.NewCertificateService(st, ipfsService, blockchainService)
 	authMiddleware := middleware.NewAuthMiddleware(st)
 
 	auth := &handlerspkg.AuthHandler{Auth: authSvc}
 	users := &handlerspkg.UserHandler{Users: userSvc}
 	credentials := &handlerspkg.CredentialHandler{Credentials: credSvc}
+	certificates := &handlerspkg.CertificateHandler{Certificates: certSvc}
 
 	r := mux.NewRouter()
 
@@ -62,6 +74,15 @@ func New(cfg config.Config) http.Handler {
 	
 	// Add user update endpoint
 	api.HandleFunc("/admin/users/{id}", authMiddleware.RequireAuth(users.UpdateUser)).Methods("PUT")
+	
+	// Certificate endpoints
+	api.HandleFunc("/certificates/issue", authMiddleware.RequireAuth(certificates.IssueCertificate)).Methods("POST")
+	api.HandleFunc("/certificates/verify/{cert_id}", certificates.VerifyCertificate).Methods("GET")
+	api.HandleFunc("/certificates", authMiddleware.RequireAuth(certificates.ListCertificates)).Methods("GET")
+	api.HandleFunc("/certificates/student/{student_id}", authMiddleware.RequireAuth(certificates.ListCertificatesByStudent)).Methods("GET")
+	api.HandleFunc("/certificates/issuer", authMiddleware.RequireAuth(certificates.ListCertificatesByIssuer)).Methods("GET")
+	api.HandleFunc("/certificates/{cert_id}/revoke", authMiddleware.RequireAuth(certificates.RevokeCertificate)).Methods("POST")
+	api.HandleFunc("/certificates/test-ipfs", certificates.TestIPFS).Methods("GET")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: cfg.AllowedOrigins,

@@ -88,7 +88,7 @@ const COEDashboard: React.FC = () => {
     const fetchCredentials = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/credentials', {
+            const response = await fetch('http://localhost:8080/api/certificates', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -99,8 +99,8 @@ const COEDashboard: React.FC = () => {
                 const data = await response.json();
                 // Ensure we have an array and filter only marksheet credentials
                 const allCredentials = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-                const marksheetCredentials = allCredentials.filter((cred: any) =>
-                    cred.credential?.type === 'marksheet' || cred.type === 'marksheet'
+                const marksheetCredentials = allCredentials.filter((cert: any) =>
+                    cert.cert_type === 'marksheet' || cert.cert_type === 'degree'
                 );
                 setCredentials(marksheetCredentials);
             } else {
@@ -380,26 +380,26 @@ const COEDashboard: React.FC = () => {
                             {credentials.map((credential) => (
                                 <tr key={credential.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">{credential.title}</div>
-                                        <div className="text-sm text-gray-500">{credential.type}</div>
+                                        <div className="text-sm font-medium text-gray-900">{credential.title || (credential.cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm text-gray-500">{(credential.cert_type || credential.type || 'certificate').replace('_', ' ').toUpperCase()}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.student_name}
+                                        {credential.student_name || credential.metadata?.student_name || 'Unknown Student'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.semester}
+                                        {credential.semester || credential.metadata?.semester || 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.subject}
+                                        {credential.subject || credential.metadata?.course || 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         <div className="flex items-center space-x-2">
-                                            <span className="font-medium">{credential.marks}</span>
-                                            <span className="text-gray-500">({credential.grade})</span>
+                                            <span className="font-medium">{credential.marks || credential.metadata?.cgpa || 'N/A'}</span>
+                                            <span className="text-gray-500">({credential.grade || credential.metadata?.grade || 'N/A'})</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(credential.issued_date).toLocaleDateString()}
+                                        {new Date(credential.issued_date || credential.issued_at).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
@@ -544,24 +544,107 @@ const IssueCredentialModal: React.FC<{
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/credentials/issue', {
+
+            // Create a sample PDF file (in real implementation, this would be a file upload)
+            const samplePdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 44
+>>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+(${formData.title} - ${formData.student_id}) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000204 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+297
+%%EOF`;
+
+            // Convert to base64
+            const base64Content = btoa(samplePdfContent);
+
+            const certificateData = {
+                student_id: formData.student_id,
+                cert_type: formData.type === 'degree' ? 'degree' : 'marksheet',
+                file_data: base64Content,
+                file_name: `${formData.type}_${formData.student_id}_${Date.now()}.pdf`,
+                metadata: {
+                    student_name: students.find(s => s.student_id === formData.student_id)?.name || 'Unknown Student',
+                    student_email: students.find(s => s.student_id === formData.student_id)?.email || '',
+                    issuer_name: 'COE Office',
+                    issuer_role: 'coe',
+                    institution: 'SSN College of Engineering',
+                    course: students.find(s => s.student_id === formData.student_id)?.department || 'Computer Science',
+                    semester: formData.semester,
+                    academic_year: '2024-25',
+                    grade: formData.grade,
+                    cgpa: parseFloat(formData.marks) || 0,
+                    valid_from: new Date().toISOString(),
+                    valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+                    description: formData.description || `${formData.type} certificate`
+                }
+            };
+
+            const response = await fetch('http://localhost:8080/api/certificates/issue', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(certificateData),
             });
 
             if (response.ok) {
+                const result = await response.json();
+                alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
                 onCredentialIssued();
             } else {
                 const errorData = await response.json();
                 alert(`Error: ${errorData.message}`);
             }
         } catch (error) {
-            console.error('Error issuing credential:', error);
-            alert('Failed to issue credential');
+            console.error('Error issuing certificate:', error);
+            alert('Failed to issue certificate');
         } finally {
             setLoading(false);
         }

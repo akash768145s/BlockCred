@@ -29,16 +29,25 @@ interface Student {
 }
 
 interface Credential {
-    id: number;
-    type: string;
-    title: string;
+    id: string;
+    cert_id: string;
+    cert_type: string;
     student_id: string;
-    student_name: string;
-    event_name: string;
-    position: string;
-    issued_date: string;
+    issuer_id: string;
+    file_hash: string;
+    ipfs_cid: string;
+    ipfs_url: string;
+    tx_hash: string;
+    block_number: number;
     status: string;
-    description: string;
+    issued_at: string;
+    metadata: {
+        student_name: string;
+        event_name: string;
+        position: string;
+        description: string;
+        [key: string]: any;
+    };
 }
 
 const ClubDashboard: React.FC = () => {
@@ -86,7 +95,7 @@ const ClubDashboard: React.FC = () => {
     const fetchCredentials = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/credentials', {
+            const response = await fetch('http://localhost:8080/api/certificates', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -95,18 +104,17 @@ const ClubDashboard: React.FC = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                const allCredentials = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-                const clubCredentials = allCredentials.filter((cred: any) =>
-                    cred.credential?.type === 'participation_cert' ||
-                    cred.type === 'participation_cert'
+                const allCertificates = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+                const clubCertificates = allCertificates.filter((cert: any) =>
+                    cert.cert_type === 'participation_cert'
                 );
-                setCredentials(clubCredentials);
+                setCredentials(clubCertificates);
             } else {
-                console.error('Failed to fetch credentials:', response.statusText);
+                console.error('Failed to fetch certificates:', response.statusText);
                 setCredentials([]);
             }
         } catch (error) {
-            console.error('Error fetching credentials:', error);
+            console.error('Error fetching certificates:', error);
             setCredentials([]);
         }
     };
@@ -393,31 +401,58 @@ const ClubDashboard: React.FC = () => {
                             {filteredCredentials.map((credential) => (
                                 <tr key={credential.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">{credential.title}</div>
-                                        <div className="text-sm text-gray-500">{credential.type.replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm font-medium text-gray-900">{credential.title || (credential.cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm text-gray-500">{(credential.cert_type || credential.type || 'certificate').replace('_', ' ').toUpperCase()}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.student_name}
+                                        {credential.student_name || credential.metadata?.student_name || 'Unknown Student'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.event_name}
+                                        {credential.event_name || credential.metadata?.event_name || 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                                            {credential.position}
+                                            {credential.position || credential.metadata?.position || 'Participant'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(credential.issued_date).toLocaleDateString()}
+                                        {new Date(credential.issued_date || credential.issued_at).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
-                                            <button className="text-blue-600 hover:text-blue-900">
-                                                <Eye className="h-4 w-4" />
-                                            </button>
-                                            <button className="text-purple-600 hover:text-purple-900">
-                                                <Download className="h-4 w-4" />
-                                            </button>
+                                            {credential.ipfs_url && (
+                                                <a
+                                                    href={credential.ipfs_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:text-blue-900"
+                                                    title="View Certificate"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </a>
+                                            )}
+                                            {credential.cert_id && (
+                                                <button
+                                                    onClick={() => {
+                                                        fetch(`http://localhost:8080/api/certificates/verify/${credential.cert_id}`)
+                                                            .then(res => res.json())
+                                                            .then(data => {
+                                                                if (data.success && data.data.is_valid) {
+                                                                    const studentName = data.data.metadata?.student_name || 'Unknown Student';
+                                                                    const issuerName = data.data.metadata?.issuer_name || 'Unknown Issuer';
+                                                                    alert(`✅ Certificate is valid!\n\nStudent: ${studentName}\nIssuer: ${issuerName}\nType: ${data.data.cert_type}\nStatus: ${data.data.status}`);
+                                                                } else {
+                                                                    alert(`❌ Certificate verification failed: ${data.message}`);
+                                                                }
+                                                            })
+                                                            .catch(err => alert('Failed to verify certificate'));
+                                                    }}
+                                                    className="text-green-600 hover:text-green-900"
+                                                    title="Verify Certificate"
+                                                >
+                                                    <CheckCircle className="h-4 w-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -552,16 +587,107 @@ const IssueCertificateModal: React.FC<{
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/credentials/issue', {
+
+            // Create a sample PDF file for participation certificate
+            const samplePdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 120
+>>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+(PARTICIPATION CERTIFICATE) Tj
+0 -20 Td
+(Student: ${formData.student_id}) Tj
+0 -20 Td
+(Event: ${formData.event_name}) Tj
+0 -20 Td
+(Position: ${formData.position}) Tj
+0 -20 Td
+(Date: ${formData.event_date}) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000204 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+373
+%%EOF`;
+
+            // Convert to base64
+            const base64Content = btoa(samplePdfContent);
+
+            const certificateData = {
+                student_id: formData.student_id,
+                cert_type: 'participation_cert',
+                file_data: base64Content,
+                file_name: `participation_${formData.student_id}_${Date.now()}.pdf`,
+                metadata: {
+                    student_name: students.find(s => s.student_id === formData.student_id)?.name || 'Unknown Student',
+                    student_email: students.find(s => s.student_id === formData.student_id)?.email || '',
+                    issuer_name: 'Club Coordinator',
+                    issuer_role: 'club_coordinator',
+                    institution: 'SSN College of Engineering',
+                    course: students.find(s => s.student_id === formData.student_id)?.department || 'Computer Science',
+                    academic_year: '2024-25',
+                    event_name: formData.event_name,
+                    position: formData.position,
+                    event_date: formData.event_date,
+                    valid_from: new Date().toISOString(),
+                    valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                    description: formData.description || `Participation certificate for ${formData.event_name}`
+                }
+            };
+
+            const response = await fetch('http://localhost:8080/api/certificates/issue', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(certificateData),
             });
 
             if (response.ok) {
+                const result = await response.json();
+                alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
                 onCertificateIssued();
             } else {
                 const errorData = await response.json();

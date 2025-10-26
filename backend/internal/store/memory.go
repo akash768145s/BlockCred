@@ -10,19 +10,23 @@ import (
 )
 
 type MemoryStore struct {
-	mu           sync.RWMutex
-	users        []models.User
-	credentials  []models.Credential
-	nextUserID   int
-	nextCredID   int
+	mu            sync.RWMutex
+	users         []models.User
+	credentials   []models.Credential
+	certificates  []models.Certificate
+	nextUserID    int
+	nextCredID    int
+	nextCertID    int
 }
 
 func NewMemoryStore() *MemoryStore {
 	s := &MemoryStore{
-		nextUserID:  1,
-		nextCredID:  1,
-		users:       make([]models.User, 0, 32),
-		credentials: make([]models.Credential, 0, 64),
+		nextUserID:    1,
+		nextCredID:    1,
+		nextCertID:    1,
+		users:         make([]models.User, 0, 32),
+		credentials:   make([]models.Credential, 0, 64),
+		certificates:  make([]models.Certificate, 0, 64),
 	}
 	// seed demo data
 	s.seed()
@@ -132,6 +136,18 @@ func (s *MemoryStore) GetUserByID(id string) (models.User, error) {
 	return models.User{}, fmt.Errorf("user not found")
 }
 
+func (s *MemoryStore) GetUserByStudentID(studentID string) (models.User, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
+	for _, user := range s.users {
+		if user.StudentID == studentID {
+			return user, nil
+		}
+	}
+	return models.User{}, fmt.Errorf("user not found")
+}
+
 func (s *MemoryStore) GetCredentialsByStudentID(studentID string) ([]models.Credential, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -143,6 +159,98 @@ func (s *MemoryStore) GetCredentialsByStudentID(studentID string) ([]models.Cred
 		}
 	}
 	return result, nil
+}
+
+// Certificate operations
+
+func (s *MemoryStore) CreateCertificate(cert models.Certificate) (models.Certificate, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	cert.ID = primitive.NewObjectID()
+	s.certificates = append(s.certificates, cert)
+	s.nextCertID++
+	
+	return cert, nil
+}
+
+func (s *MemoryStore) GetCertificateByID(id string) (models.Certificate, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return models.Certificate{}, fmt.Errorf("invalid certificate ID")
+	}
+	
+	for _, cert := range s.certificates {
+		if cert.ID == objectID {
+			return cert, nil
+		}
+	}
+	return models.Certificate{}, fmt.Errorf("certificate not found")
+}
+
+func (s *MemoryStore) GetCertificateByCertID(certID string) (models.Certificate, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
+	for _, cert := range s.certificates {
+		if cert.CertID == certID {
+			return cert, nil
+		}
+	}
+	return models.Certificate{}, fmt.Errorf("certificate not found")
+}
+
+func (s *MemoryStore) ListCertificates() ([]models.Certificate, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
+	out := make([]models.Certificate, len(s.certificates))
+	copy(out, s.certificates)
+	return out, nil
+}
+
+func (s *MemoryStore) ListCertificatesByStudent(studentID string) ([]models.Certificate, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
+	var result []models.Certificate
+	for _, cert := range s.certificates {
+		if cert.StudentID == studentID {
+			result = append(result, cert)
+		}
+	}
+	return result, nil
+}
+
+func (s *MemoryStore) ListCertificatesByIssuer(issuerID string) ([]models.Certificate, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
+	var result []models.Certificate
+	for _, cert := range s.certificates {
+		if cert.IssuerID == issuerID {
+			result = append(result, cert)
+		}
+	}
+	return result, nil
+}
+
+func (s *MemoryStore) UpdateCertificate(certID string, updates models.Certificate) (models.Certificate, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	for i, cert := range s.certificates {
+		if cert.CertID == certID {
+			updates.ID = cert.ID
+			updates.CreatedAt = cert.CreatedAt
+			s.certificates[i] = updates
+			return updates, nil
+		}
+	}
+	return models.Certificate{}, fmt.Errorf("certificate not found")
 }
 
 func (s *MemoryStore) Close() error {
