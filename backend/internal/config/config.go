@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 )
 
 // Config holds service configuration values
@@ -23,7 +24,7 @@ func Load() Config {
 	cfg := Config{
 		Port:             getEnv("PORT", "8080"),
 		JWTSecret:        getEnv("JWT_SECRET", "dev-secret"),
-		AllowedOrigins:   []string{getEnv("ALLOWED_ORIGIN", "http://localhost:3000")},
+		AllowedOrigins:   parseAllowedOrigins(getEnv("ALLOWED_ORIGINS", "*")),
 		MongoURI:         getEnv("MONGO_URI", "mongodb://localhost:27017"),
 		MongoDatabase:    getEnv("MONGO_DATABASE", "blockcred"),
 		PinataAPIKey:     getEnv("PINATA_API_KEY", ""),
@@ -41,4 +42,26 @@ func getEnv(key, def string) string {
 		return v
 	}
 	return def
+}
+
+func parseAllowedOrigins(origins string) []string {
+	if origins == "" {
+		return []string{"*"}
+	}
+	// Split by comma and trim spaces
+	parts := strings.Split(origins, ",")
+	result := []string{}
+	for _, origin := range parts {
+		trimmed := strings.TrimSpace(origin)
+		if trimmed == "*" {
+			return []string{"*"}
+		}
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	if len(result) == 0 {
+		return []string{"*"}
+	}
+	return result
 }

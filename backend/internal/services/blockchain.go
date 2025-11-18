@@ -13,13 +13,6 @@ type BlockchainService struct {
 	config config.Config
 }
 
-type ContractTransaction struct {
-	TxHash      string `json:"tx_hash"`
-	BlockNumber uint64 `json:"block_number"`
-	GasUsed     uint64 `json:"gas_used"`
-	GasPrice    string `json:"gas_price"`
-}
-
 func NewBlockchainService(cfg config.Config) (*BlockchainService, error) {
 	// Simplified blockchain service for development
 	// In production, you would connect to actual blockchain here
@@ -83,6 +76,60 @@ func (s *BlockchainService) ComputeCertID(fileHash, studentID string, issuedAt t
 func (s *BlockchainService) ComputeFileHash(fileData []byte) string {
 	hash := sha256.Sum256(fileData)
 	return fmt.Sprintf("%x", hash)
+}
+
+// IssueCertificateOnChain issues a certificate with full on-chain data
+func (s *BlockchainService) IssueCertificateOnChain(data *OnChainCertificateData, ipfsCID string) (*ContractTransaction, error) {
+	// Simulate smart contract call with on-chain data
+	txHash := fmt.Sprintf("0x%x", time.Now().UnixNano())
+	blockNumber := uint64(time.Now().Unix() % 1000000)
+
+	fmt.Printf("🔗 Blockchain: Issuing certificate on-chain\n")
+	fmt.Printf("   CertID: %s\n", data.CertID)
+	fmt.Printf("   Credential Hash: %s\n", data.CredentialHash)
+	fmt.Printf("   Metadata Hash: %s\n", data.MetadataHash)
+	fmt.Printf("   Issuer: %s\n", data.IssuerAddress)
+	fmt.Printf("   Student Wallet: %s\n", data.StudentWallet)
+	fmt.Printf("   IPFS CID: %s\n", ipfsCID)
+	fmt.Printf("   Timestamp: %d\n", data.Timestamp)
+
+	return &ContractTransaction{
+		TxHash:      txHash,
+		BlockNumber: blockNumber,
+		GasUsed:     200000,
+		GasPrice:    "20000000000",
+	}, nil
+}
+
+// GetCertificateOnChain retrieves on-chain certificate data
+func (s *BlockchainService) GetCertificateOnChain(certID string) (*OnChainCertificateData, error) {
+	// Simulate getting on-chain data
+	return &OnChainCertificateData{
+		CertID:         certID,
+		CredentialHash: "0xabc123...",
+		MetadataHash:   "0xdef456...",
+		Timestamp:      time.Now().Unix(),
+	}, nil
+}
+
+// RegisterStudentWallet registers a student-wallet mapping
+func (s *BlockchainService) RegisterStudentWallet(studentID, walletAddress string) error {
+	fmt.Printf("🔗 Blockchain: Registering student-wallet mapping\n")
+	fmt.Printf("   Student ID: %s\n", studentID)
+	fmt.Printf("   Wallet: %s\n", walletAddress)
+	return nil
+}
+
+// GetStudentWallet retrieves wallet address for a student
+func (s *BlockchainService) GetStudentWallet(studentID string) (string, error) {
+	// Simulate getting wallet address
+	return "", fmt.Errorf("wallet not found for student %s", studentID)
+}
+
+// RevokeCertificateOnChain revokes a certificate on the blockchain
+func (s *BlockchainService) RevokeCertificateOnChain(certID string) error {
+	fmt.Printf("🔗 Blockchain: Revoking certificate %s\n", certID)
+	return nil
 }
 
 // Close closes the blockchain connection

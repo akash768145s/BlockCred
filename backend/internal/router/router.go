@@ -34,11 +34,31 @@ func New(cfg config.Config) http.Handler {
 	
 	// Initialize IPFS and Blockchain services
 	ipfsService := services.NewIPFSService(cfg)
-	blockchainService, err := services.NewBlockchainService(cfg)
+	// Try Besu blockchain service first, then GoEth, then mock
+	var blockchainService services.BlockchainServiceInterface
+	besuService, err := services.NewBesuBlockchainService(cfg)
 	if err != nil {
-		log.Printf("⚠️  Blockchain service initialization failed: %v", err)
-		log.Printf("🔄 Certificate issuance will be limited")
-		blockchainService = nil
+		log.Printf("⚠️  Besu blockchain service initialization failed: %v", err)
+		log.Printf("🔄 Trying GoEth blockchain service...")
+		goEthService, err := services.NewGoEthBlockchainService(cfg)
+		if err != nil {
+			log.Printf("⚠️  GoEth blockchain service initialization failed: %v", err)
+			log.Printf("🔄 Falling back to mock blockchain service...")
+			mockService, err := services.NewBlockchainService(cfg)
+			if err != nil {
+				log.Printf("⚠️  Mock blockchain service initialization failed: %v", err)
+				log.Printf("🔄 Certificate issuance will be limited")
+				blockchainService = nil
+			} else {
+				blockchainService = mockService
+			}
+		} else {
+			blockchainService = goEthService
+			log.Printf("✅ Using GoEth blockchain service")
+		}
+	} else {
+		blockchainService = besuService
+		log.Printf("✅ Using Besu blockchain service")
 	}
 	
 	certSvc := services.NewCertificateService(st, ipfsService, blockchainService)
@@ -84,10 +104,41 @@ func New(cfg config.Config) http.Handler {
 	api.HandleFunc("/certificates/{cert_id}/revoke", authMiddleware.RequireAuth(certificates.RevokeCertificate)).Methods("POST")
 	api.HandleFunc("/certificates/test-ipfs", certificates.TestIPFS).Methods("GET")
 
-	c := cors.New(cors.Options{
-		AllowedOrigins: cfg.AllowedOrigins,
+	// Blockchain endpoints
+	var blockchain *handlerspkg.BlockchainHandler
+	if blockchainService != nil {
+		// Support both Besu and GoEth services
+		if besuSvc, ok := blockchainService.(*services.BesuBlockchainService); ok {
+			// Create a wrapper that implements the same interface
+			blockchain = &handlerspkg.BlockchainHandler{Blockchain: besuSvc}
+			api.HandleFunc("/blockchain/status", blockchain.GetBlockchainStatus).Methods("GET")
+			api.HandleFunc("/blockchain/register-issuer", authMiddleware.RequireAuth(blockchain.RegisterIssuer)).Methods("POST")
+			api.HandleFunc("/blockchain/verify-certificate", blockchain.VerifyCertificateOnChain).Methods("GET")
+			api.HandleFunc("/blockchain/certificate", blockchain.GetCertificateFromChain).Methods("GET")
+		} else if goEthSvc, ok := blockchainService.(*services.GoEthBlockchainService); ok {
+			blockchain = &handlerspkg.BlockchainHandler{Blockchain: goEthSvc}
+			api.HandleFunc("/blockchain/status", blockchain.GetBlockchainStatus).Methods("GET")
+			api.HandleFunc("/blockchain/register-issuer", authMiddleware.RequireAuth(blockchain.RegisterIssuer)).Methods("POST")
+			api.HandleFunc("/blockchain/verify-certificate", blockchain.VerifyCertificateOnChain).Methods("GET")
+			api.HandleFunc("/blockchain/certificate", blockchain.GetCertificateFromChain).Methods("GET")
+		}
+	}
+
+	corsOptions := cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"*"},
-	})
+		AllowCredentials: true,
+	}
+	
+	// Allow all origins if "*" is in the list, or if list is empty
+	if len(cfg.AllowedOrigins) == 0 || (len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*") {
+		corsOptions.AllowOriginFunc = func(origin string) bool {
+			return true
+		}
+	} else {
+		corsOptions.AllowedOrigins = cfg.AllowedOrigins
+	}
+	
+	c := cors.New(corsOptions)
 	return c.Handler(r)
 }

@@ -108,6 +108,32 @@ backend/
 | External Verifier | verifier@external.com | verifier123 |
 | Student | john@student.ssn.edu.in | student123 |
 
+## Blockchain Setup
+
+BlockCred uses a **Proof-of-Authority (PoA)** private blockchain network powered by **Hyperledger Besu**.
+
+### Quick Setup
+
+1. **Install Besu:**
+   ```powershell
+   cd backend
+   .\blockchain\scripts\setup\install-besu.ps1
+   ```
+   Or manually: Download from [Besu Releases](https://github.com/hyperledger/besu/releases)
+
+2. **Start Blockchain:**
+   ```powershell
+   cd backend
+   .\blockchain\scripts\setup\start-besu.bat
+   ```
+
+3. **Verify it's Running:**
+   ```powershell
+   .\blockchain\scripts\setup\check-status.bat
+   ```
+
+For complete blockchain documentation, see [`blockchain/README.md`](blockchain/README.md)
+
 ## Configuration
 
 Environment variables:

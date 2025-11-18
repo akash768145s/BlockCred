@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudentData } from "@/hooks/useApi";
+import CertificateDisplay from "@/components/CertificateDisplay";
 
 export default function StudentDashboard() {
     const router = useRouter();
@@ -381,10 +382,30 @@ export default function StudentDashboard() {
                                 Your certificates will appear here once they are issued by institutions.
                             </p>
                         </div>
+                    ) : selectedCertificate ? (
+                        <div className="space-y-4">
+                            <button
+                                onClick={() => setSelectedCertificate(null)}
+                                className="text-blue-600 hover:text-blue-800 font-semibold flex items-center"
+                            >
+                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                                </svg>
+                                Back to Certificates
+                            </button>
+                            <CertificateDisplay 
+                                certificate={selectedCertificate}
+                                onVerify={verifyCertificate}
+                            />
+                        </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {certificates.map((certificate) => (
-                                <div key={certificate.id} className="relative bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border-2 border-blue-200">
+                                <div 
+                                    key={certificate.id} 
+                                    className="relative bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border-2 border-blue-200 cursor-pointer"
+                                    onClick={() => setSelectedCertificate(certificate)}
+                                >
                                     {/* Verified Stamp */}
                                     <div className="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-2 shadow-lg">
                                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
