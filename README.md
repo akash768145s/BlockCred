@@ -698,6 +698,20 @@ air
 - Academic portfolio management
 - Blockchain-verified credentials
 
+## Metrics & Performance
+
+BlockCred tracks comprehensive system metrics including:
+
+- **System Performance**: Response times, throughput, error rates, uptime
+- **User Activity**: DAU/MAU, user growth, role distribution, engagement
+- **Blockchain Metrics**: Transaction throughput, confirmation times, on-chain storage
+- **API Performance**: Endpoint response times, success rates, usage statistics
+- **Database Metrics**: Query performance, collection sizes, growth rates
+- **Business Metrics**: Credential issuance, verification rates, student statistics
+- **Security Metrics**: Authentication failures, tamper detection, data integrity
+
+For detailed metrics documentation, see [`METRICS.md`](METRICS.md)
+
 ## Future Roadmap
 
 - Enhanced blockchain integration with smart contracts
@@ -707,6 +721,8 @@ air
 - Native mobile applications
 - W3C credential standards compliance
 - Advanced analytics and reporting
+- Real-time metrics dashboard
+- Predictive analytics
 - Multi-chain support
 - NFT-based credentials
 
