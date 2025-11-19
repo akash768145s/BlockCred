@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	httpx "blockcred-backend/internal/http"
@@ -85,6 +86,9 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log the received data for debugging
+	log.Printf("UpdateUser request for ID %s: Department=%s", userIDStr, in.Department)
+
 	user, err := h.Users.UpdateUser(userIDStr, in)
 	if err != nil {
 		httpx.JSON(w, http.StatusNotFound, false, err.Error(), nil)
@@ -92,4 +96,21 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.JSON(w, http.StatusOK, true, "user updated successfully", user)
+}
+
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userIDStr, ok := vars["id"]
+	if !ok {
+		httpx.JSON(w, http.StatusBadRequest, false, "user ID required", nil)
+		return
+	}
+
+	err := h.Users.DeleteUser(userIDStr)
+	if err != nil {
+		httpx.JSON(w, http.StatusNotFound, false, err.Error(), nil)
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, true, "user deleted successfully", nil)
 }

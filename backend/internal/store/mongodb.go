@@ -233,6 +233,26 @@ func (s *MongoDBStore) UpdateUser(userID string, updates models.User) (models.Us
 	return s.GetUserByID(userID)
 }
 
+func (s *MongoDBStore) DeleteUser(userID string) error {
+	ctx := context.Background()
+	
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	result, err := s.users.DeleteOne(ctx, bson.M{"_id": objectID})
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
 // Certificate operations
 
 func (s *MongoDBStore) CreateCertificate(cert models.Certificate) (models.Certificate, error) {

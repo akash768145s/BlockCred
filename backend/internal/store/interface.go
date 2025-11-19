@@ -11,6 +11,7 @@ type Store interface {
 	GetUserByID(id string) (models.User, error)
 	GetUserByStudentID(studentID string) (models.User, error)
 	UpdateUser(userID string, updates models.User) (models.User, error)
+	DeleteUser(userID string) error
 
 	// Certificate operations
 	CreateCertificate(cert models.Certificate) (models.Certificate, error)

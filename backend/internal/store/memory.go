@@ -161,6 +161,25 @@ func (s *MemoryStore) GetCredentialsByStudentID(studentID string) ([]models.Cred
 	return result, nil
 }
 
+func (s *MemoryStore) DeleteUser(userID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	for i, user := range s.users {
+		if user.ID == objectID {
+			s.users = append(s.users[:i], s.users[i+1:]...)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("user not found")
+}
+
 // Certificate operations
 
 func (s *MemoryStore) CreateCertificate(cert models.Certificate) (models.Certificate, error) {

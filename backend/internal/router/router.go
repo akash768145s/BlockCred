@@ -94,6 +94,8 @@ func New(cfg config.Config) http.Handler {
 	
 	// Add user update endpoint
 	api.HandleFunc("/admin/users/{id}", authMiddleware.RequireAuth(users.UpdateUser)).Methods("PUT")
+	// Add user delete endpoint
+	api.HandleFunc("/admin/users/{id}", authMiddleware.RequireAuth(users.DeleteUser)).Methods("DELETE")
 	
 	// Certificate endpoints
 	api.HandleFunc("/certificates/issue", authMiddleware.RequireAuth(certificates.IssueCertificate)).Methods("POST")

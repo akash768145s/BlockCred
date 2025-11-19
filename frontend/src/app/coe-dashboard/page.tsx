@@ -15,7 +15,8 @@ import {
     Clock,
     Users,
     BookOpen,
-    TrendingUp
+    TrendingUp,
+    XCircle
 } from 'lucide-react';
 
 interface Student {
@@ -651,145 +652,148 @@ startxref
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold">Issue Academic Credential</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div className="p-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 className="text-2xl font-bold text-[#1E293B]">Issue Academic Credential</h3>
+                            <p className="text-sm text-[#64748B] mt-1">Fill in the details to issue a new credential</p>
+                        </div>
                         <button
                             onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-[#94A3B8] hover:text-[#1E293B] transition-colors p-2 hover:bg-[#F8FAFC] rounded-lg"
                         >
-                            ✕
+                            <XCircle className="h-6 w-6" />
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Student *
+                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                    Student <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     required
                                     value={formData.student_id}
                                     onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
                                 >
-                                    <option value="">Select Student</option>
+                                    <option value="" className="text-[#94A3B8]">Select Student</option>
                                     {students.map(student => (
-                                        <option key={student.id} value={student.student_id}>
+                                        <option key={student.id} value={student.student_id} className="text-[#1E293B]">
                                             {student.name} ({student.student_id})
                                         </option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Credential Type *
+                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                    Credential Type <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     required
                                     value={formData.type}
                                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
                                 >
-                                    <option value="marksheet">Semester Marksheet</option>
-                                    <option value="degree">Degree Certificate</option>
+                                    <option value="marksheet" className="text-[#1E293B]">Semester Marksheet</option>
+                                    <option value="degree" className="text-[#1E293B]">Degree Certificate</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Semester *
+                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                    Semester <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     required
                                     value={formData.semester}
                                     onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
                                 >
-                                    <option value="">Select Semester</option>
-                                    <option value="1">Semester 1</option>
-                                    <option value="2">Semester 2</option>
-                                    <option value="3">Semester 3</option>
-                                    <option value="4">Semester 4</option>
-                                    <option value="5">Semester 5</option>
-                                    <option value="6">Semester 6</option>
-                                    <option value="7">Semester 7</option>
-                                    <option value="8">Semester 8</option>
+                                    <option value="" className="text-[#94A3B8]">Select Semester</option>
+                                    <option value="1" className="text-[#1E293B]">Semester 1</option>
+                                    <option value="2" className="text-[#1E293B]">Semester 2</option>
+                                    <option value="3" className="text-[#1E293B]">Semester 3</option>
+                                    <option value="4" className="text-[#1E293B]">Semester 4</option>
+                                    <option value="5" className="text-[#1E293B]">Semester 5</option>
+                                    <option value="6" className="text-[#1E293B]">Semester 6</option>
+                                    <option value="7" className="text-[#1E293B]">Semester 7</option>
+                                    <option value="8" className="text-[#1E293B]">Semester 8</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Subject *
+                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                    Subject <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     required
                                     value={formData.subject}
                                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
                                     placeholder="Enter subject name"
                                 />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Marks *
+                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                    Marks <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     required
                                     value={formData.marks}
                                     onChange={(e) => setFormData({ ...formData, marks: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
                                     placeholder="Enter marks"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
                                     Grade
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.grade}
                                     onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
                                     placeholder="Enter grade (e.g., A+, A, B+)"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-[#1E293B] mb-2">
                                 Description
                             </label>
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows={4}
+                                className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all resize-none"
                                 placeholder="Enter additional details"
                             />
                         </div>
 
-                        <div className="flex justify-end space-x-4">
+                        <div className="flex justify-end space-x-4 pt-4 border-t border-[#E2E8F0]">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                className="px-6 py-3 border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] hover:bg-[#F8FAFC] transition-colors font-medium"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                className="px-6 py-3 bg-[#06B6D4] text-white rounded-lg hover:bg-[#0891B2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-md"
                             >
                                 {loading ? 'Issuing...' : 'Issue Credential'}
                             </button>

@@ -47,6 +47,7 @@ type RegisterStudentInput struct {
 	TwelfthSchool    string `json:"twelfth_school"`
 	TwelfthMarks     int    `json:"twelfth_marks"`
 	Cutoff           int    `json:"cutoff"`
+	Department       string `json:"department"` // Added department field
 }
 
 type UpdateUserInput struct {
@@ -102,6 +103,7 @@ func (u *UserService) RegisterStudent(in RegisterStudentInput) (models.User, err
 		TwelfthSchool:  in.TwelfthSchool,
 		TwelfthMarks:   in.TwelfthMarks,
 		Cutoff:         in.Cutoff,
+		Department:     in.Department, // Added department field
 		IsActive:       true,
 		IsApproved:     false,
 		NodeAssigned:   false,
@@ -165,9 +167,9 @@ func (u *UserService) UpdateUser(userID string, in UpdateUserInput) (models.User
 	if in.Cutoff != 0 {
 		existingUser.Cutoff = in.Cutoff
 	}
-	if in.Department != "" {
-		existingUser.Department = in.Department
-	}
+	// Always update department if provided (even if empty string)
+	// This ensures department selection from dropdown is saved
+	existingUser.Department = in.Department
 	if in.Institution != "" {
 		existingUser.Institution = in.Institution
 	}
@@ -182,6 +184,16 @@ func (u *UserService) UpdateUser(userID string, in UpdateUserInput) (models.User
 	}
 
 	return u.store.UpdateUser(userID, existingUser)
+}
+
+func (u *UserService) DeleteUser(userID string) error {
+	// Check if user exists
+	_, err := u.store.GetUserByID(userID)
+	if err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+
+	return u.store.DeleteUser(userID)
 }
 
 func generateStudentID(name, school string, tenthMarks, twelfthMarks int) string {
