@@ -10,8 +10,6 @@ export const getRoleIcon = (role: UserRole) => {
             return 'GraduationCap';
         case 'club_coordinator':
             return 'Award';
-        case 'external_verifier':
-            return 'Eye';
         case 'student':
             return 'Users';
         default:
@@ -29,8 +27,6 @@ export const getRoleDisplayName = (role: UserRole): string => {
             return 'Department Faculty';
         case 'club_coordinator':
             return 'Club Coordinator';
-        case 'external_verifier':
-            return 'External Verifier';
         case 'student':
             return 'Student';
         default:
@@ -48,8 +44,6 @@ export const getRoleColor = (role: UserRole): string => {
             return 'bg-green-100 text-green-800';
         case 'club_coordinator':
             return 'bg-purple-100 text-purple-800';
-        case 'external_verifier':
-            return 'bg-yellow-100 text-yellow-800';
         case 'student':
             return 'bg-gray-100 text-gray-800';
         default:

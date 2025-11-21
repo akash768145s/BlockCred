@@ -36,8 +36,6 @@ const RoleBasedDashboard: React.FC<RoleBasedDashboardProps> = ({ user, dashboard
                 return <Users className="h-6 w-6" />;
             case 'club_coordinator':
                 return <Award className="h-6 w-6" />;
-            case 'external_verifier':
-                return <Search className="h-6 w-6" />;
             case 'student':
                 return <Certificate className="h-6 w-6" />;
             default:
@@ -216,18 +214,6 @@ const RoleBasedDashboard: React.FC<RoleBasedDashboardProps> = ({ user, dashboard
                     </div>
                 );
 
-            case 'external_verifier':
-                return (
-                    <div className="space-y-6">
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-yellow-900 mb-2">Credential Verification</h3>
-                            <p className="text-yellow-700">
-                                You have read-only access to verify the authenticity of issued credentials.
-                            </p>
-                        </div>
-                    </div>
-                );
-
             case 'student':
                 return (
                     <div className="space-y-6">
@@ -263,15 +249,13 @@ const RoleBasedDashboard: React.FC<RoleBasedDashboardProps> = ({ user, dashboard
                                     user.role === 'coe' ? 'bg-blue-100 text-blue-800' :
                                         user.role === 'department_faculty' ? 'bg-green-100 text-green-800' :
                                             user.role === 'club_coordinator' ? 'bg-purple-100 text-purple-800' :
-                                                user.role === 'external_verifier' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-gray-100 text-gray-800'
+                                                'bg-gray-100 text-gray-800'
                                 }`}>
                                 {user.role === 'ssn_main_admin' ? 'SSN Main Admin' :
                                     user.role === 'coe' ? 'Controller of Examinations' :
                                         user.role === 'department_faculty' ? 'Department Faculty' :
                                             user.role === 'club_coordinator' ? 'Club Coordinator' :
-                                                user.role === 'external_verifier' ? 'External Verifier' :
-                                                    'Student'}
+                                                'Student'}
                             </span>
                         </div>
                     </div>

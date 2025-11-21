@@ -129,8 +129,6 @@ export class AuthService {
                 return '/faculty-dashboard';
             case 'club_coordinator':
                 return '/club-dashboard';
-            case 'external_verifier':
-                return '/verifier-dashboard';
             case 'student':
                 return '/student-dashboard';
             default:

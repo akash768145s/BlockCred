@@ -311,7 +311,6 @@ const EnhancedDashboard: React.FC = () => {
                                             <option value="coe">Controller of Examinations</option>
                                             <option value="department_faculty">Department Faculty</option>
                                             <option value="club_coordinator">Club Coordinator</option>
-                                            <option value="external_verifier">External Verifier</option>
                                         </select>
                                     </div>
                                 </div>

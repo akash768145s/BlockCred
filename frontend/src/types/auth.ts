@@ -3,7 +3,6 @@ export type UserRole =
     | 'coe'
     | 'department_faculty'
     | 'club_coordinator'
-    | 'external_verifier'
     | 'student';
 
 export interface RolePermissions {
@@ -147,7 +146,6 @@ export const ROLE_DISPLAY_NAMES: Record<UserRole, string> = {
     coe: 'Controller of Examinations',
     department_faculty: 'Department Faculty',
     club_coordinator: 'Club Coordinator',
-    external_verifier: 'External Verifier',
     student: 'Student',
 };
 
@@ -156,6 +154,5 @@ export const ROLE_COLORS: Record<UserRole, string> = {
     coe: 'bg-blue-100 text-blue-800',
     department_faculty: 'bg-green-100 text-green-800',
     club_coordinator: 'bg-purple-100 text-purple-800',
-    external_verifier: 'bg-yellow-100 text-yellow-800',
     student: 'bg-gray-100 text-gray-800',
 };

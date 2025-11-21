@@ -48,8 +48,6 @@ const AdminDashboard: React.FC = () => {
                 return <GraduationCap className="h-5 w-5 text-[#06B6D4]" />;
             case 'Award':
                 return <Award className="h-5 w-5 text-[#06B6D4]" />;
-            case 'Eye':
-                return <Eye className="h-5 w-5 text-[#06B6D4]" />;
             case 'Users':
                 return <Users className="h-5 w-5 text-[#06B6D4]" />;
             default:
@@ -63,6 +61,10 @@ const AdminDashboard: React.FC = () => {
         const matchesRole = filterRole === 'all' || user.role === filterRole;
         return matchesSearch && matchesRole;
     });
+
+    // Separate students and other roles
+    const students = filteredUsers.filter(user => user.role === 'student');
+    const otherRoles = filteredUsers.filter(user => user.role !== 'student');
 
     const handleDeleteUser = (user: any) => {
         setDeletingUser(user);
@@ -225,7 +227,6 @@ const AdminDashboard: React.FC = () => {
                             <option value="coe">COE</option>
                             <option value="department_faculty">Faculty</option>
                             <option value="club_coordinator">Club Coordinator</option>
-                            <option value="external_verifier">External Verifier</option>
                             <option value="student">Student</option>
                         </select>
                     </div>
@@ -248,8 +249,14 @@ const AdminDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Users Table */}
+            {/* Students Table */}
             <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+                    <h3 className="text-lg font-bold text-[#1E293B] flex items-center">
+                        <GraduationCap className="h-5 w-5 mr-2 text-[#06B6D4]" />
+                        Students ({students.length})
+                    </h3>
+                </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-[#F8FAFC]">
@@ -258,7 +265,7 @@ const AdminDashboard: React.FC = () => {
                                     User
                                 </th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Role
+                                    Student ID
                                 </th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
                                     Department
@@ -281,93 +288,214 @@ const AdminDashboard: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredUsers.map((user) => (
-                                <tr key={user.id} className="hover:bg-[#F8FAFC] transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="flex-shrink-0 h-10 w-10">
-                                                <div className="h-10 w-10 rounded-full bg-[#06B6D4]/10 flex items-center justify-center">
-                                                    {getRoleIconComponent(user.role)}
+                            {students.length > 0 ? (
+                                students.map((user) => (
+                                    <tr key={user.id} className="hover:bg-[#F8FAFC] transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0 h-10 w-10">
+                                                    <div className="h-10 w-10 rounded-full bg-[#06B6D4]/10 flex items-center justify-center">
+                                                        {getRoleIconComponent(user.role)}
+                                                    </div>
+                                                </div>
+                                                <div className="ml-4">
+                                                    <div className="text-sm font-medium text-[#1E293B]">{user.name}</div>
+                                                    <div className="text-sm text-[#64748B]">{user.email}</div>
                                                 </div>
                                             </div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-[#1E293B]">{user.name}</div>
-                                                <div className="text-sm text-[#64748B]">{user.email}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-[#06B6D4]/10 text-[#06B6D4]">
-                                            {getRoleDisplayName(user.role)}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
-                                        {user.department || user.club_name || user.institution || '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
-                                        {user.tenth_school || '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
-                                        {user.twelfth_school || '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center space-x-2">
-                                            {user.is_active ? (
-                                                <CheckCircle className="h-4 w-4 text-green-500" />
-                                            ) : (
-                                                <XCircle className="h-4 w-4 text-red-500" />
-                                            )}
-                                            <span className={`text-sm font-medium ${user.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                                                {user.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#64748B]">
-                                        {formatDate(user.created_at)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex items-center space-x-2">
-                                            {!user.is_approved && (
-                                                <button
-                                                    onClick={() => approveUser(user.id)}
-                                                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors shadow-sm"
-                                                    title="Approve User"
-                                                >
-                                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                                    Approve
-                                                </button>
-                                            )}
-                                            {user.is_approved && (
-                                                <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
-                                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                                    Approved
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B] font-medium">
+                                            {user.student_id || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
+                                            {user.department || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
+                                            {user.tenth_school || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
+                                            {user.twelfth_school || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center space-x-2">
+                                                {user.is_active ? (
+                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                ) : (
+                                                    <XCircle className="h-4 w-4 text-red-500" />
+                                                )}
+                                                <span className={`text-sm font-medium ${user.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {user.is_active ? 'Active' : 'Inactive'}
                                                 </span>
-                                            )}
-                                            <button
-                                                onClick={() => setViewingUser(user)}
-                                                className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
-                                                title="View Details"
-                                            >
-                                                <Eye className="h-3.5 w-3.5" />
-                                            </button>
-                                            <button
-                                                onClick={() => setEditingUser(user)}
-                                                className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
-                                                title="Edit User"
-                                            >
-                                                <Edit className="h-3.5 w-3.5" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteUser(user)}
-                                                className="inline-flex items-center px-2.5 py-1.5 border border-red-300 text-xs font-medium rounded-lg text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
-                                                title="Delete User"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
-                                        </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#64748B]">
+                                            {formatDate(user.created_at)}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex items-center space-x-2">
+                                                {!user.is_approved && (
+                                                    <button
+                                                        onClick={() => approveUser(user.id)}
+                                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors shadow-sm"
+                                                        title="Approve User"
+                                                    >
+                                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                                        Approve
+                                                    </button>
+                                                )}
+                                                {user.is_approved && (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
+                                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                                        Approved
+                                                    </span>
+                                                )}
+                                                <button
+                                                    onClick={() => setViewingUser(user)}
+                                                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingUser(user)}
+                                                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
+                                                    title="Edit User"
+                                                >
+                                                    <Edit className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteUser(user)}
+                                                    className="inline-flex items-center px-2.5 py-1.5 border border-red-300 text-xs font-medium rounded-lg text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+                                                    title="Delete User"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-8 text-center text-sm text-[#64748B]">
+                                        No students found
                                     </td>
                                 </tr>
-                            ))}
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Other Roles Table */}
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden mt-6">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
+                    <h3 className="text-lg font-bold text-[#1E293B] flex items-center">
+                        <Shield className="h-5 w-5 mr-2 text-[#06B6D4]" />
+                        Staff & Other Roles ({otherRoles.length})
+                    </h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-[#F8FAFC]">
+                            <tr>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                    User
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                    Role
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {otherRoles.length > 0 ? (
+                                otherRoles.map((user) => (
+                                    <tr key={user.id} className="hover:bg-[#F8FAFC] transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0 h-10 w-10">
+                                                    <div className="h-10 w-10 rounded-full bg-[#06B6D4]/10 flex items-center justify-center">
+                                                        {getRoleIconComponent(user.role)}
+                                                    </div>
+                                                </div>
+                                                <div className="ml-4">
+                                                    <div className="text-sm font-medium text-[#1E293B]">{user.name}</div>
+                                                    <div className="text-sm text-[#64748B]">{user.email}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-[#06B6D4]/10 text-[#06B6D4]">
+                                                {getRoleDisplayName(user.role)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center space-x-2">
+                                                {user.is_active ? (
+                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                ) : (
+                                                    <XCircle className="h-4 w-4 text-red-500" />
+                                                )}
+                                                <span className={`text-sm font-medium ${user.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {user.is_active ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex items-center space-x-2">
+                                                {!user.is_approved && (
+                                                    <button
+                                                        onClick={() => approveUser(user.id)}
+                                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors shadow-sm"
+                                                        title="Approve User"
+                                                    >
+                                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                                        Approve
+                                                    </button>
+                                                )}
+                                                {user.is_approved && (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
+                                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                                        Approved
+                                                    </span>
+                                                )}
+                                                <button
+                                                    onClick={() => setViewingUser(user)}
+                                                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingUser(user)}
+                                                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
+                                                    title="Edit User"
+                                                >
+                                                    <Edit className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteUser(user)}
+                                                    className="inline-flex items-center px-2.5 py-1.5 border border-red-300 text-xs font-medium rounded-lg text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+                                                    title="Delete User"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-8 text-center text-sm text-[#64748B]">
+                                        No staff or other roles found
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -578,6 +706,19 @@ const CreateUserModal: React.FC<{
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate department for Department Faculty and Club Coordinator
+        if ((formData.role === 'department_faculty' || formData.role === 'club_coordinator') && !formData.department) {
+            alert('Department is required for this role');
+            return;
+        }
+
+        // Validate club_name for Club Coordinator
+        if (formData.role === 'club_coordinator' && !formData.club_name) {
+            alert('Club name is required for Club Coordinator');
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -682,7 +823,6 @@ const CreateUserModal: React.FC<{
                                     <option value="coe">Controller of Examinations</option>
                                     <option value="department_faculty">Department Faculty</option>
                                     <option value="club_coordinator">Club Coordinator</option>
-                                    <option value="external_verifier">External Verifier</option>
                                 </select>
                             </div>
                         </div>
@@ -701,39 +841,67 @@ const CreateUserModal: React.FC<{
                             />
                         </div>
 
-                        {(formData.role === 'department_faculty' || formData.role === 'coe') && (
+                        {formData.role === 'department_faculty' && (
                             <div>
                                 <label className="block text-sm font-medium text-[#1E293B] mb-2">
-                                    Department
+                                    Department <span className="text-red-500">*</span>
                                 </label>
                                 <select
+                                    required
                                     value={formData.department}
                                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                                     className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
                                 >
                                     <option value="">Select Department</option>
-                                    <option value="Computer Science">Computer Science</option>
+                                    <option value="Electrical and Electronics Engineering">Electrical and Electronics Engineering</option>
+                                    <option value="Electronics and Communication Engineering">Electronics and Communication Engineering</option>
+                                    <option value="Computer Science and Engineering">Computer Science and Engineering</option>
                                     <option value="Information Technology">Information Technology</option>
-                                    <option value="Electronics and Communication">Electronics and Communication</option>
                                     <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                    <option value="Chemical Engineering">Chemical Engineering</option>
+                                    <option value="Biomedical Engineering">Biomedical Engineering</option>
                                     <option value="Civil Engineering">Civil Engineering</option>
                                 </select>
                             </div>
                         )}
 
                         {formData.role === 'club_coordinator' && (
-                            <div>
-                                <label className="block text-sm font-medium text-[#1E293B] mb-2">
-                                    Club Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.club_name}
-                                    onChange={(e) => setFormData({ ...formData, club_name: e.target.value })}
-                                    className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
-                                    placeholder="Enter club name"
-                                />
-                            </div>
+                            <>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                        Department <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        required
+                                        value={formData.department}
+                                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                                        className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                    >
+                                        <option value="">Select Department</option>
+                                        <option value="Electrical and Electronics Engineering">Electrical and Electronics Engineering</option>
+                                        <option value="Electronics and Communication Engineering">Electronics and Communication Engineering</option>
+                                        <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                                        <option value="Information Technology">Information Technology</option>
+                                        <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                        <option value="Chemical Engineering">Chemical Engineering</option>
+                                        <option value="Biomedical Engineering">Biomedical Engineering</option>
+                                        <option value="Civil Engineering">Civil Engineering</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#1E293B] mb-2">
+                                        Club Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.club_name}
+                                        onChange={(e) => setFormData({ ...formData, club_name: e.target.value })}
+                                        className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
+                                        placeholder="Enter club name"
+                                    />
+                                </div>
+                            </>
                         )}
 
                         <div className="flex justify-end space-x-4 pt-4">
@@ -765,11 +933,15 @@ const EditUserModal: React.FC<{
     onClose: () => void;
     onUserUpdated: () => void;
 }> = ({ user, onClose, onUserUpdated }) => {
+    const isStudent = user.role === 'student';
+
     const [formData, setFormData] = useState({
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
+        role: user.role || '',
         department: user.department || '',
+        club_name: (!isStudent ? (user.club_name || '') : ''),
         tenth_school: user.tenth_school || '',
         twelfth_school: user.twelfth_school || '',
         tenth_marks: user.tenth_marks || '',
@@ -784,7 +956,78 @@ const EditUserModal: React.FC<{
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
+        // For staff users, allow role, department, and club_name changes
+        if (!isStudent) {
+            setLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+
+                // Ensure role is always included and not empty
+                if (!formData.role || formData.role.trim() === '') {
+                    alert('Role is required');
+                    setLoading(false);
+                    return;
+                }
+
+                const updateData: any = {
+                    role: formData.role.trim()
+                };
+
+                // Add department for Department Faculty and Club Coordinator
+                if (formData.role === 'department_faculty' || formData.role === 'club_coordinator') {
+                    if (!formData.department) {
+                        alert('Department is required for this role');
+                        setLoading(false);
+                        return;
+                    }
+                    updateData.department = formData.department;
+                }
+
+                // Add club_name for Club Coordinator
+                if (formData.role === 'club_coordinator') {
+                    if (!formData.club_name) {
+                        alert('Club name is required for Club Coordinator');
+                        setLoading(false);
+                        return;
+                    }
+                    updateData.club_name = formData.club_name;
+                }
+
+                // Debug: Log what we're sending
+                console.log('Updating user with data:', JSON.stringify(updateData, null, 2));
+                console.log('User ID:', user.id);
+                console.log('Current role:', user.role);
+                console.log('New role:', formData.role);
+                console.log('FormData role value:', formData.role);
+                console.log('UpdateData role value:', updateData.role);
+
+                const response = await fetch(`http://localhost:8080/api/admin/users/${user.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to update user');
+                }
+
+                alert('User updated successfully!');
+                onUserUpdated();
+            } catch (error: any) {
+                console.error('Error updating user:', error);
+                alert(error.message || 'Failed to update user. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
+
+        // For students, validate all fields
         // Validate Aadhar number
         if (formData.aadhar_number && formData.aadhar_number.length !== 12) {
             alert('Aadhar number must be exactly 12 digits');
@@ -801,7 +1044,7 @@ const EditUserModal: React.FC<{
 
         try {
             const token = localStorage.getItem('token');
-            
+
             // Convert date format from DD-MM-YYYY to YYYY-MM-DD if needed
             let dobFormatted = formData.dob;
             if (dobFormatted && dobFormatted.includes('-') && dobFormatted.split('-').length === 3) {
@@ -812,7 +1055,7 @@ const EditUserModal: React.FC<{
                     dobFormatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
                 }
             }
-            
+
             // Convert marks and cutoff to integers
             const updateData = {
                 name: formData.name,
@@ -829,9 +1072,9 @@ const EditUserModal: React.FC<{
                 aadhar_number: formData.aadhar_number,
                 school_name: formData.school_name,
             };
-            
+
             console.log('Updating user with data:', updateData); // Debug log
-            
+
             const response = await fetch(`http://localhost:8080/api/admin/users/${user.id}`, {
                 method: 'PUT',
                 headers: {
@@ -874,242 +1117,316 @@ const EditUserModal: React.FC<{
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Full Name <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter full name"
-                                />
-                            </div>
+                        {!isStudent ? (
+                            // Staff/Other Roles - Role, Department (for Faculty/Club), Club Name (for Club)
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        Role <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        required
+                                        value={formData.role}
+                                        onChange={(e) => {
+                                            const newRole = e.target.value;
+                                            // Clear department and club_name when changing to COE
+                                            if (newRole === 'coe') {
+                                                setFormData({ ...formData, role: newRole, department: '', club_name: '' });
+                                            } else if (newRole === 'department_faculty') {
+                                                // Clear club_name when changing to Department Faculty
+                                                setFormData({ ...formData, role: newRole, club_name: '' });
+                                            } else {
+                                                setFormData({ ...formData, role: newRole });
+                                            }
+                                        }}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                    >
+                                        <option value="ssn_main_admin">SSN Main Admin</option>
+                                        <option value="coe">Controller of Examinations</option>
+                                        <option value="department_faculty">Department Faculty</option>
+                                        <option value="club_coordinator">Club Coordinator</option>
+                                    </select>
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Email <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter email"
-                                />
-                            </div>
+                                {(formData.role === 'department_faculty' || formData.role === 'club_coordinator') && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                            Department <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            required
+                                            value={formData.department}
+                                            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                                            className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        >
+                                            <option value="">Select Department</option>
+                                            <option value="Electrical and Electronics Engineering">Electrical and Electronics Engineering</option>
+                                            <option value="Electronics and Communication Engineering">Electronics and Communication Engineering</option>
+                                            <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                                            <option value="Information Technology">Information Technology</option>
+                                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                            <option value="Chemical Engineering">Chemical Engineering</option>
+                                            <option value="Biomedical Engineering">Biomedical Engineering</option>
+                                            <option value="Civil Engineering">Civil Engineering</option>
+                                        </select>
+                                    </div>
+                                )}
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Phone <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="tel"
-                                    required
-                                    pattern="[0-9]{10}"
-                                    maxLength="10"
-                                    minLength="10"
-                                    value={formData.phone}
-                                    onChange={(e) => {
-                                        // Only allow digits
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        // Limit to 10 digits
-                                        const limitedValue = value.slice(0, 10);
-                                        setFormData({ ...formData, phone: limitedValue });
-                                    }}
-                                    onBlur={(e) => {
-                                        // Validate on blur
-                                        if (e.target.value.length !== 10) {
-                                            e.target.setCustomValidity('Phone number must be exactly 10 digits');
-                                        } else {
-                                            e.target.setCustomValidity('');
-                                        }
-                                    }}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter phone number (10 digits)"
-                                />
-                                {formData.phone && formData.phone.length !== 10 && (
-                                    <p className="mt-1 text-sm text-red-600">Phone number must be exactly 10 digits</p>
+                                {formData.role === 'club_coordinator' && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                            Club Name <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.club_name}
+                                            onChange={(e) => setFormData({ ...formData, club_name: e.target.value })}
+                                            className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                            placeholder="Enter club name"
+                                        />
+                                    </div>
                                 )}
                             </div>
+                        ) : (
+                            // Students - All fields
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        Full Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter full name"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Department <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    required
-                                    value={formData.department}
-                                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                >
-                                    <option value="" className="text-[#94A3B8]">Select Department</option>
-                                    <option value="Electrical and Electronics Engineering" className="text-[#1E293B]">Electrical and Electronics Engineering</option>
-                                    <option value="Electronics and Communication Engineering" className="text-[#1E293B]">Electronics and Communication Engineering</option>
-                                    <option value="Computer Science and Engineering" className="text-[#1E293B]">Computer Science and Engineering</option>
-                                    <option value="Information Technology" className="text-[#1E293B]">Information Technology</option>
-                                    <option value="Mechanical Engineering" className="text-[#1E293B]">Mechanical Engineering</option>
-                                    <option value="Chemical Engineering" className="text-[#1E293B]">Chemical Engineering</option>
-                                    <option value="Biomedical Engineering" className="text-[#1E293B]">Biomedical Engineering</option>
-                                    <option value="Civil Engineering" className="text-[#1E293B]">Civil Engineering</option>
-                                </select>
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        Email <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter email"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    10th School <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.tenth_school}
-                                    onChange={(e) => setFormData({ ...formData, tenth_school: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter 10th school"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        Phone <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        required
+                                        pattern="[0-9]{10}"
+                                        maxLength="10"
+                                        minLength="10"
+                                        value={formData.phone}
+                                        onChange={(e) => {
+                                            // Only allow digits
+                                            const value = e.target.value.replace(/\D/g, '');
+                                            // Limit to 10 digits
+                                            const limitedValue = value.slice(0, 10);
+                                            setFormData({ ...formData, phone: limitedValue });
+                                        }}
+                                        onBlur={(e) => {
+                                            // Validate on blur
+                                            if (e.target.value.length !== 10) {
+                                                e.target.setCustomValidity('Phone number must be exactly 10 digits');
+                                            } else {
+                                                e.target.setCustomValidity('');
+                                            }
+                                        }}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter phone number (10 digits)"
+                                    />
+                                    {formData.phone && formData.phone.length !== 10 && (
+                                        <p className="mt-1 text-sm text-red-600">Phone number must be exactly 10 digits</p>
+                                    )}
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    12th School <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.twelfth_school}
-                                    onChange={(e) => setFormData({ ...formData, twelfth_school: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter 12th school"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        Department <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        required
+                                        value={formData.department}
+                                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                    >
+                                        <option value="" className="text-[#94A3B8]">Select Department</option>
+                                        <option value="Electrical and Electronics Engineering" className="text-[#1E293B]">Electrical and Electronics Engineering</option>
+                                        <option value="Electronics and Communication Engineering" className="text-[#1E293B]">Electronics and Communication Engineering</option>
+                                        <option value="Computer Science and Engineering" className="text-[#1E293B]">Computer Science and Engineering</option>
+                                        <option value="Information Technology" className="text-[#1E293B]">Information Technology</option>
+                                        <option value="Mechanical Engineering" className="text-[#1E293B]">Mechanical Engineering</option>
+                                        <option value="Chemical Engineering" className="text-[#1E293B]">Chemical Engineering</option>
+                                        <option value="Biomedical Engineering" className="text-[#1E293B]">Biomedical Engineering</option>
+                                        <option value="Civil Engineering" className="text-[#1E293B]">Civil Engineering</option>
+                                    </select>
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    10th Marks <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="0"
-                                    max="100"
-                                    value={formData.tenth_marks}
-                                    onChange={(e) => setFormData({ ...formData, tenth_marks: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter 10th marks"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        10th School <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.tenth_school}
+                                        onChange={(e) => setFormData({ ...formData, tenth_school: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter 10th school"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    12th Marks <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="0"
-                                    max="100"
-                                    value={formData.twelfth_marks}
-                                    onChange={(e) => setFormData({ ...formData, twelfth_marks: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter 12th marks"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        12th School <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.twelfth_school}
+                                        onChange={(e) => setFormData({ ...formData, twelfth_school: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter 12th school"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Cut-off Marks <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="0"
-                                    value={formData.cutoff}
-                                    onChange={(e) => setFormData({ ...formData, cutoff: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter cut-off marks"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        10th Marks <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="0"
+                                        max="100"
+                                        value={formData.tenth_marks}
+                                        onChange={(e) => setFormData({ ...formData, tenth_marks: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter 10th marks"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Date of Birth <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={formData.dob}
-                                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                />
-                                <p className="mt-1 text-xs text-[#64748B]">Format: YYYY-MM-DD (e.g., 2004-05-27)</p>
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        12th Marks <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="0"
+                                        max="100"
+                                        value={formData.twelfth_marks}
+                                        onChange={(e) => setFormData({ ...formData, twelfth_marks: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter 12th marks"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Father Name <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.father_name}
-                                    onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter father's name"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        Cut-off Marks <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="0"
+                                        value={formData.cutoff}
+                                        onChange={(e) => setFormData({ ...formData, cutoff: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter cut-off marks"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Aadhar Number <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    pattern="[0-9]{12}"
-                                    maxLength="12"
-                                    minLength="12"
-                                    value={formData.aadhar_number}
-                                    onChange={(e) => {
-                                        // Only allow digits
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        // Limit to 12 digits
-                                        const limitedValue = value.slice(0, 12);
-                                        setFormData({ ...formData, aadhar_number: limitedValue });
-                                    }}
-                                    onBlur={(e) => {
-                                        // Validate on blur
-                                        if (e.target.value.length !== 12) {
-                                            e.target.setCustomValidity('Aadhar number must be exactly 12 digits');
-                                        } else {
-                                            e.target.setCustomValidity('');
-                                        }
-                                    }}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter Aadhar number (12 digits)"
-                                />
-                                {formData.aadhar_number && formData.aadhar_number.length !== 12 && (
-                                    <p className="mt-1 text-sm text-red-600">Aadhar number must be exactly 12 digits</p>
-                                )}
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        Date of Birth <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formData.dob}
+                                        onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                    />
+                                    <p className="mt-1 text-xs text-[#64748B]">Format: YYYY-MM-DD (e.g., 2004-05-27)</p>
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    School Name <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.school_name}
-                                    onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter school name"
-                                />
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        Father Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.father_name}
+                                        onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter father's name"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        Aadhar Number <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        pattern="[0-9]{12}"
+                                        maxLength="12"
+                                        minLength="12"
+                                        value={formData.aadhar_number}
+                                        onChange={(e) => {
+                                            // Only allow digits
+                                            const value = e.target.value.replace(/\D/g, '');
+                                            // Limit to 12 digits
+                                            const limitedValue = value.slice(0, 12);
+                                            setFormData({ ...formData, aadhar_number: limitedValue });
+                                        }}
+                                        onBlur={(e) => {
+                                            // Validate on blur
+                                            if (e.target.value.length !== 12) {
+                                                e.target.setCustomValidity('Aadhar number must be exactly 12 digits');
+                                            } else {
+                                                e.target.setCustomValidity('');
+                                            }
+                                        }}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter Aadhar number (12 digits)"
+                                    />
+                                    {formData.aadhar_number && formData.aadhar_number.length !== 12 && (
+                                        <p className="mt-1 text-sm text-red-600">Aadhar number must be exactly 12 digits</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-[#1E293B] mb-2">
+                                        School Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.school_name}
+                                        onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                        placeholder="Enter school name"
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="flex justify-end space-x-4 pt-4 border-t border-[#E2E8F0]">
                             <button
@@ -1342,13 +1659,13 @@ const DeleteConfirmationModal: React.FC<{
                             <Trash2 className="h-8 w-8 text-red-600" />
                         </div>
                     </div>
-                    
+
                     <h3 className="text-2xl font-bold text-[#1E293B] text-center mb-3">
                         Delete User?
                     </h3>
-                    
+
                     <p className="text-center text-[#64748B] mb-6">
-                        Are you sure you want to delete <span className="font-semibold text-[#1E293B]">{userName}</span>? 
+                        Are you sure you want to delete <span className="font-semibold text-[#1E293B]">{userName}</span>?
                         <br />
                         <span className="text-red-600 font-medium">This action cannot be undone.</span>
                     </p>

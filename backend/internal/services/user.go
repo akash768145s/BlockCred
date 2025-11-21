@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 	"unicode"
@@ -51,23 +52,24 @@ type RegisterStudentInput struct {
 }
 
 type UpdateUserInput struct {
-	Name             string `json:"name,omitempty"`
-	Email            string `json:"email,omitempty"`
-	Phone            string `json:"phone,omitempty"`
-	DOB              string `json:"dob,omitempty"`
-	SchoolName       string `json:"school_name,omitempty"`
-	FatherName       string `json:"father_name,omitempty"`
-	AadharNumber     string `json:"aadhar_number,omitempty"`
-	TenthSchool      string `json:"tenth_school,omitempty"`
-	TenthMarks       int    `json:"tenth_marks,omitempty"`
-	TwelfthSchool    string `json:"twelfth_school,omitempty"`
-	TwelfthMarks     int    `json:"twelfth_marks,omitempty"`
-	Cutoff           int    `json:"cutoff,omitempty"`
-	Department       string `json:"department,omitempty"`
-	Institution      string `json:"institution,omitempty"`
-	ClubName         string `json:"club_name,omitempty"`
-	IsActive         *bool  `json:"is_active,omitempty"`
-	IsApproved       *bool  `json:"is_approved,omitempty"`
+	Name             string          `json:"name,omitempty"`
+	Email            string          `json:"email,omitempty"`
+	Phone            string          `json:"phone,omitempty"`
+	Role             models.UserRole `json:"role"` // Remove omitempty to ensure role is always processed when sent
+	DOB              string          `json:"dob,omitempty"`
+	SchoolName       string          `json:"school_name,omitempty"`
+	FatherName       string          `json:"father_name,omitempty"`
+	AadharNumber     string          `json:"aadhar_number,omitempty"`
+	TenthSchool      string          `json:"tenth_school,omitempty"`
+	TenthMarks       int             `json:"tenth_marks,omitempty"`
+	TwelfthSchool    string          `json:"twelfth_school,omitempty"`
+	TwelfthMarks     int             `json:"twelfth_marks,omitempty"`
+	Cutoff           int             `json:"cutoff,omitempty"`
+	Department       string          `json:"department,omitempty"`
+	Institution      string          `json:"institution,omitempty"`
+	ClubName         string          `json:"club_name,omitempty"`
+	IsActive         *bool           `json:"is_active,omitempty"`
+	IsApproved       *bool           `json:"is_approved,omitempty"`
 }
 
 func (u *UserService) Onboard(in OnboardInput) (models.User, error) {
@@ -140,6 +142,25 @@ func (u *UserService) UpdateUser(userID string, in UpdateUserInput) (models.User
 	if in.Phone != "" {
 		existingUser.Phone = in.Phone
 	}
+	// Update role if provided (for staff users)
+	// Always update role if it's provided and not empty
+	if in.Role != "" {
+		log.Printf("Updating role from %s to %s for user %s", existingUser.Role, in.Role, userID)
+		existingUser.Role = in.Role
+		// Clear role-specific fields when role changes to avoid data inconsistency
+		// If changing to COE, clear department and club_name
+		if in.Role == models.RoleCOE {
+			existingUser.Department = ""
+			existingUser.ClubName = ""
+		}
+		// If changing to Department Faculty, clear club_name
+		if in.Role == models.RoleDepartmentFaculty {
+			existingUser.ClubName = ""
+		}
+		// If changing to Club Coordinator, ensure department is set (handled below)
+	} else {
+		log.Printf("No role provided in update request for user %s, keeping existing role: %s", userID, existingUser.Role)
+	}
 	if in.DOB != "" {
 		existingUser.DOB = in.DOB
 	}
@@ -169,7 +190,7 @@ func (u *UserService) UpdateUser(userID string, in UpdateUserInput) (models.User
 	}
 	// Always update department if provided (even if empty string)
 	// This ensures department selection from dropdown is saved
-	existingUser.Department = in.Department
+		existingUser.Department = in.Department
 	if in.Institution != "" {
 		existingUser.Institution = in.Institution
 	}

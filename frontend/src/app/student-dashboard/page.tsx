@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudentData } from "@/hooks/useApi";
@@ -10,8 +10,11 @@ export default function StudentDashboard() {
     const router = useRouter();
     const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
     const { student, loading, error, fetchStudentData } = useStudentData(user?.id || null);
-    const [certificates, setCertificates] = useState([]);
+    const [certificates, setCertificates] = useState<any[]>([]);
+    const [selectedCertificate, setSelectedCertificate] = useState<any | null>(null);
     const [certificatesLoading, setCertificatesLoading] = useState(false);
+    const [verificationResult, setVerificationResult] = useState<any | null>(null);
+    const [verifying, setVerifying] = useState(false);
 
     // Fetch certificates from the new API
     const fetchCertificates = async () => {
@@ -53,21 +56,54 @@ export default function StudentDashboard() {
         }
     }, [user?.student_id]);
 
-    const verifyCertificate = async (certId: string) => {
+    const avatarUrl = useMemo(() => {
+        if (student?.profile_image_url) {
+            return student.profile_image_url;
+        }
+
+        const seed = encodeURIComponent(student?.name || "Student");
+        return `https://api.dicebear.com/7.x/initials/svg?fontSize=48&radius=50&seed=${seed}`;
+    }, [student?.profile_image_url, student?.name]);
+
+    const verifyCertificate = async (certId: string, e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation(); // Prevent card click
+        }
+
+        setVerifying(true);
         try {
-            const response = await fetch(`http://localhost:8080/api/certificates/verify/${certId}`);
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8080/api/certificates/verify/${certId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
             const result = await response.json();
 
-            if (result.success && result.data.is_valid) {
-                const studentName = result.data.metadata?.student_name || 'Unknown Student';
-                const issuerName = result.data.metadata?.issuer_name || 'Unknown Issuer';
-                alert(`✅ Certificate is valid!\n\nStudent: ${studentName}\nIssuer: ${issuerName}\nType: ${result.data.cert_type}\nStatus: ${result.data.status}`);
+            if (result.success) {
+                // Find the certificate from local state to include all blockchain info
+                const localCert = certificates.find(c => c.cert_id === certId);
+                setVerificationResult({
+                    ...result.data,
+                    cert_id: localCert?.cert_id || result.data.cert_id,
+                    ipfs_url: localCert?.ipfs_url || result.data.ipfs_url,
+                    tx_hash: localCert?.tx_hash || result.data.tx_hash,
+                });
             } else {
-                alert(`❌ Certificate verification failed: ${result.message}`);
+                setVerificationResult({
+                    is_valid: false,
+                    error_message: result.message || 'Verification failed'
+                });
             }
         } catch (error) {
             console.error('Error verifying certificate:', error);
-            alert('Failed to verify certificate');
+            setVerificationResult({
+                is_valid: false,
+                error_message: 'Failed to verify certificate. Please try again.'
+            });
+        } finally {
+            setVerifying(false);
         }
     };
 
@@ -159,18 +195,38 @@ export default function StudentDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-white shadow-sm border-b">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Student Dashboard</h1>
-                            <p className="text-sm text-gray-600">Welcome, {student.name}</p>
+        <div className="min-h-screen bg-[#f4f6fb]">
+            {/* Compact Header */}
+            <header className="bg-white border-b">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
+                                <img
+                                    src={avatarUrl}
+                                    alt={`${student.name} avatar`}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+                                Student
+                            </span>
                         </div>
+                        <div>
+                            <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">Student Dashboard</p>
+                            <h1 className="text-xl font-semibold text-slate-900">{student.name}</h1>
+                            <p className="text-xs text-slate-500">{student.department || "Department pending"}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs font-medium text-slate-600">
+                        <span className="px-2.5 py-1 bg-slate-100 rounded-full">ID: {student.student_id}</span>
+                        <span className={`px-2.5 py-1 rounded-full ${student.is_approved ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+                            {student.is_approved ? "Approved" : "Pending"}
+                        </span>
+                        <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full">{student.email}</span>
                         <button
                             onClick={logout}
-                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                            className="ml-2 text-xs font-semibold text-slate-700 border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50"
                         >
                             Logout
                         </button>
@@ -179,176 +235,85 @@ export default function StudentDashboard() {
             </header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Student ID Card */}
-                    <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-xl shadow-lg p-8 text-white">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold">Student ID Card</h2>
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                                <span className="text-2xl font-bold text-blue-600">
-                                    {student.name.charAt(0)}
+            <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+                {/* Student Overview */}
+                <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white rounded-2xl shadow p-3 border border-slate-100 space-y-2.5">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-slate-400">Student Identity</p>
+                                <h2 className="text-base font-semibold text-slate-900">{student.name}</h2>
+                            </div>
+                            <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
+                                {student.name.charAt(0)}
+                            </div>
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-x-3 gap-y-1.5 text-[13px] leading-5">
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-slate-400">Email</p>
+                                <p className="font-medium text-slate-900 break-all">{student.email}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-slate-400">Phone</p>
+                                <p className="font-medium text-slate-900">{student.phone || "Not provided"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-slate-400">Date of Birth</p>
+                                <p className="font-medium text-slate-900">{student.dob || "Not provided"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-slate-400">Father's Name</p>
+                                <p className="font-medium text-slate-900">{student.father_name || "Not provided"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-slate-400">Aadhar Number</p>
+                                <p className="font-medium text-slate-900">{student.aadhar_number || "Not provided"}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-slate-400">Department</p>
+                                <p className="font-medium text-slate-900">{student.department || "Not assigned"}</p>
+                            </div>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1 text-[11px] font-medium text-slate-500">
+                            <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                                Verified Identity
+                            </span>
+                            {student.node_assigned && (
+                                <span className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                                    Blockchain Node Linked
                                 </span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-blue-100 text-sm">Student ID</p>
-                                <p className="text-xl font-mono font-bold">{student.student_id}</p>
-                            </div>
-
-                            <div>
-                                <p className="text-blue-100 text-sm">Full Name</p>
-                                <p className="text-lg font-semibold">{student.name}</p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-blue-100 text-sm">Email</p>
-                                    <p className="text-sm">{student.email}</p>
-                                </div>
-                                <div>
-                                    <p className="text-blue-100 text-sm">Phone</p>
-                                    <p className="text-sm">{student.phone}</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-blue-100 text-sm">Date of Birth</p>
-                                    <p className="text-sm">{student.dob || 'Not provided'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-blue-100 text-sm">Father Name</p>
-                                    <p className="text-sm">{student.father_name || 'Not provided'}</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-blue-100 text-sm">Aadhar Number</p>
-                                    <p className="text-sm">{student.aadhar_number || 'Not provided'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-blue-100 text-sm">Department</p>
-                                    <p className="text-sm">{student.department || 'Not assigned'}</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-blue-100 text-sm">10th School</p>
-                                    <p className="text-sm">{student.tenth_school || 'Not provided'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-blue-100 text-sm">10th Marks</p>
-                                    <p className="text-sm">{student.tenth_marks ? `${student.tenth_marks}%` : 'Not provided'}</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-blue-100 text-sm">12th School</p>
-                                    <p className="text-sm">{student.twelfth_school || 'Not provided'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-blue-100 text-sm">12th Marks</p>
-                                    <p className="text-sm">{student.twelfth_marks ? `${student.twelfth_marks}%` : 'Not provided'}</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-blue-100 text-sm">Cut-off Marks</p>
-                                    <p className="text-sm">{student.cutoff ? `${student.cutoff}%` : 'Not provided'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-blue-100 text-sm">Current School</p>
-                                    <p className="text-sm">{student.school_name || 'Not provided'}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center space-x-4 pt-4 border-t border-blue-400">
-                                <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                                    <span className="text-sm">Approved</span>
-                                </div>
-                                {student.node_assigned && (
-                                    <div className="flex items-center">
-                                        <div className="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
-                                        <span className="text-sm">Blockchain Node Assigned</span>
-                                    </div>
-                                )}
-                            </div>
+                            )}
                         </div>
                     </div>
-
-                    {/* Quick Stats */}
-                    <div className="space-y-6">
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Status</h3>
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">Registration Status</span>
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${student.is_approved
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                        {student.is_approved ? 'Approved' : 'Pending Approval'}
-                                    </span>
+                    <div className="space-y-3">
+                        <div className="bg-white rounded-2xl shadow-lg p-5 border border-slate-100">
+                            <h3 className="text-base font-semibold text-slate-900 mb-3">Academic Snapshot</h3>
+                            <div className="space-y-3 text-sm text-slate-600">
+                                <div className="flex justify-between">
+                                    <span>10th School</span>
+                                    <span className="font-medium">{student.tenth_school || "N/A"}</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">Blockchain Node</span>
-                                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                                        {student.node_assigned ? 'Assigned' : 'Pending'}
-                                    </span>
+                                <div className="flex justify-between">
+                                    <span>12th School</span>
+                                    <span className="font-medium">{student.twelfth_school || "N/A"}</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">Total Certificates</span>
-                                    <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                                        {certificates.length}
-                                    </span>
+                                <div className="flex justify-between">
+                                    <span>Cut-off</span>
+                                    <span className="font-medium">{student.cutoff ? `${student.cutoff}%` : "N/A"}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Current School</span>
+                                    <span className="font-medium">{student.school_name || "N/A"}</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Information Card */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Important Information</h3>
-                            <div className="space-y-3">
-                                <div className="flex items-start space-x-3">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                                    <p className="text-sm text-gray-600">
-                                        You can view all your personal and academic details above.
-                                    </p>
-                                </div>
-                                <div className="flex items-start space-x-3">
-                                    <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                                    <p className="text-sm text-gray-600">
-                                        Certificate access requires admin approval. Once approved, you'll be able to request and view certificates.
-                                    </p>
-                                </div>
-                                <div className="flex items-start space-x-3">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                                    <p className="text-sm text-gray-600">
-                                        Your blockchain node will be assigned after approval for secure credential storage.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Blockchain Info</h3>
-                            <div className="space-y-2 text-sm text-gray-600">
-                                <p>• Your credentials are stored on a private GoEth blockchain</p>
-                                <p>• Each certificate is cryptographically secured</p>
-                                <p>• Certificates can be verified by institutions</p>
-                                <p>• Your data is decentralized and tamper-proof</p>
-                            </div>
-                        </div>
                     </div>
-                </div>
+                </section>
+
+                {/* Removed duplicate large cards */}
 
                 {/* Certificates Section */}
                 <div className="mt-8">
@@ -393,73 +358,320 @@ export default function StudentDashboard() {
                                 </svg>
                                 Back to Certificates
                             </button>
-                            <CertificateDisplay 
+                            <CertificateDisplay
                                 certificate={selectedCertificate}
                                 onVerify={verifyCertificate}
                             />
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {certificates.map((certificate) => (
-                                <div 
-                                    key={certificate.id} 
-                                    className="relative bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border-2 border-blue-200 cursor-pointer"
-                                    onClick={() => setSelectedCertificate(certificate)}
-                                >
-                                    {/* Verified Stamp */}
-                                    <div className="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-2 shadow-lg">
-                                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                    </div>
+                            {certificates.map((certificate) => {
+                                const nftData = certificate?.metadata?.additional_data?.nft;
+                                const isNFT = certificate?.cert_type === 'nft_certificate' || !!nftData;
 
-                                    {/* Certificate Header */}
-                                    <div className="mb-4">
-                                        <div className="flex items-center mb-2">
-                                            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
-                                                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                </svg>
+                                return (
+                                    <div
+                                        key={certificate.id}
+                                        className="relative bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border-2 border-blue-200 cursor-pointer overflow-hidden"
+                                        onClick={() => setSelectedCertificate(certificate)}
+                                    >
+                                        {/* SSN Logo Verification Stamp */}
+                                        <div className="absolute top-2 right-2 z-10 flex flex-col items-center">
+                                            <div className="bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-xl border-3 border-emerald-500">
+                                                <img
+                                                    src="/ssnlogo.png"
+                                                    alt="SSN Verified"
+                                                    className="w-12 h-12 object-contain"
+                                                />
                                             </div>
-                                            <div>
-                                                <h3 className="font-bold text-lg text-gray-900">{certificate.title || certificate.cert_type?.replace('_', ' ').toUpperCase()}</h3>
-                                                <p className="text-sm text-gray-600">{certificate.institution || 'SSN College of Engineering'}</p>
+                                            <div className="mt-1 bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-lg">
+                                                VERIFIED
                                             </div>
                                         </div>
 
-                                        {/* Status Badge */}
-                                        <div className="flex items-center justify-between">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${certificate.status === 'issued'
-                                                ? 'bg-green-100 text-green-800 border border-green-200'
-                                                : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                                                }`}>
-                                                ✓ {certificate.status?.toUpperCase()}
-                                            </span>
-                                            <span className="text-xs text-gray-500">
-                                                {new Date(certificate.issued_date || certificate.issued_at).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Certificate Details */}
-                                    <div className="space-y-3 text-sm">
-                                        {certificate.cert_id && (
-                                            <div className="bg-white rounded-lg p-3 border border-blue-200">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-gray-600 font-medium">Certificate ID:</span>
-                                                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                                                        {certificate.cert_id.substring(0, 12)}...
-                                                    </span>
-                                                </div>
+                                        {/* NFT Badge */}
+                                        {isNFT && (
+                                            <div className="absolute top-2 left-2 bg-purple-600 text-white text-[10px] tracking-[0.2em] font-semibold px-3 py-1 rounded-full shadow-lg z-10">
+                                                NFT
                                             </div>
                                         )}
 
-                                        {certificate.ipfs_url && (
-                                            <div className="bg-white rounded-lg p-3 border border-blue-200">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-gray-600 font-medium">IPFS Storage:</span>
+                                        {/* Certificate Header */}
+                                        <div className="mb-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center">
+                                                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                                                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-lg text-gray-900">{certificate.title || certificate.cert_type?.replace('_', ' ').toUpperCase()}</h3>
+                                                        <p className="text-sm text-gray-600">{certificate.institution || certificate.metadata?.institution || 'SSN College of Engineering'}</p>
+                                                    </div>
+                                                </div>
+                                                <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${certificate.status === 'issued'
+                                                    ? 'bg-green-100 text-green-800 border border-green-200'
+                                                    : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                                                    }`}>
+                                                    ✓ {certificate.status?.toUpperCase() || 'ISSUED'}
+                                                </span>
+                                            </div>
+                                            
+                                            {/* Issued Date */}
+                                            <div className="text-xs text-gray-500 font-medium">
+                                                Issued: {new Date(certificate.issued_date || certificate.issued_at).toLocaleDateString('en-US', { 
+                                                    year: 'numeric', 
+                                                    month: 'long', 
+                                                    day: 'numeric' 
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Certificate Details */}
+                                        <div className="space-y-3 text-sm">
+                                            {/* Academic Information */}
+                                            <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
+                                                <div className="text-xs uppercase tracking-wide text-blue-600 font-bold mb-3">Academic Information</div>
+                                                
+                                                {/* Certificate Type */}
+                                                <div className="mb-3 pb-3 border-b border-gray-200">
+                                                    <div className="text-xs text-gray-500 mb-1">Certificate Type</div>
+                                                    <div className="text-base font-bold text-gray-900">
+                                                        {certificate.cert_type?.replace(/_/g, ' ').toUpperCase() || 'CERTIFICATE'}
+                                                    </div>
+                                                </div>
+
+                                                {/* Semester & Academic Year */}
+                                                {(certificate.metadata?.semester || certificate.metadata?.academic_year) && (
+                                                    <div className="grid grid-cols-2 gap-3 mb-3 pb-3 border-b border-gray-200">
+                                                        {certificate.metadata.semester && (
+                                                            <div>
+                                                                <div className="text-xs text-gray-500 mb-1">Semester</div>
+                                                                <div className="text-sm font-semibold text-gray-900">Semester {certificate.metadata.semester}</div>
+                                                            </div>
+                                                        )}
+                                                        {certificate.metadata.academic_year && (
+                                                            <div>
+                                                                <div className="text-xs text-gray-500 mb-1">Academic Year</div>
+                                                                <div className="text-sm font-semibold text-gray-900">{certificate.metadata.academic_year}</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* CGPA */}
+                                                {certificate.metadata?.cgpa && (
+                                                    <div className="mb-3 pb-3 border-b border-gray-200">
+                                                        <div className="text-xs text-gray-500 mb-1">CGPA</div>
+                                                        <div className="text-2xl font-bold text-emerald-600">{certificate.metadata.cgpa}</div>
+                                                    </div>
+                                                )}
+
+                                                {/* Grade & Marks (if no subjects) */}
+                                                {(!certificate.metadata?.subjects || certificate.metadata.subjects.length === 0) && (
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {certificate.metadata?.grade && (
+                                                            <div>
+                                                                <div className="text-xs text-gray-500 mb-1">Grade</div>
+                                                                <div className="text-lg font-bold text-emerald-700">{certificate.metadata.grade}</div>
+                                                            </div>
+                                                        )}
+                                                        {certificate.metadata?.marks && (
+                                                            <div>
+                                                                <div className="text-xs text-gray-500 mb-1">Marks</div>
+                                                                <div className="text-lg font-bold text-emerald-700">{certificate.metadata.marks}</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Subjects List */}
+                                            {certificate.metadata?.subjects && Array.isArray(certificate.metadata.subjects) && certificate.metadata.subjects.length > 0 && (
+                                                <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg p-4 border-2 border-emerald-200">
+                                                    <div className="text-xs uppercase tracking-wide text-emerald-700 font-bold mb-3">Subjects</div>
+                                                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                                                        {certificate.metadata.subjects.map((subject: any, idx: number) => (
+                                                            <div key={idx} className="bg-white rounded-lg p-2.5 border border-emerald-200">
+                                                                <div className="flex items-start justify-between">
+                                                                    <div className="flex-1">
+                                                                        <div className="font-semibold text-sm text-gray-900">{subject.subject_code || subject.code}</div>
+                                                                        <div className="text-xs text-gray-600 mt-0.5">{subject.subject_name || subject.name}</div>
+                                                                    </div>
+                                                                    <div className="text-right ml-3">
+                                                                        {subject.marks && (
+                                                                            <div className="text-xs font-semibold text-emerald-700">{subject.marks}%</div>
+                                                                        )}
+                                                                        {subject.grade && (
+                                                                            <div className="text-xs text-gray-600">{subject.grade}</div>
+                                                                        )}
+                                                                        {subject.credits && (
+                                                                            <div className="text-[10px] text-gray-500 mt-0.5">{subject.credits} Cr</div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {isNFT && nftData && (
+                                                <div className="bg-white rounded-lg p-3 border border-purple-200 space-y-1">
+                                                    <div className="text-xs uppercase tracking-wide text-purple-500 font-semibold">
+                                                        NFT Metadata
+                                                    </div>
+                                                    <div className="text-sm text-gray-700 flex justify-between">
+                                                        <span>Collection</span>
+                                                        <span className="font-medium">{nftData.collection || "BlockCred"}</span>
+                                                    </div>
+                                                    <div className="text-sm text-gray-700 flex justify-between">
+                                                        <span>Standard</span>
+                                                        <span className="font-medium">{nftData.token_standard || "ERC-721"}</span>
+                                                    </div>
+                                                    <div className="text-sm text-gray-700 flex justify-between">
+                                                        <span>Chain</span>
+                                                        <span className="font-medium">{nftData.chain || "Hyperledger Besu"}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Verification Button */}
+                                            {certificate.cert_id && (
+                                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+                                                    <button
+                                                        onClick={(e) => verifyCertificate(certificate.cert_id, e)}
+                                                        disabled={verifying}
+                                                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 px-4 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-semibold text-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        {verifying ? (
+                                                            <>
+                                                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                                                Verifying...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Verify Certificate
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </main>
+
+            {/* Verification Result Modal */}
+            {verificationResult && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setVerificationResult(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className={`p-6 border-b-4 ${verificationResult.is_valid ? 'bg-emerald-50 border-emerald-500' : 'bg-red-50 border-red-500'}`}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    {verificationResult.is_valid ? (
+                                        <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center">
+                                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    ) : (
+                                        <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center">
+                                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h3 className={`text-2xl font-bold ${verificationResult.is_valid ? 'text-emerald-700' : 'text-red-700'}`}>
+                                            {verificationResult.is_valid ? 'Certificate Verified' : 'Verification Failed'}
+                                        </h3>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {verificationResult.is_valid ? 'This certificate is valid and verified on the blockchain' : verificationResult.error_message || 'Certificate verification failed'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setVerificationResult(null)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {verificationResult.is_valid && (
+                            <div className="p-6 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-slate-50 rounded-lg p-4">
+                                        <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Student Name</div>
+                                        <div className="text-lg font-semibold text-gray-900">
+                                            {verificationResult.metadata?.student_name || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-lg p-4">
+                                        <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Issuer</div>
+                                        <div className="text-lg font-semibold text-gray-900">
+                                            {verificationResult.metadata?.issuer_name || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-lg p-4">
+                                        <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Certificate Type</div>
+                                        <div className="text-lg font-semibold text-gray-900">
+                                            {verificationResult.cert_type?.replace(/_/g, ' ').toUpperCase() || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-lg p-4">
+                                        <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Status</div>
+                                        <div className="text-lg font-semibold text-emerald-600">
+                                            {verificationResult.status?.toUpperCase() || 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-emerald-50 rounded-lg p-4 border-2 border-emerald-200">
+                                    <div className="text-xs uppercase tracking-wide text-emerald-700 font-semibold mb-3">🔗 Blockchain Details</div>
+                                    <div className="grid grid-cols-1 gap-3 text-sm">
+                                        {verificationResult.cert_id && (
+                                            <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                                                <span className="text-gray-600 font-medium">Certificate ID:</span>
+                                                <div className="font-mono text-xs text-gray-800 break-all mt-1 bg-gray-50 px-2 py-1 rounded">
+                                                    {verificationResult.cert_id}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {verificationResult.tx_hash && (
+                                            <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                                                <span className="text-gray-600 font-medium">Transaction Hash:</span>
+                                                <div className="font-mono text-xs text-gray-800 break-all mt-1 bg-gray-50 px-2 py-1 rounded">
+                                                    {verificationResult.tx_hash}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {verificationResult.block_number && (
+                                            <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                                                <span className="text-gray-600 font-medium">Block Number:</span>
+                                                <div className="font-semibold text-gray-800 mt-1">
+                                                    #{verificationResult.block_number}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {verificationResult.ipfs_url && (
+                                            <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                                                <span className="text-gray-600 font-medium">IPFS Storage:</span>
+                                                <div className="mt-1">
                                                     <a
-                                                        href={certificate.ipfs_url}
+                                                        href={verificationResult.ipfs_url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-blue-600 hover:text-blue-800 text-xs font-semibold underline flex items-center"
@@ -467,44 +679,35 @@ export default function StudentDashboard() {
                                                         <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                                                         </svg>
-                                                        View Certificate
+                                                        View Certificate on IPFS
                                                     </a>
                                                 </div>
                                             </div>
                                         )}
-
-                                        {certificate.tx_hash && (
-                                            <div className="bg-white rounded-lg p-3 border border-blue-200">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-gray-600 font-medium">Blockchain Tx:</span>
-                                                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                                                        {certificate.tx_hash.substring(0, 12)}...
-                                                    </span>
+                                        {verificationResult.issued_at && (
+                                            <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                                                <span className="text-gray-600 font-medium">Issued At:</span>
+                                                <div className="text-gray-800 mt-1">
+                                                    {new Date(verificationResult.issued_at).toLocaleString()}
                                                 </div>
-                                            </div>
-                                        )}
-
-                                        {/* Verification Button */}
-                                        {certificate.cert_id && (
-                                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
-                                                <button
-                                                    onClick={() => verifyCertificate(certificate.cert_id)}
-                                                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 px-4 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-semibold text-sm flex items-center justify-center"
-                                                >
-                                                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                    </svg>
-                                                    Verify Certificate
-                                                </button>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+
+                                <div className="flex justify-center pt-4">
+                                    <button
+                                        onClick={() => setVerificationResult(null)}
+                                        className="bg-emerald-600 text-white px-8 py-3 rounded-lg hover:bg-emerald-700 transition-colors font-semibold"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </main>
+            )}
         </div>
     );
 }

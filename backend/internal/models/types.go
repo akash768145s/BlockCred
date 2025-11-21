@@ -23,22 +23,23 @@ const (
 	CredentialTypeBonafide      CredentialType = "bonafide"
 	CredentialTypeNOC           CredentialType = "noc"
 	CredentialTypeParticipation CredentialType = "participation_cert"
+	CredentialTypeNFT           CredentialType = "nft_certificate"
 )
 
 // RolePermissions defines what each role can do
 type RolePermissions struct {
-	CanOnboardSubAdmins     bool `json:"can_onboard_sub_admins"`
-	CanDeployContracts      bool `json:"can_deploy_contracts"`
-	CanAuthorizeValidators  bool `json:"can_authorize_validators"`
-	CanIssueMarksheet       bool `json:"can_issue_marksheet"`
-	CanIssueBonafide        bool `json:"can_issue_bonafide"`
-	CanIssueNOC             bool `json:"can_issue_noc"`
-	CanIssueParticipation   bool `json:"can_issue_participation"`
-	CanVerifyCredentials    bool `json:"can_verify_credentials"`
-	CanReadOnlyAccess       bool `json:"can_read_only_access"`
-	CanManageUsers          bool `json:"can_manage_users"`
-	CanViewAllCredentials   bool `json:"can_view_all_credentials"`
-	CanApproveStudents      bool `json:"can_approve_students"`
+	CanOnboardSubAdmins    bool `json:"can_onboard_sub_admins"`
+	CanDeployContracts     bool `json:"can_deploy_contracts"`
+	CanAuthorizeValidators bool `json:"can_authorize_validators"`
+	CanIssueMarksheet      bool `json:"can_issue_marksheet"`
+	CanIssueBonafide       bool `json:"can_issue_bonafide"`
+	CanIssueNOC            bool `json:"can_issue_noc"`
+	CanIssueParticipation  bool `json:"can_issue_participation"`
+	CanVerifyCredentials   bool `json:"can_verify_credentials"`
+	CanReadOnlyAccess      bool `json:"can_read_only_access"`
+	CanManageUsers         bool `json:"can_manage_users"`
+	CanViewAllCredentials  bool `json:"can_view_all_credentials"`
+	CanApproveStudents     bool `json:"can_approve_students"`
 }
 
 // GetRolePermissions returns permissions for a given role
@@ -46,47 +47,47 @@ func GetRolePermissions(role UserRole) RolePermissions {
 	switch role {
 	case RoleSSNMainAdmin:
 		return RolePermissions{
-			CanOnboardSubAdmins:     true,
-			CanDeployContracts:      true,
-			CanAuthorizeValidators:  true,
-			CanIssueMarksheet:       true,
-			CanIssueBonafide:        true,
-			CanIssueNOC:             true,
-			CanIssueParticipation:   true,
-			CanVerifyCredentials:    true,
-			CanReadOnlyAccess:       true,
-			CanManageUsers:          true,
-			CanViewAllCredentials:   true,
-			CanApproveStudents:      true,
+			CanOnboardSubAdmins:    true,
+			CanDeployContracts:     true,
+			CanAuthorizeValidators: true,
+			CanIssueMarksheet:      true,
+			CanIssueBonafide:       true,
+			CanIssueNOC:            true,
+			CanIssueParticipation:  true,
+			CanVerifyCredentials:   true,
+			CanReadOnlyAccess:      true,
+			CanManageUsers:         true,
+			CanViewAllCredentials:  true,
+			CanApproveStudents:     true,
 		}
 	case RoleCOE:
 		return RolePermissions{
-			CanIssueMarksheet:       true,
-			CanVerifyCredentials:    true,
-			CanReadOnlyAccess:       true,
-			CanViewAllCredentials:   true,
+			CanIssueMarksheet:     true,
+			CanVerifyCredentials:  true,
+			CanReadOnlyAccess:     true,
+			CanViewAllCredentials: true,
 		}
 	case RoleDepartmentFaculty:
 		return RolePermissions{
-			CanIssueBonafide:        true,
-			CanIssueNOC:             true,
-			CanVerifyCredentials:    true,
-			CanReadOnlyAccess:       true,
+			CanIssueBonafide:     true,
+			CanIssueNOC:          true,
+			CanVerifyCredentials: true,
+			CanReadOnlyAccess:    true,
 		}
 	case RoleClubCoordinator:
 		return RolePermissions{
-			CanIssueParticipation:   true,
-			CanVerifyCredentials:    true,
-			CanReadOnlyAccess:       true,
+			CanIssueParticipation: true,
+			CanVerifyCredentials:  true,
+			CanReadOnlyAccess:     true,
 		}
 	case RoleExternalVerifier:
 		return RolePermissions{
-			CanVerifyCredentials:    true,
-			CanReadOnlyAccess:       true,
+			CanVerifyCredentials: true,
+			CanReadOnlyAccess:    true,
 		}
 	case RoleStudent:
 		return RolePermissions{
-			CanReadOnlyAccess:       true,
+			CanReadOnlyAccess: true,
 		}
 	default:
 		return RolePermissions{}
@@ -103,7 +104,7 @@ func IsValidRole(role string) bool {
 		RoleExternalVerifier,
 		RoleStudent,
 	}
-	
+
 	for _, validRole := range validRoles {
 		if string(validRole) == role {
 			return true
@@ -115,7 +116,7 @@ func IsValidRole(role string) bool {
 // CanPerformAction checks if a user can perform a specific action
 func CanPerformAction(role UserRole, permission string) bool {
 	perms := GetRolePermissions(role)
-	
+
 	switch permission {
 	case "can_onboard_sub_admins":
 		return perms.CanOnboardSubAdmins

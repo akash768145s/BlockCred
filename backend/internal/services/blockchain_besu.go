@@ -413,12 +413,30 @@ func (s *BesuBlockchainService) GetCertificateOnChain(certID string) (*OnChainCe
 		return nil, fmt.Errorf("invalid certificate data")
 	}
 
+	// Check result length before slicing
+	resultLen := len(result)
+	var credentialHash, metadataHash string
+	
+	if resultLen >= 20 {
+		credentialHash = result[:20] + "..."
+	} else {
+		credentialHash = result + "..."
+	}
+	
+	if resultLen >= 40 {
+		metadataHash = result[20:40] + "..."
+	} else if resultLen > 20 {
+		metadataHash = result[20:] + "..."
+	} else {
+		metadataHash = "N/A"
+	}
+
 	// In production, decode the struct from hex
 	// For now, return mock
 	return &OnChainCertificateData{
 		CertID:         certID,
-		CredentialHash: result[:20] + "...",
-		MetadataHash:   result[20:40] + "...",
+		CredentialHash: credentialHash,
+		MetadataHash:   metadataHash,
 		Timestamp:      time.Now().Unix(),
 	}, nil
 }

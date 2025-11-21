@@ -41,8 +41,6 @@ const Dashboard: React.FC = () => {
                 router.push('/club-dashboard');
             } else if (parsedUser.role === 'student') {
                 router.push('/student-dashboard');
-            } else if (parsedUser.role === 'external_verifier') {
-                router.push('/verifier-dashboard');
             }
         } catch (error) {
             console.error('Error parsing user data:', error);
@@ -62,8 +60,6 @@ const Dashboard: React.FC = () => {
                 return <GraduationCap className="h-8 w-8 text-green-600" />;
             case 'club_coordinator':
                 return <Award className="h-8 w-8 text-purple-600" />;
-            case 'external_verifier':
-                return <Eye className="h-8 w-8 text-yellow-600" />;
             case 'student':
                 return <Users className="h-8 w-8 text-indigo-600" />;
             default:
@@ -81,8 +77,6 @@ const Dashboard: React.FC = () => {
                 return 'bg-green-100 text-green-800';
             case 'club_coordinator':
                 return 'bg-purple-100 text-purple-800';
-            case 'external_verifier':
-                return 'bg-yellow-100 text-yellow-800';
             case 'student':
                 return 'bg-indigo-100 text-indigo-800';
             default:
@@ -100,8 +94,6 @@ const Dashboard: React.FC = () => {
                 return 'Issue NOC and other academic certificates';
             case 'club_coordinator':
                 return 'Issue participation certificates for events and activities';
-            case 'external_verifier':
-                return 'Verify authenticity of student credentials';
             case 'student':
                 return 'View and manage your academic credentials';
             default:

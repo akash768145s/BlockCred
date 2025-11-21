@@ -12,15 +12,15 @@ import (
 )
 
 type CertificateService struct {
-	store           store.Store
-	ipfsService     *IPFSService
+	store             store.Store
+	ipfsService       *IPFSService
 	blockchainService BlockchainServiceInterface
 }
 
 func NewCertificateService(s store.Store, ipfs *IPFSService, blockchain BlockchainServiceInterface) *CertificateService {
 	return &CertificateService{
-		store:           s,
-		ipfsService:     ipfs,
+		store:             s,
+		ipfsService:       ipfs,
 		blockchainService: blockchain,
 	}
 }
@@ -40,8 +40,9 @@ func (c *CertificateService) IssueCertificate(req models.IssueCertificateRequest
 	}
 
 	// Check if issuer has permission to issue this type of certificate
-	if !c.canIssueCertificate(issuer.Role, req.CertType) {
-		return nil, fmt.Errorf("issuer does not have permission to issue %s certificates", req.CertType)
+	hasPermission := c.canIssueCertificate(issuer.Role, req.CertType)
+	if !hasPermission {
+		return nil, fmt.Errorf("issuer does not have permission to issue %s certificates (issuer role: %s, cert type: %s)", req.CertType, issuer.Role, req.CertType)
 	}
 
 	// 3. Compute file hash (Credential Hash - SHA-256)
@@ -264,6 +265,21 @@ func (c *CertificateService) generateIssuerWallet(issuerID string) string {
 }
 
 func (c *CertificateService) canIssueCertificate(role models.UserRole, certType models.CredentialType) bool {
+	// Explicit check for NFT certificates - allow for admin and COE roles
+	certTypeStr := string(certType)
+	roleStr := string(role)
+	
+	if certType == models.CredentialTypeNFT || certTypeStr == "nft_certificate" {
+		// Allow for SSN Main Admin and COE (check both constant and string)
+		if role == models.RoleSSNMainAdmin || roleStr == "ssn_main_admin" || 
+		   role == models.RoleCOE || roleStr == "coe" {
+			return true
+		}
+		// Also check permissions as fallback
+		permissions := models.GetRolePermissions(role)
+		return permissions.CanIssueMarksheet
+	}
+
 	permissions := models.GetRolePermissions(role)
 	
 	switch certType {

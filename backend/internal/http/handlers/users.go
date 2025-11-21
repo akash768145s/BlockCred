@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
@@ -80,14 +82,29 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Read raw request body for logging
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		httpx.JSON(w, http.StatusBadRequest, false, "failed to read request body", nil)
+		return
+	}
+	
+	// Log raw request body
+	log.Printf("UpdateUser RAW request body for ID %s: %s", userIDStr, string(bodyBytes))
+	
+	// Create new reader for JSON decoder
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 	var in services.UpdateUserInput
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		log.Printf("JSON decode error: %v", err)
 		httpx.JSON(w, http.StatusBadRequest, false, "invalid request", nil)
 		return
 	}
 
 	// Log the received data for debugging
-	log.Printf("UpdateUser request for ID %s: Department=%s", userIDStr, in.Department)
+	log.Printf("UpdateUser request for ID %s: Role='%s' (len=%d), Department='%s', ClubName='%s'", 
+		userIDStr, in.Role, len(string(in.Role)), in.Department, in.ClubName)
 
 	user, err := h.Users.UpdateUser(userIDStr, in)
 	if err != nil {

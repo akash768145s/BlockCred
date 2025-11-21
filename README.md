@@ -297,8 +297,8 @@ Student → Register Page → POST /api/register
    ```
 
 3. **Run with hot-reload:**
-   ```bash
-   cd backend
+```bash
+cd backend
    air
    ```
    
@@ -310,15 +310,15 @@ Student → Register Page → POST /api/register
 ### Frontend Setup
 
 1. **Install dependencies:**
-   ```bash
-   cd frontend
-   npm install
+```bash
+cd frontend
+npm install
    ```
 
 2. **Start development server:**
    ```bash
-   npm run dev
-   ```
+npm run dev
+```
 
 3. **Access application:**
    - Frontend: http://localhost:3000

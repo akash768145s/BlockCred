@@ -521,6 +521,16 @@ const COEDashboard: React.FC = () => {
     );
 };
 
+// Subject interface
+interface Subject {
+    id: string;
+    subject_code: string;
+    subject_name: string;
+    marks: string;
+    grade: string;
+    credits: string;
+}
+
 // Issue Credential Modal Component
 const IssueCredentialModal: React.FC<{
     onClose: () => void;
@@ -530,13 +540,12 @@ const IssueCredentialModal: React.FC<{
     const [formData, setFormData] = useState({
         student_id: '',
         type: 'marksheet',
-        title: '',
         semester: '',
-        subject: '',
-        marks: '',
-        grade: '',
-        description: ''
+        cgpa: ''
     });
+    const [subjects, setSubjects] = useState<Subject[]>([
+        { id: '1', subject_code: '', subject_name: '', marks: '', grade: '', credits: '' }
+    ]);
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -580,7 +589,7 @@ stream
 BT
 /F1 12 Tf
 72 720 Td
-(${formData.title} - ${formData.student_id}) Tj
+(Semester ${formData.semester} Marksheet - ${formData.student_id}) Tj
 ET
 endstream
 endobj
@@ -604,6 +613,33 @@ startxref
             // Convert to base64
             const base64Content = btoa(samplePdfContent);
 
+            // Validate subjects
+            const validSubjects = subjects.filter(s => 
+                s.subject_code.trim() && s.subject_name.trim() && s.marks.trim() && s.credits.trim()
+            );
+            
+            if (validSubjects.length === 0) {
+                alert('Please add at least one subject with all required fields');
+                setLoading(false);
+                return;
+            }
+
+            // Calculate total credits and weighted GPA
+            let totalCredits = 0;
+            let totalPoints = 0;
+            const gradePoints: { [key: string]: number } = {
+                'S': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C+': 5, 'C': 4, 'D': 3, 'F': 0
+            };
+
+            validSubjects.forEach(subject => {
+                const credits = parseFloat(subject.credits) || 0;
+                const points = gradePoints[subject.grade.toUpperCase()] || 0;
+                totalCredits += credits;
+                totalPoints += points * credits;
+            });
+
+            const calculatedCGPA = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : formData.cgpa;
+
             const certificateData = {
                 student_id: formData.student_id,
                 cert_type: formData.type === 'degree' ? 'degree' : 'marksheet',
@@ -618,11 +654,17 @@ startxref
                     course: students.find(s => s.student_id === formData.student_id)?.department || 'Computer Science',
                     semester: formData.semester,
                     academic_year: '2024-25',
-                    grade: formData.grade,
-                    cgpa: parseFloat(formData.marks) || 0,
+                    cgpa: parseFloat(formData.cgpa || calculatedCGPA) || 0,
                     valid_from: new Date().toISOString(),
-                    valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
-                    description: formData.description || `${formData.type} certificate`
+                    valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                    description: `${formData.type} certificate`,
+                    subjects: validSubjects.map(s => ({
+                        subject_code: s.subject_code,
+                        subject_name: s.subject_name,
+                        marks: parseFloat(s.marks) || 0,
+                        grade: s.grade,
+                        credits: parseFloat(s.credits) || 0
+                    }))
                 }
             };
 
@@ -653,7 +695,7 @@ startxref
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-6">
                         <div>
@@ -728,58 +770,156 @@ startxref
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Subject <span className="text-red-500">*</span>
+                                    CGPA <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="text"
+                                    type="number"
                                     required
-                                    value={formData.subject}
-                                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                                    min="0"
+                                    max="10"
+                                    step="0.01"
+                                    value={formData.cgpa}
+                                    onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
                                     className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter subject name"
+                                    placeholder="Enter CGPA (0-10)"
                                 />
+                                <p className="text-xs text-[#64748B] mt-1">Range: 0.00 - 10.00</p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Subjects Section */}
                             <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Marks <span className="text-red-500">*</span>
+                            <div className="flex justify-between items-center mb-4">
+                                <label className="block text-sm font-semibold text-[#1E293B]">
+                                    Subjects <span className="text-red-500">*</span>
                                 </label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSubjects([...subjects, {
+                                            id: Date.now().toString(),
+                                            subject_code: '',
+                                            subject_name: '',
+                                            marks: '',
+                                            grade: '',
+                                            credits: ''
+                                        }]);
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
+                                >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                    </svg>
+                                    Add Subject
+                                </button>
+                            </div>
+
+                            {/* Subjects Table */}
+                            <div className="border-2 border-[#06B6D4]/20 rounded-lg overflow-hidden shadow-sm bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gradient-to-r from-[#06B6D4] to-[#0891B2]">
+                                            <tr>
+                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[15%]">Subject Code</th>
+                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[30%]">Subject Name</th>
+                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[12%]">Marks</th>
+                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[15%]">Grade</th>
+                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[12%]">Credits</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-100">
+                                            {subjects.map((subject, index) => (
+                                                <tr key={subject.id} className="hover:bg-[#F0FDFF] transition-colors bg-white">
+                                                    <td className="px-6 py-3 bg-white">
                                 <input
                                     type="text"
                                     required
-                                    value={formData.marks}
-                                    onChange={(e) => setFormData({ ...formData, marks: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter marks"
+                                                            value={subject.subject_code}
+                                                            onChange={(e) => {
+                                                                const updated = [...subjects];
+                                                                updated[index].subject_code = e.target.value;
+                                                                setSubjects(updated);
+                                                            }}
+                                                            className="w-full min-w-[140px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                            placeholder="e.g., CS101"
                                 />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Grade
-                                </label>
+                                                    </td>
+                                                    <td className="px-6 py-3 bg-white">
                                 <input
                                     type="text"
-                                    value={formData.grade}
-                                    onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                    placeholder="Enter grade (e.g., A+, A, B+)"
+                                                            required
+                                                            value={subject.subject_name}
+                                                            onChange={(e) => {
+                                                                const updated = [...subjects];
+                                                                updated[index].subject_name = e.target.value;
+                                                                setSubjects(updated);
+                                                            }}
+                                                            className="w-full min-w-[280px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                            placeholder="e.g., Data Structures"
+                                                        />
+                                                    </td>
+                                                    <td className="px-6 py-3 bg-white">
+                                                        <input
+                                                            type="number"
+                                                            required
+                                                            min="0"
+                                                            max="100"
+                                                            value={subject.marks}
+                                                            onChange={(e) => {
+                                                                const updated = [...subjects];
+                                                                updated[index].marks = e.target.value;
+                                                                setSubjects(updated);
+                                                            }}
+                                                            className="w-full min-w-[120px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                            placeholder="0-100"
+                                                        />
+                                                    </td>
+                                                    <td className="px-6 py-3 bg-white">
+                                                        <select
+                                                            value={subject.grade}
+                                                            onChange={(e) => {
+                                                                const updated = [...subjects];
+                                                                updated[index].grade = e.target.value;
+                                                                setSubjects(updated);
+                                                            }}
+                                                            className="w-full min-w-[140px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                        >
+                                                            <option value="" className="text-gray-400">Select</option>
+                                                            <option value="S" className="text-[#1E293B]">S (10)</option>
+                                                            <option value="A+" className="text-[#1E293B]">A+ (9)</option>
+                                                            <option value="A" className="text-[#1E293B]">A (8)</option>
+                                                            <option value="B+" className="text-[#1E293B]">B+ (7)</option>
+                                                            <option value="B" className="text-[#1E293B]">B (6)</option>
+                                                            <option value="C+" className="text-[#1E293B]">C+ (5)</option>
+                                                            <option value="C" className="text-[#1E293B]">C (4)</option>
+                                                            <option value="D" className="text-[#1E293B]">D (3)</option>
+                                                            <option value="F" className="text-[#1E293B]">F (0)</option>
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-6 py-3 bg-white">
+                                                        <input
+                                                            type="number"
+                                                            required
+                                                            min="0"
+                                                            max="10"
+                                                            step="0.5"
+                                                            value={subject.credits}
+                                                            onChange={(e) => {
+                                                                const updated = [...subjects];
+                                                                updated[index].credits = e.target.value;
+                                                                setSubjects(updated);
+                                                            }}
+                                                            className="w-full min-w-[120px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                            placeholder="e.g., 3"
                                 />
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                             </div>
                         </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                Description
-                            </label>
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={4}
-                                className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all resize-none"
-                                placeholder="Enter additional details"
-                            />
+                            <p className="text-xs text-[#64748B] mt-2">Add multiple subjects using the "+" button above</p>
                         </div>
 
                         <div className="flex justify-end space-x-4 pt-4 border-t border-[#E2E8F0]">
