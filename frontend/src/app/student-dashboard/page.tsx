@@ -15,6 +15,8 @@ export default function StudentDashboard() {
     const [certificatesLoading, setCertificatesLoading] = useState(false);
     const [verificationResult, setVerificationResult] = useState<any | null>(null);
     const [verifying, setVerifying] = useState(false);
+    const [shareOrigin, setShareOrigin] = useState("");
+    const [copiedShareLink, setCopiedShareLink] = useState(false);
 
     // Fetch certificates from the new API
     const fetchCertificates = async () => {
@@ -56,6 +58,12 @@ export default function StudentDashboard() {
         }
     }, [user?.student_id]);
 
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setShareOrigin(window.location.origin);
+        }
+    }, []);
+
     const avatarUrl = useMemo(() => {
         if (student?.profile_image_url) {
             return student.profile_image_url;
@@ -64,6 +72,24 @@ export default function StudentDashboard() {
         const seed = encodeURIComponent(student?.name || "Student");
         return `https://api.dicebear.com/7.x/initials/svg?fontSize=48&radius=50&seed=${seed}`;
     }, [student?.profile_image_url, student?.name]);
+
+    const publicProfileUrl = useMemo(() => {
+        if (!shareOrigin || !student?.student_id) return "";
+        return `${shareOrigin}/share/${student.student_id}`;
+    }, [shareOrigin, student?.student_id]);
+
+    const handleCopyShareLink = async () => {
+        if (!publicProfileUrl) {
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(publicProfileUrl);
+            setCopiedShareLink(true);
+            setTimeout(() => setCopiedShareLink(false), 2000);
+        } catch (error) {
+            console.error("Unable to copy share link", error);
+        }
+    };
 
     const verifyCertificate = async (certId: string, e?: React.MouseEvent) => {
         if (e) {
@@ -245,7 +271,7 @@ export default function StudentDashboard() {
                                 <h2 className="text-base font-semibold text-slate-900">{student.name}</h2>
                             </div>
                             <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
-                                {student.name.charAt(0)}
+                                    {student.name.charAt(0)}
                             </div>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-x-3 gap-y-1.5 text-[13px] leading-5">
@@ -257,37 +283,37 @@ export default function StudentDashboard() {
                                 <p className="text-[11px] uppercase tracking-wide text-slate-400">Phone</p>
                                 <p className="font-medium text-slate-900">{student.phone || "Not provided"}</p>
                             </div>
-                            <div>
+                                <div>
                                 <p className="text-[11px] uppercase tracking-wide text-slate-400">Date of Birth</p>
                                 <p className="font-medium text-slate-900">{student.dob || "Not provided"}</p>
                             </div>
-                            <div>
+                                <div>
                                 <p className="text-[11px] uppercase tracking-wide text-slate-400">Father's Name</p>
                                 <p className="font-medium text-slate-900">{student.father_name || "Not provided"}</p>
                             </div>
-                            <div>
+                                <div>
                                 <p className="text-[11px] uppercase tracking-wide text-slate-400">Aadhar Number</p>
                                 <p className="font-medium text-slate-900">{student.aadhar_number || "Not provided"}</p>
                             </div>
-                            <div>
+                                <div>
                                 <p className="text-[11px] uppercase tracking-wide text-slate-400">Department</p>
                                 <p className="font-medium text-slate-900">{student.department || "Not assigned"}</p>
                             </div>
-                        </div>
+                                </div>
                         <div className="mt-1 flex flex-wrap gap-1 text-[11px] font-medium text-slate-500">
                             <span className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
                                 Verified Identity
                             </span>
-                            {student.node_assigned && (
+                                {student.node_assigned && (
                                 <span className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-amber-400" />
                                     Blockchain Node Linked
                                 </span>
-                            )}
+                                )}
                         </div>
                     </div>
-                    <div className="space-y-3">
+                            <div className="space-y-3">
                         <div className="bg-white rounded-2xl shadow-lg p-5 border border-slate-100">
                             <h3 className="text-base font-semibold text-slate-900 mb-3">Academic Snapshot</h3>
                             <div className="space-y-3 text-sm text-slate-600">
@@ -313,7 +339,36 @@ export default function StudentDashboard() {
                     </div>
                 </section>
 
-                {/* Removed duplicate large cards */}
+                {/* Shareable Profile */}
+                {student.student_id && (
+                    <section className="bg-gradient-to-r from-slate-900 via-indigo-900 to-blue-900 text-white rounded-3xl border border-white/10 shadow-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                        <div>
+                            <p className="text-[10px] uppercase tracking-[0.45em] text-blue-200">Shareable Profile</p>
+                            <h2 className="text-xl font-semibold mt-2">Blockchain-verified transcript</h2>
+                            <p className="text-sm text-blue-100 mt-1 max-w-lg">
+                                Share a public page that showcases only the verified certificates. Recruiters can scan QR codes or open the verifier
+                                link to view the blockchain + IPFS proofs.
+                            </p>
+                            {publicProfileUrl && (
+                                <p className="mt-3 text-xs font-mono text-blue-200 truncate max-w-lg">{publicProfileUrl}</p>
+                            )}
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                            <button
+                                onClick={() => window.open(`/share/${student.student_id}`, "_blank")}
+                                className="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-white text-slate-900 text-sm font-semibold shadow-lg hover:translate-y-0.5 transition"
+                            >
+                                View Public Profile
+                            </button>
+                            <button
+                                onClick={handleCopyShareLink}
+                                className="flex-1 sm:flex-none px-5 py-3 rounded-2xl border border-white/40 text-sm font-semibold text-white hover:bg-white/10 transition"
+                            >
+                                {copiedShareLink ? "Link Copied" : "Copy Share Link"}
+                            </button>
+                        </div>
+                    </section>
+                )}
 
                 {/* Certificates Section */}
                 <div className="mt-8">
@@ -358,7 +413,7 @@ export default function StudentDashboard() {
                                 </svg>
                                 Back to Certificates
                             </button>
-                            <CertificateDisplay
+                            <CertificateDisplay 
                                 certificate={selectedCertificate}
                                 onVerify={verifyCertificate}
                             />
@@ -370,11 +425,11 @@ export default function StudentDashboard() {
                                 const isNFT = certificate?.cert_type === 'nft_certificate' || !!nftData;
 
                                 return (
-                                    <div
-                                        key={certificate.id}
+                                <div 
+                                    key={certificate.id} 
                                         className="relative bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border-2 border-blue-200 cursor-pointer overflow-hidden"
-                                        onClick={() => setSelectedCertificate(certificate)}
-                                    >
+                                    onClick={() => setSelectedCertificate(certificate)}
+                                >
                                         {/* SSN Logo Verification Stamp */}
                                         <div className="absolute top-2 right-2 z-10 flex flex-col items-center">
                                             <div className="bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-xl border-3 border-emerald-500">
@@ -387,7 +442,7 @@ export default function StudentDashboard() {
                                             <div className="mt-1 bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-lg">
                                                 VERIFIED
                                             </div>
-                                        </div>
+                                    </div>
 
                                         {/* NFT Badge */}
                                         {isNFT && (
@@ -396,17 +451,17 @@ export default function StudentDashboard() {
                                             </div>
                                         )}
 
-                                        {/* Certificate Header */}
-                                        <div className="mb-4">
+                                    {/* Certificate Header */}
+                                    <div className="mb-4">
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center">
-                                                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
-                                                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                        </svg>
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="font-bold text-lg text-gray-900">{certificate.title || certificate.cert_type?.replace('_', ' ').toUpperCase()}</h3>
+                                            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                                                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-lg text-gray-900">{certificate.title || certificate.cert_type?.replace('_', ' ').toUpperCase()}</h3>
                                                         <p className="text-sm text-gray-600">{certificate.institution || certificate.metadata?.institution || 'SSN College of Engineering'}</p>
                                                     </div>
                                                 </div>
@@ -575,7 +630,7 @@ export default function StudentDashboard() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setVerificationResult(null)}>
                     <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className={`p-6 border-b-4 ${verificationResult.is_valid ? 'bg-emerald-50 border-emerald-500' : 'bg-red-50 border-red-500'}`}>
-                            <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     {verificationResult.is_valid ? (
                                         <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center">
@@ -636,15 +691,15 @@ export default function StudentDashboard() {
                                         <div className="text-lg font-semibold text-emerald-600">
                                             {verificationResult.status?.toUpperCase() || 'N/A'}
                                         </div>
+                                        </div>
                                     </div>
-                                </div>
 
                                 <div className="bg-emerald-50 rounded-lg p-4 border-2 border-emerald-200">
                                     <div className="text-xs uppercase tracking-wide text-emerald-700 font-semibold mb-3">🔗 Blockchain Details</div>
                                     <div className="grid grid-cols-1 gap-3 text-sm">
                                         {verificationResult.cert_id && (
                                             <div className="bg-white rounded-lg p-3 border border-emerald-200">
-                                                <span className="text-gray-600 font-medium">Certificate ID:</span>
+                                                    <span className="text-gray-600 font-medium">Certificate ID:</span>
                                                 <div className="font-mono text-xs text-gray-800 break-all mt-1 bg-gray-50 px-2 py-1 rounded">
                                                     {verificationResult.cert_id}
                                                 </div>
@@ -668,7 +723,7 @@ export default function StudentDashboard() {
                                         )}
                                         {verificationResult.ipfs_url && (
                                             <div className="bg-white rounded-lg p-3 border border-emerald-200">
-                                                <span className="text-gray-600 font-medium">IPFS Storage:</span>
+                                                    <span className="text-gray-600 font-medium">IPFS Storage:</span>
                                                 <div className="mt-1">
                                                     <a
                                                         href={verificationResult.ipfs_url}
@@ -703,8 +758,8 @@ export default function StudentDashboard() {
                                         Close
                                     </button>
                                 </div>
-                            </div>
-                        )}
+                        </div>
+                    )}
                     </div>
                 </div>
             )}

@@ -112,8 +112,8 @@ func (c *CertificateService) IssueCertificate(req models.IssueCertificateRequest
 		// Fallback to simple issue if on-chain fails
 		fmt.Printf("⚠️  Warning: On-chain issuance failed, using fallback: %v\n", err)
 		txResult, err = c.blockchainService.IssueCertificate(certID, ipfsCID, req.CertType)
-	if err != nil {
-		return nil, fmt.Errorf("failed to issue certificate on blockchain: %w", err)
+		if err != nil {
+			return nil, fmt.Errorf("failed to issue certificate on blockchain: %w", err)
 		}
 	}
 
@@ -220,6 +220,61 @@ func (c *CertificateService) ListCertificatesByIssuer(issuerID string) ([]models
 	return c.store.ListCertificatesByIssuer(issuerID)
 }
 
+// GetPublicStudentProfile builds a shareable profile with sanitized certificate data
+func (c *CertificateService) GetPublicStudentProfile(studentID string) (*models.PublicStudentProfile, error) {
+	if studentID == "" {
+		return nil, fmt.Errorf("student ID is required")
+	}
+
+	student, err := c.store.GetUserByStudentID(studentID)
+	if err != nil {
+		return nil, fmt.Errorf("student not found: %w", err)
+	}
+
+	certificates, err := c.store.ListCertificatesByStudent(studentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch certificates: %w", err)
+	}
+
+	publicProfile := &models.PublicStudentProfile{
+		StudentID:    student.StudentID,
+		Name:         student.Name,
+		Department:   student.Department,
+		Institution:  student.Institution,
+		Course:       student.Department,
+		Certificates: make([]models.PublicCertificate, 0, len(certificates)),
+	}
+
+	for _, cert := range certificates {
+		publicCert := models.PublicCertificate{
+			CertID:      cert.CertID,
+			CertType:    cert.CertType,
+			Status:      cert.Status,
+			IssuedAt:    cert.IssuedAt,
+			IPFSURL:     cert.IPFSURL,
+			TxHash:      cert.TxHash,
+			BlockNumber: cert.BlockNumber,
+			Metadata:    cert.Metadata,
+		}
+
+		// Capture wallet address if embedded inside metadata
+		if publicProfile.WalletAddress == "" && cert.Metadata.AdditionalData != nil {
+			if wallet, ok := cert.Metadata.AdditionalData["student_wallet"].(string); ok {
+				publicProfile.WalletAddress = wallet
+			}
+		}
+
+		// Prefer metadata course if user record is missing one
+		if publicProfile.Course == "" && cert.Metadata.Course != "" {
+			publicProfile.Course = cert.Metadata.Course
+		}
+
+		publicProfile.Certificates = append(publicProfile.Certificates, publicCert)
+	}
+
+	return publicProfile, nil
+}
+
 // RevokeCertificate revokes a certificate
 func (c *CertificateService) RevokeCertificate(certID, reason string) error {
 	cert, err := c.store.GetCertificateByCertID(certID)
@@ -268,11 +323,11 @@ func (c *CertificateService) canIssueCertificate(role models.UserRole, certType 
 	// Explicit check for NFT certificates - allow for admin and COE roles
 	certTypeStr := string(certType)
 	roleStr := string(role)
-	
+
 	if certType == models.CredentialTypeNFT || certTypeStr == "nft_certificate" {
 		// Allow for SSN Main Admin and COE (check both constant and string)
-		if role == models.RoleSSNMainAdmin || roleStr == "ssn_main_admin" || 
-		   role == models.RoleCOE || roleStr == "coe" {
+		if role == models.RoleSSNMainAdmin || roleStr == "ssn_main_admin" ||
+			role == models.RoleCOE || roleStr == "coe" {
 			return true
 		}
 		// Also check permissions as fallback
@@ -281,7 +336,7 @@ func (c *CertificateService) canIssueCertificate(role models.UserRole, certType 
 	}
 
 	permissions := models.GetRolePermissions(role)
-	
+
 	switch certType {
 	case models.CredentialTypeMarksheet:
 		return permissions.CanIssueMarksheet

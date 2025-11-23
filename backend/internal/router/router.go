@@ -18,7 +18,7 @@ func New(cfg config.Config) http.Handler {
 	// Try to initialize MongoDB store, fallback to memory store if it fails
 	var st store.Store
 	var err error
-	
+
 	st, err = store.NewMongoDBStore(cfg.MongoURI, cfg.MongoDatabase)
 	if err != nil {
 		log.Printf("⚠️  MongoDB connection failed: %v", err)
@@ -31,7 +31,7 @@ func New(cfg config.Config) http.Handler {
 	authSvc := services.NewAuthService(st)
 	userSvc := services.NewUserService(st)
 	credSvc := services.NewCredentialService(st)
-	
+
 	// Initialize IPFS and Blockchain services
 	ipfsService := services.NewIPFSService(cfg)
 	// Try Besu blockchain service first, then GoEth, then mock
@@ -60,7 +60,7 @@ func New(cfg config.Config) http.Handler {
 		blockchainService = besuService
 		log.Printf("✅ Using Besu blockchain service")
 	}
-	
+
 	certSvc := services.NewCertificateService(st, ipfsService, blockchainService)
 	authMiddleware := middleware.NewAuthMiddleware(st)
 
@@ -88,15 +88,15 @@ func New(cfg config.Config) http.Handler {
 	api.HandleFunc("/admin/onboard", authMiddleware.RequireAuth(users.Onboard)).Methods("POST")
 	api.HandleFunc("/credentials", authMiddleware.RequireAuth(credentials.List)).Methods("GET")
 	api.HandleFunc("/credentials/issue", authMiddleware.RequireAuth(credentials.Issue)).Methods("POST")
-	
+
 	// Add user approval endpoint
 	api.HandleFunc("/users/{id}/approve", authMiddleware.RequireAuth(users.Approve)).Methods("POST")
-	
+
 	// Add user update endpoint
 	api.HandleFunc("/admin/users/{id}", authMiddleware.RequireAuth(users.UpdateUser)).Methods("PUT")
 	// Add user delete endpoint
 	api.HandleFunc("/admin/users/{id}", authMiddleware.RequireAuth(users.DeleteUser)).Methods("DELETE")
-	
+
 	// Certificate endpoints
 	api.HandleFunc("/certificates/issue", authMiddleware.RequireAuth(certificates.IssueCertificate)).Methods("POST")
 	api.HandleFunc("/certificates/verify/{cert_id}", certificates.VerifyCertificate).Methods("GET")
@@ -105,6 +105,7 @@ func New(cfg config.Config) http.Handler {
 	api.HandleFunc("/certificates/issuer", authMiddleware.RequireAuth(certificates.ListCertificatesByIssuer)).Methods("GET")
 	api.HandleFunc("/certificates/{cert_id}/revoke", authMiddleware.RequireAuth(certificates.RevokeCertificate)).Methods("POST")
 	api.HandleFunc("/certificates/test-ipfs", certificates.TestIPFS).Methods("GET")
+	api.HandleFunc("/public/student/{student_id}", certificates.GetPublicStudentProfile).Methods("GET")
 
 	// Blockchain endpoints
 	var blockchain *handlerspkg.BlockchainHandler
@@ -127,11 +128,11 @@ func New(cfg config.Config) http.Handler {
 	}
 
 	corsOptions := cors.Options{
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 	}
-	
+
 	// Allow all origins if "*" is in the list, or if list is empty
 	if len(cfg.AllowedOrigins) == 0 || (len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*") {
 		corsOptions.AllowOriginFunc = func(origin string) bool {
@@ -140,7 +141,7 @@ func New(cfg config.Config) http.Handler {
 	} else {
 		corsOptions.AllowedOrigins = cfg.AllowedOrigins
 	}
-	
+
 	c := cors.New(corsOptions)
 	return c.Handler(r)
 }

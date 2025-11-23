@@ -28,7 +28,7 @@ func (h *CertificateHandler) IssueCertificate(w http.ResponseWriter, r *http.Req
 		httpx.JSON(w, http.StatusUnauthorized, false, "user not authenticated", nil)
 		return
 	}
-	
+
 	issuerID := user.ID.Hex()
 
 	certificate, err := h.Certificates.IssueCertificate(req, issuerID)
@@ -142,6 +142,24 @@ func (h *CertificateHandler) TestIPFS(w http.ResponseWriter, r *http.Request) {
 	// This is a simple test - in a real implementation, you'd expose the IPFS service
 	httpx.JSON(w, http.StatusOK, true, "IPFS service available", map[string]interface{}{
 		"message": "IPFS service is initialized and ready",
-		"note": "Use the certificate issuance endpoint to test actual IPFS upload",
+		"note":    "Use the certificate issuance endpoint to test actual IPFS upload",
 	})
+}
+
+// GetPublicStudentProfile exposes sanitized student + certificate data for sharing
+func (h *CertificateHandler) GetPublicStudentProfile(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	studentID, ok := vars["student_id"]
+	if !ok || studentID == "" {
+		httpx.JSON(w, http.StatusBadRequest, false, "student ID required", nil)
+		return
+	}
+
+	profile, err := h.Certificates.GetPublicStudentProfile(studentID)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, false, err.Error(), nil)
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, true, "public profile ready", profile)
 }
