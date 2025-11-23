@@ -36,9 +36,11 @@ func New(cfg config.Config) http.Handler {
 	ipfsService := services.NewIPFSService(cfg)
 	// Try Besu blockchain service first, then GoEth, then mock
 	var blockchainService services.BlockchainServiceInterface
+	log.Printf("🔍 Checking Besu blockchain node connection...")
 	besuService, err := services.NewBesuBlockchainService(cfg)
 	if err != nil {
 		log.Printf("⚠️  Besu blockchain service initialization failed: %v", err)
+		log.Printf("💡 Make sure Besu is running: .\\blockchain\\scripts\\setup\\start-besu.bat")
 		log.Printf("🔄 Trying GoEth blockchain service...")
 		goEthService, err := services.NewGoEthBlockchainService(cfg)
 		if err != nil {
@@ -51,6 +53,7 @@ func New(cfg config.Config) http.Handler {
 				blockchainService = nil
 			} else {
 				blockchainService = mockService
+				log.Printf("⚠️  Using mock blockchain service (certificates will not be stored on-chain)")
 			}
 		} else {
 			blockchainService = goEthService

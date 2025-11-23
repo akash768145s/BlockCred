@@ -35,13 +35,57 @@ func NewBesuBlockchainService(cfg config.Config) (*BesuBlockchainService, error)
 		fmt.Println("⚠️  Warning: Contract address not configured. Using mock transactions until contract is deployed.")
 	}
 
-	return &BesuBlockchainService{
+	service := &BesuBlockchainService{
 		config:       cfg,
 		contractAddr: cfg.ContractAddress,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 10 * time.Second, // Shorter timeout for health check
 		},
-	}, nil
+	}
+
+	// Test connection to Besu node
+	if err := service.healthCheck(); err != nil {
+		return nil, fmt.Errorf("Besu node is not reachable at %s: %w", cfg.BlockchainRPCURL, err)
+	}
+
+	// Reset timeout for normal operations
+	service.httpClient.Timeout = 30 * time.Second
+
+	return service, nil
+}
+
+// healthCheck verifies that Besu node is running and reachable
+func (s *BesuBlockchainService) healthCheck() error {
+	// Try to get the latest block number as a health check
+	response, err := s.callRPC("eth_blockNumber", []interface{}{})
+	if err != nil {
+		// On Windows, localhost might resolve to IPv6 [::1], try IPv4 fallback
+		if strings.Contains(s.config.BlockchainRPCURL, "localhost") {
+			ipv4URL := strings.Replace(s.config.BlockchainRPCURL, "localhost", "127.0.0.1", 1)
+			originalURL := s.config.BlockchainRPCURL
+			s.config.BlockchainRPCURL = ipv4URL
+			response, err = s.callRPC("eth_blockNumber", []interface{}{})
+			if err != nil {
+				s.config.BlockchainRPCURL = originalURL
+				return fmt.Errorf("failed to connect to Besu at %s or %s: %w", originalURL, ipv4URL, err)
+			}
+		} else {
+			return fmt.Errorf("failed to connect to Besu: %w", err)
+		}
+	}
+
+	blockNumberHex, ok := response.Result.(string)
+	if !ok {
+		return fmt.Errorf("invalid response from Besu node")
+	}
+
+	// Verify we got a valid block number
+	blockNumber := new(big.Int)
+	blockNumber.SetString(strings.TrimPrefix(blockNumberHex, "0x"), 16)
+	
+	// Silently verify - no logging needed
+	_ = blockNumber
+	return nil
 }
 
 // callRPC makes a JSON-RPC call to the Besu node

@@ -30,7 +30,7 @@ func Load() Config {
 		PinataAPIKey:     getEnv("PINATA_API_KEY", ""),
 		PinataAPISecret:  getEnv("PINATA_API_SECRET", ""),
 		PinataGatewayURL: getEnv("PINATA_GATEWAY_URL", "https://gateway.pinata.cloud/ipfs/"),
-		BlockchainRPCURL: getEnv("BLOCKCHAIN_RPC_URL", "http://localhost:8545"),
+		BlockchainRPCURL: getEnv("BLOCKCHAIN_RPC_URL", "http://127.0.0.1:8545"),
 		ContractAddress:  getEnv("CONTRACT_ADDRESS", ""),
 		PrivateKey:       getEnv("PRIVATE_KEY", ""),
 	}
