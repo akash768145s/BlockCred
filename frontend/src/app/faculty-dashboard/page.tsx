@@ -443,63 +443,63 @@ const FacultyDashboard: React.FC = () => {
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white">
             {/* Header */}
-            <div className="border-b border-white/10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div className="flex items-center space-x-4">
-                            <GraduationCap className="h-8 w-8 text-emerald-400" />
-                            <div>
-                                <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
-                                <h1 className="text-2xl font-semibold mt-1">Faculty Dashboard</h1>
-                                <p className="text-sm text-indigo-100">Manage student certificates and documents</p>
-                            </div>
+            <header className="border-b border-white/10 bg-white/5 backdrop-blur-sm">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl border border-white/20 bg-white/10 flex items-center justify-center shadow-lg">
+                            <GraduationCap className="h-6 w-6 text-emerald-300" />
                         </div>
-                        <div className="flex items-center space-x-4">
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
-                                Department Faculty
-                            </span>
-                            <button
-                                onClick={() => {
-                                    localStorage.removeItem('token');
-                                    localStorage.removeItem('user');
-                                    router.push('/login');
-                                }}
-                                className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-2xl hover:bg-white/20 transition-all text-sm font-semibold"
-                            >
-                                Logout
-                            </button>
+                        <div>
+                            <p className="text-[10px] uppercase tracking-[0.4em] text-indigo-300 font-semibold">BlockCred</p>
+                            <h1 className="text-xl font-semibold text-white mt-1">Faculty Dashboard</h1>
+                            <p className="text-xs text-indigo-200">Manage student certificates & documents</p>
                         </div>
                     </div>
+                    <div className="flex items-center gap-3">
+                        <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-emerald-200 border border-white/20">
+                            Department Faculty
+                        </span>
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('user');
+                                router.push('/login');
+                            }}
+                            className="px-4 py-2 text-xs font-semibold text-white border border-white/20 rounded-lg hover:bg-white/10 transition-all"
+                        >
+                            Logout
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </header>
 
             {/* Navigation Tabs */}
-            <div className="border-b border-white/10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <nav className="flex space-x-8">
+            <div className="border-b border-white/10 bg-white/5 backdrop-blur-sm">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <nav className="flex space-x-1">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'overview'
-                                ? 'border-emerald-400 text-emerald-300'
-                                : 'border-transparent text-indigo-200 hover:text-white hover:border-indigo-300'
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'overview'
+                                ? 'bg-white/10 text-white border-t border-x border-white/20'
+                                : 'text-indigo-200 hover:text-white'
                                 }`}
                         >
                             Overview
                         </button>
                         <button
                             onClick={() => setActiveTab('students')}
-                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'students'
-                                ? 'border-emerald-400 text-emerald-300'
-                                : 'border-transparent text-indigo-200 hover:text-white hover:border-indigo-300'
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'students'
+                                ? 'bg-white/10 text-white border-t border-x border-white/20'
+                                : 'text-indigo-200 hover:text-white'
                                 }`}
                         >
                             Students
                         </button>
                         <button
                             onClick={() => setActiveTab('credentials')}
-                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'credentials'
-                                ? 'border-emerald-400 text-emerald-300'
-                                : 'border-transparent text-indigo-200 hover:text-white hover:border-indigo-300'
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'credentials'
+                                ? 'bg-white/10 text-white border-t border-x border-white/20'
+                                : 'text-indigo-200 hover:text-white'
                                 }`}
                         >
                             Certificates
@@ -509,7 +509,7 @@ const FacultyDashboard: React.FC = () => {
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {activeTab === 'overview' && renderOverview()}
                 {activeTab === 'students' && renderStudents()}
                 {activeTab === 'credentials' && renderCredentials()}
