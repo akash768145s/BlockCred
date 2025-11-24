@@ -106,19 +106,19 @@ export default function VerifyCertificatePage() {
     }, [result]);
 
     return (
-        <main className="min-h-screen bg-slate-950 text-white py-12 px-4">
+        <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white py-12 px-4">
             <div className="max-w-6xl mx-auto space-y-8">
                 <header className="text-center space-y-3">
-                    <p className="text-[11px] uppercase tracking-[0.5em] text-indigo-300">BlockCred</p>
+                    <p className="text-xs uppercase tracking-[0.4em] text-indigo-300">BlockCred</p>
                     <h1 className="text-3xl font-semibold">Verify Academic Credentials</h1>
-                    <p className="text-sm text-slate-300 max-w-2xl mx-auto">
+                    <p className="text-sm text-indigo-100 max-w-2xl mx-auto">
                         Employers and verifiers can scan a QR code or enter a certificate ID to retrieve tamper-proof blockchain
                         validation plus the IPFS-hosted record.
                     </p>
                 </header>
 
                 <div className="grid lg:grid-cols-3 gap-6">
-                    <section className="bg-gradient-to-br from-slate-900 to-indigo-900 rounded-3xl border border-white/10 p-6 space-y-4">
+                    <section className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg p-6 space-y-4 shadow-2xl">
                         <div>
                             <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">Enter Certificate ID</p>
                             <div className="mt-2 flex flex-col gap-3">
@@ -126,12 +126,12 @@ export default function VerifyCertificatePage() {
                                     value={certId}
                                     onChange={(event) => setCertId(event.target.value)}
                                     placeholder="0x..."
-                                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-white/40 font-mono text-sm"
+                                    className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-indigo-200/60 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400 font-mono text-sm"
                                 />
                                 <button
                                     onClick={() => handleVerify()}
                                     disabled={loading}
-                                    className="rounded-2xl bg-white text-slate-900 font-semibold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="rounded-2xl bg-white text-slate-900 font-semibold py-3 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
                                 >
                                     {loading ? "Verifying..." : "Verify Certificate"}
                                 </button>
@@ -139,9 +139,9 @@ export default function VerifyCertificatePage() {
                             {error && <p className="text-xs text-red-300 mt-2">{error}</p>}
                         </div>
 
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-slate-300 space-y-2">
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-indigo-100 space-y-2">
                             <p className="uppercase tracking-[0.4em] text-indigo-200">How it works</p>
-                            <ul className="space-y-1 list-disc list-inside text-slate-200/80">
+                            <ul className="space-y-1 list-disc list-inside text-indigo-100/80">
                                 <li>Scan a student-provided QR code or paste the certificate ID.</li>
                                 <li>We validate the on-chain issuance + IPFS hash.</li>
                                 <li>View non-blockchain data plus blockchain proofs in one place.</li>
@@ -149,11 +149,11 @@ export default function VerifyCertificatePage() {
                         </div>
                     </section>
 
-                    <section className="lg:col-span-2 bg-white text-slate-900 rounded-[32px] p-8 shadow-2xl space-y-6 min-h-[480px]">
+                    <section className="lg:col-span-2 bg-white text-slate-900 rounded-3xl p-8 shadow-2xl space-y-6 min-h-[480px] border border-indigo-100">
                         {!result && !error && (
-                            <div className="h-full flex flex-col items-center justify-center text-center text-slate-500">
-                                <p className="text-sm uppercase tracking-[0.4em]">Awaiting verification request</p>
-                                <p className="mt-2 text-base">Enter a certificate ID or scan a QR code to see the blockchain proof.</p>
+                            <div className="h-full flex flex-col items-center justify-center text-center text-slate-400">
+                                <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Awaiting verification request</p>
+                                <p className="mt-2 text-sm text-slate-500">Enter a certificate ID or scan a QR code to see the blockchain proof.</p>
                             </div>
                         )}
 
@@ -202,7 +202,7 @@ export default function VerifyCertificatePage() {
                                     </div>
                                 </div>
 
-                                <div className="rounded-3xl bg-gradient-to-r from-slate-900 to-indigo-900 text-white p-6 border border-slate-800 space-y-3">
+                                <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 text-white p-6 border border-white/10 space-y-3 shadow-xl">
                                     <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">Blockchain Proof</p>
                                     <div className="grid md:grid-cols-3 gap-4 text-sm">
                                         <div>
@@ -227,8 +227,8 @@ export default function VerifyCertificatePage() {
                                     </div>
                                 </div>
 
-                                <div className="rounded-2xl border border-slate-200 p-5 space-y-3">
-                                    <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Academic Snapshot</p>
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-3">
+                                    <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Academic Snapshot</p>
                                     <div className="grid sm:grid-cols-3 gap-4 text-sm">
                                         {result.metadata?.semester && (
                                             <div>

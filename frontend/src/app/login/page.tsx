@@ -35,53 +35,34 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Subtle Background Pattern */}
-            <div className="absolute inset-0 opacity-5">
-                <div className="w-full h-full" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2306B6D4' fill-opacity='1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-                }}></div>
-            </div>
-
-            {/* Decorative Background Elements */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-[#06B6D4] opacity-5 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#06B6D4] opacity-5 rounded-full blur-3xl"></div>
-
+        <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
             <div className="relative max-w-md w-full">
                 {/* Main Login Card */}
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+                <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-8">
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <div className="mb-2">
-                            <Image
-                                src="/logob.png"
-                                alt="BlockCred"
-                                width={300}
-                                height={300}
-                                className="mx-auto"
-                                priority
-                            />
-                        </div>
-                        <p className="text-body text-[#64748B]">Secure Credential Management System</p>
+                        
+                        <p className="text-2xl uppercase tracking-[0.4em] text-indigo-300">BlockCred</p>
+                        <p className="text-sm text-indigo-100 mt-2">Secure Credential Management System</p>
                     </div>
 
                     {/* Login Form */}
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Username Field */}
                         <div className="space-y-2">
-                            <label htmlFor="username" className="block text-small font-weight-medium text-[#1E293B]">
+                            <label htmlFor="username" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Username or Email
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <User className="h-5 w-5 text-[#94A3B8]" />
+                                    <User className="h-5 w-5 text-indigo-300" />
                                 </div>
                                 <input
                                     type="text"
                                     id="username"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all duration-200"
+                                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200"
                                     placeholder="Enter your username or email"
                                     required
                                 />
@@ -90,26 +71,26 @@ export default function LoginPage() {
 
                         {/* Password Field */}
                         <div className="space-y-2">
-                            <label htmlFor="password" className="block text-small font-weight-medium text-[#1E293B]">
+                            <label htmlFor="password" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Password
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-[#94A3B8]" />
+                                    <Lock className="h-5 w-5 text-indigo-300" />
                                 </div>
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     id="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-12 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all duration-200"
+                                    className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200"
                                     placeholder="Enter your password"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#94A3B8] hover:text-[#1E293B] transition-colors"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-indigo-300 hover:text-white transition-colors"
                                 >
                                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </button>
@@ -118,17 +99,17 @@ export default function LoginPage() {
 
                         {/* Error Message */}
                         {error && (
-                            <div className="flex items-center space-x-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                            <div className="flex items-center space-x-2 bg-red-500/20 border border-red-400/30 text-red-200 px-4 py-3 rounded-2xl">
                                 <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                                <span className="text-small">{error}</span>
+                                <span className="text-sm">{error}</span>
                             </div>
                         )}
 
                         {/* Success Message */}
                         {success && (
-                            <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                            <div className="flex items-center space-x-2 bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 px-4 py-3 rounded-2xl">
                                 <CheckCircle className="h-5 w-5 flex-shrink-0" />
-                                <span className="text-small">{success}</span>
+                                <span className="text-sm">{success}</span>
                             </div>
                         )}
 
@@ -136,11 +117,11 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-[#06B6D4] text-white py-3 px-4 rounded-lg hover:bg-[#0891B2] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-weight-medium shadow-md hover:shadow-lg"
+                            className="w-full bg-white text-slate-900 py-3 px-4 rounded-2xl hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
                         >
                             {loading ? (
                                 <div className="flex items-center justify-center space-x-2">
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div>
                                     <span>Signing in...</span>
                                 </div>
                             ) : (
@@ -151,11 +132,11 @@ export default function LoginPage() {
 
                     {/* Register Link */}
                     <div className="mt-6 text-center">
-                        <p className="text-body text-[#64748B]">
+                        <p className="text-sm text-indigo-200">
                             New user?{" "}
                             <button
                                 onClick={() => router.push("/register")}
-                                className="text-[#06B6D4] hover:text-[#0891B2] font-weight-medium transition-colors"
+                                className="text-white hover:text-indigo-200 font-semibold transition-colors underline"
                             >
                                 Register here
                             </button>
@@ -163,6 +144,6 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     );
 }

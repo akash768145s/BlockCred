@@ -103,47 +103,50 @@ const Dashboard: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center text-white">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-body text-gray-600">Loading dashboard...</p>
+                    <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto mt-4 mb-4"></div>
+                    <p className="text-sm text-slate-300">Loading dashboard...</p>
                 </div>
-            </div>
+            </main>
         );
     }
 
     if (!user) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <h1 className="text-h2 text-gray-900 mb-4">Access Denied</h1>
-                    <p className="text-body text-gray-600 mb-4">You need to be logged in to access this page.</p>
+            <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center text-white">
+                <div className="text-center max-w-md">
+                    <p className="text-xs uppercase tracking-[0.3em] text-red-300">Access Denied</p>
+                    <h1 className="text-2xl font-semibold mt-3 mb-4">Authentication Required</h1>
+                    <p className="text-sm text-indigo-100 mb-6">You need to be logged in to access this page.</p>
                     <button
                         onClick={() => router.push('/login')}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        className="px-6 py-3 bg-white text-slate-900 rounded-2xl hover:bg-indigo-50 transition-all font-semibold shadow-lg"
                     >
                         Go to Login
                     </button>
                 </div>
-            </div>
+            </main>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white">
             {/* Header */}
-            <div className="bg-white shadow-sm border-b">
+            <div className="border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center py-6">
                         <div className="flex items-center space-x-4">
                             {getRoleIcon(user.role)}
                             <div>
-                                <h1 className="text-h2 text-gray-900">Welcome to BlockCred</h1>
-                                <p className="text-body text-gray-600">{getDashboardDescription(user.role)}</p>
+                                <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+                                <h1 className="text-2xl font-semibold mt-1">Welcome to BlockCred</h1>
+                                <p className="text-sm text-indigo-100">{getDashboardDescription(user.role)}</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <span className={`px-3 py-1 rounded-full text-small font-weight-medium ${getRoleColor(user.role)}`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRoleColor(user.role)}`}>
                                 {user.role_name}
                             </span>
                             <button
@@ -152,7 +155,7 @@ const Dashboard: React.FC = () => {
                                     localStorage.removeItem('user');
                                     router.push('/login');
                                 }}
-                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                                className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-2xl hover:bg-white/20 transition-all text-sm font-semibold"
                             >
                                 Logout
                             </button>
@@ -162,21 +165,21 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-white rounded-lg shadow-md border p-8 text-center">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-8 text-center">
                     <div className="mb-6">
                         {getRoleIcon(user.role)}
                     </div>
-                    <h2 className="text-h1 text-gray-900 mb-4">
+                    <h2 className="text-2xl font-semibold mb-4">
                         Redirecting to {user.role_name} Dashboard...
                     </h2>
-                    <p className="text-body text-gray-600 mb-6">
+                    <p className="text-sm text-indigo-100 mb-6">
                         You will be automatically redirected to your role-specific dashboard.
                     </p>
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400 mx-auto"></div>
                 </div>
             </div>
-        </div>
+        </main>
     );
 };
 

@@ -466,30 +466,32 @@ const ClubDashboard: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center text-white">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading club dashboard...</p>
+                    <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto mt-4 mb-4"></div>
+                    <p className="text-sm text-slate-300">Loading club dashboard...</p>
                 </div>
-            </div>
+            </main>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white">
             {/* Header */}
-            <div className="bg-white shadow-sm border-b">
+            <div className="border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center py-6">
                         <div className="flex items-center space-x-4">
-                            <Award className="h-8 w-8 text-purple-600" />
+                            <Award className="h-8 w-8 text-purple-400" />
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Club Coordinator Dashboard</h1>
-                                <p className="text-gray-600">Manage participation certificates and achievements</p>
+                                <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+                                <h1 className="text-2xl font-semibold mt-1">Club Coordinator Dashboard</h1>
+                                <p className="text-sm text-indigo-100">Manage participation certificates and achievements</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-200 border border-purple-400/30">
                                 Club Coordinator
                             </span>
                             <button
@@ -498,7 +500,7 @@ const ClubDashboard: React.FC = () => {
                                     localStorage.removeItem('user');
                                     router.push('/login');
                                 }}
-                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                                className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-2xl hover:bg-white/20 transition-all text-sm font-semibold"
                             >
                                 Logout
                             </button>
@@ -560,7 +562,7 @@ const ClubDashboard: React.FC = () => {
                     students={students}
                 />
             )}
-        </div>
+        </main>
     );
 };
 

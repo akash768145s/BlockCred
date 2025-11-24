@@ -89,12 +89,12 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-            <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
+        <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center p-4 py-12">
+            <div className="max-w-2xl w-full rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-8">
                 <div className="text-center mb-8">
-                    <h1 className="text-h1 text-gray-900 mb-2">BlockCred</h1>
-                    <p className="text-body text-gray-600">Student Registration</p>
-                    <p className="text-small text-gray-500 mt-2">
+                    <p className="text-xs uppercase tracking-[0.4em] text-indigo-300">BlockCred</p>
+                    <h1 className="text-3xl font-semibold text-white mt-3 mb-2">Student Registration</h1>
+                    <p className="text-sm text-indigo-100 mt-2">
                         Register to join the blockchain credential ecosystem
                     </p>
                 </div>
@@ -102,7 +102,7 @@ export default function RegisterPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label htmlFor="name" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="name" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Full Name *
                             </label>
                             <input
@@ -111,14 +111,14 @@ export default function RegisterPage() {
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Enter your full name"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="phone" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="phone" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Phone Number *
                             </label>
                             <input
@@ -127,14 +127,14 @@ export default function RegisterPage() {
                                 name="phone"
                                 value={formData.phone}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Enter your phone number"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="email" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Email ID *
                             </label>
                             <input
@@ -143,14 +143,14 @@ export default function RegisterPage() {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Enter your email"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="dob" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="dob" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Date of Birth *
                             </label>
                             <input
@@ -159,13 +159,13 @@ export default function RegisterPage() {
                                 name="dob"
                                 value={formData.dob}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="school_name" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="school_name" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 School Name *
                             </label>
                             <input
@@ -174,14 +174,14 @@ export default function RegisterPage() {
                                 name="school_name"
                                 value={formData.school_name}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Enter your school name"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="photo" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="photo" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Photo *
                             </label>
                             <input
@@ -190,13 +190,13 @@ export default function RegisterPage() {
                                 name="photo"
                                 onChange={handleChange}
                                 accept="image/*"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="father_name" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="father_name" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Father Name *
                             </label>
                             <input
@@ -205,14 +205,14 @@ export default function RegisterPage() {
                                 name="father_name"
                                 value={formData.father_name}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Enter your father's name"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="aadhar_number" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="aadhar_number" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Aadhar Number *
                             </label>
                             <input
@@ -221,7 +221,7 @@ export default function RegisterPage() {
                                 name="aadhar_number"
                                 value={formData.aadhar_number}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Enter your Aadhar number"
                                 pattern="[0-9]{12}"
                                 maxLength={12}
@@ -230,73 +230,57 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="tenth_school" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="tenth_school" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 10th Grade School *
                             </label>
-                            <select
+                            <input
+                                type="text"
                                 id="tenth_school"
                                 name="tenth_school"
                                 value={formData.tenth_school}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+                                placeholder="Enter your 10th school name"
                                 required
-                            >
-                                <option value="">Select your 10th school</option>
-                                <option value="SSN School of Advanced Software Engineering">SSN School of Advanced Software Engineering</option>
-                                <option value="SSN College of Engineering">SSN College of Engineering</option>
-                                <option value="SSN School of Management">SSN School of Management</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            />
                         </div>
 
                         <div>
-                            <label htmlFor="tenth_marks" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="tenth_marks" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 10th Grade Marks (%) *
                             </label>
-                            <select
+                            <input
+                                type="number"
                                 id="tenth_marks"
                                 name="tenth_marks"
                                 value={formData.tenth_marks}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                min="0"
+                                max="100"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+                                placeholder="Enter your 10th marks (0-100)"
                                 required
-                            >
-                                <option value="">Select your 10th marks</option>
-                                <option value="95">95% and above</option>
-                                <option value="90">90-94%</option>
-                                <option value="85">85-89%</option>
-                                <option value="80">80-84%</option>
-                                <option value="75">75-79%</option>
-                                <option value="70">70-74%</option>
-                                <option value="65">65-69%</option>
-                                <option value="60">60-64%</option>
-                                <option value="55">55-59%</option>
-                                <option value="50">50-54%</option>
-                            </select>
+                            />
                         </div>
 
                         <div>
-                            <label htmlFor="twelfth_school" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="twelfth_school" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 12th Grade School *
                             </label>
-                            <select
+                            <input
+                                type="text"
                                 id="twelfth_school"
                                 name="twelfth_school"
                                 value={formData.twelfth_school}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+                                placeholder="Enter your 12th school name"
                                 required
-                            >
-                                <option value="">Select your 12th school</option>
-                                <option value="SSN School of Advanced Software Engineering">SSN School of Advanced Software Engineering</option>
-                                <option value="SSN College of Engineering">SSN College of Engineering</option>
-                                <option value="SSN School of Management">SSN School of Management</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            />
                         </div>
 
                         <div>
-                            <label htmlFor="twelfth_marks" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="twelfth_marks" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 12th Grade Marks (%) *
                             </label>
                             <input
@@ -307,14 +291,14 @@ export default function RegisterPage() {
                                 onChange={handleChange}
                                 min="0"
                                 max="100"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Enter your 12th marks"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="twelfth_marksheet" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="twelfth_marksheet" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 12th Mark Sheet (PDF) *
                             </label>
                             <input
@@ -323,13 +307,13 @@ export default function RegisterPage() {
                                 name="twelfth_marksheet"
                                 onChange={handleChange}
                                 accept=".pdf"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="cutoff" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="cutoff" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Cut-off Marks *
                             </label>
                             <input
@@ -340,14 +324,14 @@ export default function RegisterPage() {
                                 onChange={handleChange}
                                 min="0"
                                 max="100"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Enter cut-off marks"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-small font-weight-medium text-gray-700 mb-2">
+                            <label htmlFor="password" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Password *
                             </label>
                             <input
@@ -356,7 +340,7 @@ export default function RegisterPage() {
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-colors"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Create a password"
                                 required
                             />
@@ -364,13 +348,13 @@ export default function RegisterPage() {
                     </div>
 
                     {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                        <div className="bg-red-500/20 border border-red-400/30 text-red-200 px-4 py-3 rounded-2xl">
                             {error}
                         </div>
                     )}
 
                     {success && (
-                        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                        <div className="bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 px-4 py-3 rounded-2xl">
                             {success}
                         </div>
                     )}
@@ -378,37 +362,37 @@ export default function RegisterPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-weight-medium"
+                        className="w-full bg-white text-slate-900 py-3 px-4 rounded-2xl hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold shadow-lg hover:shadow-xl"
                     >
                         {loading ? "Registering..." : "Register"}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center">
-                    <p className="text-body text-gray-600">
+                    <p className="text-sm text-indigo-200">
                         Already have an account?{" "}
                         <button
                             onClick={() => router.push("/login")}
-                            className="text-green-600 hover:text-green-700 font-weight-medium"
+                            className="text-white hover:text-indigo-200 font-semibold transition-colors underline"
                         >
                             Login here
                         </button>
                     </p>
                 </div>
 
-                <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-                    <h3 className="font-weight-medium text-gray-900 mb-2">How it works:</h3>
-                    <ol className="text-small text-gray-600 space-y-1">
-                        <li>1. Fill out the registration form with your personal details and academic records</li>
-                        <li>2. Select your 10th grade school and marks from the dropdown</li>
-                        <li>3. Upload your photo and 12th mark sheet PDF</li>
-                        <li>4. A unique Student ID will be generated based on your information</li>
-                        <li>5. Admin will review and approve your registration</li>
-                        <li>6. Once approved, a blockchain node will be assigned to you</li>
-                        <li>7. Your credentials will be stored securely on the blockchain</li>
+                <div className="mt-8 p-6 bg-white/5 border border-white/10 rounded-2xl">
+                    <h3 className="font-semibold text-white mb-3">How it works:</h3>
+                    <ol className="text-sm text-indigo-100 space-y-2 list-decimal list-inside">
+                        <li>Fill out the registration form with your personal details and academic records</li>
+                        <li>Select your 10th grade school and marks from the dropdown</li>
+                        <li>Upload your photo and 12th mark sheet PDF</li>
+                        <li>A unique Student ID will be generated based on your information</li>
+                        <li>Admin will review and approve your registration</li>
+                        <li>Once approved, a blockchain node will be assigned to you</li>
+                        <li>Your credentials will be stored securely on the blockchain</li>
                     </ol>
                 </div>
             </div>
-        </div>
+        </main>
     );
 }

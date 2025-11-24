@@ -134,82 +134,82 @@ const FacultyDashboard: React.FC = () => {
         <div className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-md border">
+                <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-6">
                     <div className="flex items-center">
-                        <Users className="h-8 w-8 text-blue-600" />
+                        <Users className="h-8 w-8 text-indigo-400" />
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Total Students</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
+                            <p className="text-xs uppercase tracking-[0.2em] text-indigo-300">Total Students</p>
+                            <p className="text-2xl font-bold text-white mt-1">{stats.totalStudents}</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
+                <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-6">
                     <div className="flex items-center">
-                        <FileText className="h-8 w-8 text-green-600" />
+                        <FileText className="h-8 w-8 text-emerald-400" />
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Total Certificates</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalCredentials}</p>
+                            <p className="text-xs uppercase tracking-[0.2em] text-indigo-300">Total Certificates</p>
+                            <p className="text-2xl font-bold text-white mt-1">{stats.totalCredentials}</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
+                <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-6">
                     <div className="flex items-center">
-                        <TrendingUp className="h-8 w-8 text-purple-600" />
+                        <TrendingUp className="h-8 w-8 text-purple-400" />
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Issued Today</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.issuedToday}</p>
+                            <p className="text-xs uppercase tracking-[0.2em] text-indigo-300">Issued Today</p>
+                            <p className="text-2xl font-bold text-white mt-1">{stats.issuedToday}</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
+                <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-6">
                     <div className="flex items-center">
-                        <Clock className="h-8 w-8 text-yellow-600" />
+                        <Clock className="h-8 w-8 text-amber-400" />
                         <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Pending Verification</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.pendingVerification}</p>
+                            <p className="text-xs uppercase tracking-[0.2em] text-indigo-300">Pending Verification</p>
+                            <p className="text-2xl font-bold text-white mt-1">{stats.pendingVerification}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white p-6 rounded-lg shadow-md border">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <button
                         onClick={() => setShowIssueCredential(true)}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="p-4 border border-white/20 rounded-2xl hover:bg-white/10 transition-all text-left"
                     >
                         <div className="flex items-center mb-2">
-                            <Shield className="h-5 w-5 text-blue-600" />
-                            <span className="ml-2 font-medium text-gray-900">Issue NOC</span>
+                            <Shield className="h-5 w-5 text-indigo-400" />
+                            <span className="ml-2 font-semibold text-white">Issue NOC</span>
                         </div>
-                        <p className="text-sm text-gray-600">Issue No Objection Certificate</p>
+                        <p className="text-sm text-indigo-200">Issue No Objection Certificate</p>
                     </button>
 
                     <button
                         onClick={() => setShowIssueCredential(true)}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="p-4 border border-white/20 rounded-2xl hover:bg-white/10 transition-all text-left"
                     >
                         <div className="flex items-center mb-2">
-                            <FileText className="h-5 w-5 text-green-600" />
-                            <span className="ml-2 font-medium text-gray-900">Issue Bonafide</span>
+                            <FileText className="h-5 w-5 text-emerald-400" />
+                            <span className="ml-2 font-semibold text-white">Issue Bonafide</span>
                         </div>
-                        <p className="text-sm text-gray-600">Issue Bonafide Certificate</p>
+                        <p className="text-sm text-indigo-200">Issue Bonafide Certificate</p>
                     </button>
 
                     <button
                         onClick={() => setActiveTab('students')}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="p-4 border border-white/20 rounded-2xl hover:bg-white/10 transition-all text-left"
                     >
                         <div className="flex items-center mb-2">
-                            <Users className="h-5 w-5 text-purple-600" />
-                            <span className="ml-2 font-medium text-gray-900">View Students</span>
+                            <Users className="h-5 w-5 text-purple-400" />
+                            <span className="ml-2 font-semibold text-white">View Students</span>
                         </div>
-                        <p className="text-sm text-gray-600">Browse and manage student records</p>
+                        <p className="text-sm text-indigo-200">Browse and manage student records</p>
                     </button>
                 </div>
             </div>
@@ -219,23 +219,23 @@ const FacultyDashboard: React.FC = () => {
     const renderStudents = () => (
         <div className="space-y-6">
             {/* Search */}
-            <div className="bg-white p-6 rounded-lg shadow-md border">
+            <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-6">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
                             <input
                                 type="text"
                                 placeholder="Search students..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400"
                             />
                         </div>
                     </div>
                     <button
                         onClick={() => setShowIssueCredential(true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                        className="px-4 py-2 bg-white text-slate-900 rounded-2xl hover:bg-indigo-50 transition-all font-semibold flex items-center shadow-lg"
                     >
                         <Plus className="h-4 w-4 mr-2" />
                         Issue Certificate
@@ -244,76 +244,76 @@ const FacultyDashboard: React.FC = () => {
             </div>
 
             {/* Students Table */}
-            <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+            <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-white/10">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-200 uppercase tracking-[0.2em]">
                                     Student
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-200 uppercase tracking-[0.2em]">
                                     Student ID
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-200 uppercase tracking-[0.2em]">
                                     Department
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-200 uppercase tracking-[0.2em]">
                                     Semester
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-200 uppercase tracking-[0.2em]">
                                     Status
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-200 uppercase tracking-[0.2em]">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="divide-y divide-white/10">
                             {filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-gray-50">
+                                <tr key={student.id} className="hover:bg-white/5 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="flex-shrink-0 h-10 w-10">
-                                                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                                                    <Users className="h-5 w-5 text-green-600" />
+                                                <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center">
+                                                    <Users className="h-5 w-5 text-emerald-400" />
                                                 </div>
                                             </div>
                                             <div className="ml-4">
-                                                <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                                                <div className="text-sm text-gray-500">{student.email}</div>
+                                                <div className="text-sm font-semibold text-white">{student.name}</div>
+                                                <div className="text-sm text-indigo-200">{student.email}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         {student.student_id}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         {student.department}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         Semester {student.semester}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center space-x-2">
                                             {student.is_active ? (
-                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                                <CheckCircle className="h-4 w-4 text-emerald-400" />
                                             ) : (
-                                                <Clock className="h-4 w-4 text-yellow-500" />
+                                                <Clock className="h-4 w-4 text-amber-400" />
                                             )}
-                                            <span className={`text-sm ${student.is_active ? 'text-green-600' : 'text-yellow-600'}`}>
+                                            <span className={`text-sm font-semibold ${student.is_active ? 'text-emerald-300' : 'text-amber-300'}`}>
                                                 {student.is_active ? 'Active' : 'Pending'}
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                                         <div className="flex items-center space-x-2">
-                                            <button className="text-blue-600 hover:text-blue-900">
+                                            <button className="text-indigo-300 hover:text-white transition-colors">
                                                 <Eye className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => setShowIssueCredential(true)}
-                                                className="text-green-600 hover:text-green-900"
+                                                className="text-emerald-300 hover:text-emerald-200 transition-colors"
                                             >
                                                 <FileText className="h-4 w-4" />
                                             </button>
@@ -430,30 +430,32 @@ const FacultyDashboard: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center text-white">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading faculty dashboard...</p>
+                    <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto mt-4 mb-4"></div>
+                    <p className="text-sm text-slate-300">Loading faculty dashboard...</p>
                 </div>
-            </div>
+            </main>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white">
             {/* Header */}
-            <div className="bg-white shadow-sm border-b">
+            <div className="border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center py-6">
                         <div className="flex items-center space-x-4">
-                            <GraduationCap className="h-8 w-8 text-green-600" />
+                            <GraduationCap className="h-8 w-8 text-emerald-400" />
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Faculty Dashboard</h1>
-                                <p className="text-gray-600">Manage student certificates and documents</p>
+                                <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+                                <h1 className="text-2xl font-semibold mt-1">Faculty Dashboard</h1>
+                                <p className="text-sm text-indigo-100">Manage student certificates and documents</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
                                 Department Faculty
                             </span>
                             <button
@@ -462,7 +464,7 @@ const FacultyDashboard: React.FC = () => {
                                     localStorage.removeItem('user');
                                     router.push('/login');
                                 }}
-                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                                className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-2xl hover:bg-white/20 transition-all text-sm font-semibold"
                             >
                                 Logout
                             </button>
@@ -472,32 +474,32 @@ const FacultyDashboard: React.FC = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="bg-white border-b">
+            <div className="border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex space-x-8">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview'
-                                ? 'border-green-500 text-green-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'overview'
+                                ? 'border-emerald-400 text-emerald-300'
+                                : 'border-transparent text-indigo-200 hover:text-white hover:border-indigo-300'
                                 }`}
                         >
                             Overview
                         </button>
                         <button
                             onClick={() => setActiveTab('students')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'students'
-                                ? 'border-green-500 text-green-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'students'
+                                ? 'border-emerald-400 text-emerald-300'
+                                : 'border-transparent text-indigo-200 hover:text-white hover:border-indigo-300'
                                 }`}
                         >
                             Students
                         </button>
                         <button
                             onClick={() => setActiveTab('credentials')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'credentials'
-                                ? 'border-green-500 text-green-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'credentials'
+                                ? 'border-emerald-400 text-emerald-300'
+                                : 'border-transparent text-indigo-200 hover:text-white hover:border-indigo-300'
                                 }`}
                         >
                             Certificates
@@ -524,7 +526,7 @@ const FacultyDashboard: React.FC = () => {
                     students={students}
                 />
             )}
-        </div>
+        </main>
     );
 };
 

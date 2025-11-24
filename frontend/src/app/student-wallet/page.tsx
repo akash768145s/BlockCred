@@ -218,32 +218,34 @@ const StudentWallet: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center text-white">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading student wallet...</p>
+                    <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto mt-4 mb-4"></div>
+                    <p className="text-sm text-slate-300">Loading student wallet...</p>
                 </div>
-            </div>
+            </main>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white">
             {/* Header */}
-            <div className="bg-white shadow-sm border-b">
+            <div className="border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center py-6">
                         <div className="flex items-center space-x-4">
-                            <Shield className="h-8 w-8 text-blue-600" />
+                            <Shield className="h-8 w-8 text-indigo-400" />
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Student Wallet</h1>
-                                <p className="text-gray-600">Secure credential verification</p>
+                                <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+                                <h1 className="text-2xl font-semibold mt-1">Student Wallet</h1>
+                                <p className="text-sm text-indigo-100">Secure credential verification</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
                             <button
                                 onClick={goBackToDashboard}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                className="px-4 py-2 bg-white text-slate-900 rounded-2xl hover:bg-indigo-50 transition-all font-semibold shadow-lg"
                             >
                                 Back to Dashboard
                             </button>
@@ -260,17 +262,17 @@ const StudentWallet: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="bg-white border-t mt-12">
+            <div className="border-t border-white/10 mt-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div className="text-center">
                         <div className="flex items-center justify-center space-x-2 mb-4">
-                            <Shield className="h-6 w-6 text-blue-600" />
-                            <span className="text-lg font-semibold text-gray-900">BlockCred</span>
+                            <Shield className="h-6 w-6 text-indigo-400" />
+                            <span className="text-lg font-semibold text-white">BlockCred</span>
                         </div>
-                        <p className="text-gray-600 mb-4">
+                        <p className="text-indigo-200 mb-4">
                             Secure, blockchain-verified academic credentials
                         </p>
-                        <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
+                        <div className="flex items-center justify-center space-x-6 text-sm text-indigo-300">
                             <span>Powered by Blockchain</span>
                             <span>•</span>
                             <span>End-to-End Encryption</span>
@@ -280,7 +282,7 @@ const StudentWallet: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     );
 };
 

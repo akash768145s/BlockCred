@@ -12,11 +12,12 @@ export default function Home() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center text-white">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-body text-gray-600">Redirecting to login...</p>
+        <p className="text-sm uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto mt-4 mb-4"></div>
+        <p className="text-sm text-slate-300">Redirecting to login...</p>
       </div>
-    </div>
+    </main>
   );
 }
