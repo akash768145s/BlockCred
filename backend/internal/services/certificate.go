@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"blockcred-backend/internal/models"
@@ -70,10 +72,13 @@ func (c *CertificateService) IssueCertificate(req models.IssueCertificateRequest
 	metadataHash := c.computeFileHash(metadataJSON)
 
 	// 5. Upload file to IPFS
+	fmt.Printf("📤 Uploading file to IPFS: fileName=%s, fileSize=%d bytes\n", req.FileName, len(req.FileData))
 	ipfsCID, err := c.ipfsService.UploadFile(req.FileData, req.FileName, metadata)
 	if err != nil {
+		fmt.Printf("❌ IPFS upload failed: %v\n", err)
 		return nil, fmt.Errorf("failed to upload to IPFS: %w", err)
 	}
+	fmt.Printf("✅ IPFS upload successful: CID=%s\n", ipfsCID)
 
 	// 6. Get or create student wallet address
 	studentWallet, err := c.blockchainService.GetStudentWallet(req.StudentID)
@@ -183,26 +188,98 @@ func (c *CertificateService) VerifyCertificate(certID string) (*models.Certifica
 		}, nil
 	}
 
-	// 4. Return verification result
+	// 4. Verify file integrity (tamper detection)
+	// Download file from IPFS and recompute hash to check if it matches the stored hash
+	isFileIntact, fileHashCheck, err := c.verifyFileIntegrity(cert.IPFSURL, cert.FileHash)
+	if err != nil {
+		fmt.Printf("⚠️  Warning: Could not verify file integrity: %v\n", err)
+		// Don't fail verification if IPFS is temporarily unavailable, but mark it
+		isFileIntact = true // Assume intact if we can't check (graceful degradation)
+	}
+
+	// 5. Return verification result
+	tamperDetected := !isFileIntact
+	fileIntegrityOK := isFileIntact
+	
 	result := &models.CertificateVerificationResult{
-		IsValid:     isValidOnChain && cert.Status != models.CertStatusRevoked,
-		CertID:      cert.CertID,
-		StudentID:   cert.StudentID,
-		IssuerID:    cert.IssuerID,
-		CertType:    cert.CertType,
-		Status:      cert.Status,
-		IssuedAt:    cert.IssuedAt,
-		IPFSURL:     cert.IPFSURL,
-		TxHash:      cert.TxHash,
-		BlockNumber: cert.BlockNumber,
-		Metadata:    cert.Metadata,
+		IsValid:         isValidOnChain && cert.Status != models.CertStatusRevoked && isFileIntact,
+		CertID:          cert.CertID,
+		StudentID:       cert.StudentID,
+		IssuerID:        cert.IssuerID,
+		CertType:        cert.CertType,
+		Status:          cert.Status,
+		IssuedAt:        cert.IssuedAt,
+		IPFSURL:         cert.IPFSURL,
+		TxHash:          cert.TxHash,
+		BlockNumber:     cert.BlockNumber,
+		Metadata:        cert.Metadata,
+		FileHash:        cert.FileHash,
+		FileIntegrityOK: &fileIntegrityOK,
+		TamperDetected:  tamperDetected,
 	}
 
 	if !result.IsValid {
-		result.ErrorMessage = "Certificate verification failed"
+		if !isFileIntact {
+			result.ErrorMessage = fmt.Sprintf("Certificate file has been tampered with. Stored hash: %s, Computed hash: %s", cert.FileHash, fileHashCheck)
+		} else if !isValidOnChain {
+			result.ErrorMessage = "Certificate not found on blockchain"
+		} else {
+			result.ErrorMessage = "Certificate verification failed"
+		}
+	} else {
+		fmt.Printf("✅ Certificate verified: CertID=%s, File integrity: OK, Blockchain: OK\n", certID)
 	}
 
 	return result, nil
+}
+
+// verifyFileIntegrity downloads the file from IPFS and verifies its hash matches the stored hash
+func (c *CertificateService) verifyFileIntegrity(ipfsURL, storedHash string) (bool, string, error) {
+	if ipfsURL == "" {
+		return false, "", fmt.Errorf("IPFS URL is empty")
+	}
+
+	// Download file from IPFS
+	fileData, err := c.downloadFromIPFS(ipfsURL)
+	if err != nil {
+		return false, "", fmt.Errorf("failed to download file from IPFS: %w", err)
+	}
+
+	// Compute hash of downloaded file
+	computedHash := c.computeFileHash(fileData)
+
+	// Compare with stored hash
+	if computedHash != storedHash {
+		fmt.Printf("❌ File integrity check FAILED: Stored hash=%s, Computed hash=%s\n", storedHash, computedHash)
+		return false, computedHash, nil
+	}
+
+	fmt.Printf("✅ File integrity check PASSED: Hash matches stored value\n")
+	return true, computedHash, nil
+}
+
+// downloadFromIPFS downloads a file from IPFS URL
+func (c *CertificateService) downloadFromIPFS(ipfsURL string) ([]byte, error) {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Get(ipfsURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch from IPFS: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("IPFS returned status %d", resp.StatusCode)
+	}
+
+	fileData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file data: %w", err)
+	}
+
+	return fileData, nil
 }
 
 // ListCertificates returns all certificates

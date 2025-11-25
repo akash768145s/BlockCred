@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Users,
     UserPlus,
@@ -32,10 +32,20 @@ const AdminDashboard: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
 
-    const { logout } = useAuth();
+    const { logout, isAuthenticated } = useAuth();
     const { users, loading: usersLoading, error: usersError, approveUser } = useUsers();
     const { credentials, loading: credentialsLoading, error: credentialsError } = useCredentials();
     const { stats, loading: statsLoading, error: statsError } = useDashboardStats();
+
+    // Redirect to login if not authenticated
+    useEffect(() => {
+        if (!isAuthenticated() && !usersLoading) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+            }
+        }
+    }, [isAuthenticated, usersLoading]);
 
     const getRoleIconComponent = (role: string) => {
         const iconName = getRoleIcon(role as any);
@@ -100,6 +110,18 @@ const AdminDashboard: React.FC = () => {
 
     const loading = usersLoading || credentialsLoading || statsLoading;
 
+    // Calculate stats from actual data if stats hook fails
+    const calculatedStats = {
+        total_users: users?.length || 0,
+        pending_users: users?.filter((u: any) => !u.is_approved && !u.is_active).length || 0,
+        total_credentials: credentials?.length || 0,
+        issued_today: 0,
+        verified_today: 0,
+    };
+
+    // Use stats from hook if available, otherwise use calculated stats
+    const displayStats = stats || calculatedStats;
+
     const renderOverview = () => (
         <div className="space-y-6">
             {/* Stats Cards */}
@@ -111,7 +133,8 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-[#64748B]">Total Users</p>
-                            <p className="text-3xl font-bold text-[#1E293B]">{stats?.total_users || 0}</p>
+                            <p className="text-3xl font-bold text-[#1E293B]">{displayStats.total_users}</p>
+                            {statsError && <p className="text-xs text-red-500 mt-1">Using calculated stats</p>}
                         </div>
                     </div>
                 </div>
@@ -123,7 +146,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-[#64748B]">Pending Approval</p>
-                            <p className="text-3xl font-bold text-[#1E293B]">{stats?.pending_users || 0}</p>
+                            <p className="text-3xl font-bold text-[#1E293B]">{displayStats.pending_users}</p>
                         </div>
                     </div>
                 </div>
@@ -135,7 +158,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-[#64748B]">Active Users</p>
-                            <p className="text-3xl font-bold text-[#1E293B]">{(stats?.total_users || 0) - (stats?.pending_users || 0)}</p>
+                            <p className="text-3xl font-bold text-[#1E293B]">{displayStats.total_users - displayStats.pending_users}</p>
                         </div>
                     </div>
                 </div>
@@ -147,7 +170,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-[#64748B]">Total Credentials</p>
-                            <p className="text-3xl font-bold text-[#1E293B]">{stats?.total_credentials || 0}</p>
+                            <p className="text-3xl font-bold text-[#1E293B]">{displayStats.total_credentials}</p>
                         </div>
                     </div>
                 </div>

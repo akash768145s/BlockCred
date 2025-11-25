@@ -40,6 +40,9 @@ type VerificationResult = {
     block_number: number;
     metadata: CertificateMetadata;
     error_message?: string;
+    file_hash?: string;
+    file_integrity_ok?: boolean;
+    tamper_detected?: boolean;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
@@ -175,11 +178,30 @@ export default function VerifyCertificatePage() {
                                             })}
                                         </p>
                                     </div>
-                                    <div
-                                        className={`rounded-2xl px-4 py-3 text-sm font-semibold text-center ${result.is_valid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
-                                            }`}
-                                    >
-                                        {result.is_valid ? "VALID ON BLOCKCHAIN" : "FAILED VERIFICATION"}
+                                    <div className="flex flex-col gap-2">
+                                        <div
+                                            className={`rounded-2xl px-4 py-3 text-sm font-semibold text-center ${result.is_valid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
+                                                }`}
+                                        >
+                                            {result.is_valid ? "VALID ON BLOCKCHAIN" : "FAILED VERIFICATION"}
+                                        </div>
+                                        {result.tamper_detected !== undefined && (
+                                            <div
+                                                className={`rounded-2xl px-4 py-2 text-xs font-semibold text-center ${
+                                                    result.tamper_detected
+                                                        ? "bg-red-50 text-red-600 border-2 border-red-300"
+                                                        : result.file_integrity_ok
+                                                        ? "bg-emerald-50 text-emerald-700"
+                                                        : "bg-yellow-50 text-yellow-700"
+                                                }`}
+                                            >
+                                                {result.tamper_detected
+                                                    ? "⚠️ FILE TAMPERED"
+                                                    : result.file_integrity_ok
+                                                    ? "✅ FILE INTEGRITY OK"
+                                                    : "⚠️ INTEGRITY CHECK UNAVAILABLE"}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -225,6 +247,17 @@ export default function VerifyCertificatePage() {
                                             </a>
                                         </div>
                                     </div>
+                                    {result.file_hash && (
+                                        <div className="mt-4 pt-4 border-t border-white/10">
+                                            <p className="text-white/70 text-xs tracking-[0.3em] mb-2">File Hash (SHA-256)</p>
+                                            <p className="font-mono text-xs break-all bg-white/5 p-2 rounded-lg">
+                                                {result.file_hash}
+                                            </p>
+                                            <p className="text-white/60 text-[10px] mt-2">
+                                                This hash is stored on-chain. If the file is modified, the hash will change and tampering will be detected.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-3">

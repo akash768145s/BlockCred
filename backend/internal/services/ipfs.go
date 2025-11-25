@@ -12,6 +12,20 @@ import (
 	"blockcred-backend/internal/config"
 )
 
+// safeSubstring safely extracts a substring, handling edge cases
+func safeSubstring(s string, start, end int) string {
+	if start < 0 {
+		start = 0
+	}
+	if end > len(s) {
+		end = len(s)
+	}
+	if start >= end {
+		return ""
+	}
+	return s[start:end]
+}
+
 type IPFSService struct {
 	config config.Config
 	client *http.Client
@@ -42,8 +56,13 @@ func NewIPFSService(cfg config.Config) *IPFSService {
 // UploadFile uploads a file to IPFS via Pinata and returns the CID
 func (s *IPFSService) UploadFile(fileData []byte, fileName string, metadata map[string]interface{}) (string, error) {
 	if s.config.PinataAPIKey == "" || s.config.PinataAPISecret == "" {
+		fmt.Printf("❌ IPFS Service: Pinata credentials missing. API Key present: %v, Secret present: %v\n", 
+			s.config.PinataAPIKey != "", s.config.PinataAPISecret != "")
 		return "", fmt.Errorf("Pinata API credentials not configured - please set PINATA_API_KEY and PINATA_API_SECRET environment variables")
 	}
+	
+	fmt.Printf("🔑 IPFS Service: Using Pinata API Key (first 10 chars): %s...\n", 
+		safeSubstring(s.config.PinataAPIKey, 0, 10))
 	
 	// Validate input
 	if len(fileData) == 0 {
@@ -106,8 +125,10 @@ func (s *IPFSService) UploadFile(fileData []byte, fileName string, metadata map[
 	req.Header.Set("pinata_secret_api_key", s.config.PinataAPISecret)
 
 	// Send request
+	fmt.Printf("📤 Sending file to Pinata: fileName=%s, fileSize=%d bytes\n", fileName, len(fileData))
 	resp, err := s.client.Do(req)
 	if err != nil {
+		fmt.Printf("❌ Network error sending to Pinata: %v\n", err)
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -120,8 +141,10 @@ func (s *IPFSService) UploadFile(fileData []byte, fileName string, metadata map[
 	if resp.StatusCode != http.StatusOK {
 		var pinataErr PinataError
 		if err := json.Unmarshal(body, &pinataErr); err != nil {
+			fmt.Printf("❌ Pinata API error (status %d): %s\n", resp.StatusCode, string(body))
 			return "", fmt.Errorf("Pinata API error (status %d): %s", resp.StatusCode, string(body))
 		}
+		fmt.Printf("❌ Pinata API error: %s - %s\n", pinataErr.Error.Reason, pinataErr.Error.Details)
 		return "", fmt.Errorf("Pinata API error: %s - %s", pinataErr.Error.Reason, pinataErr.Error.Details)
 	}
 
@@ -130,6 +153,7 @@ func (s *IPFSService) UploadFile(fileData []byte, fileName string, metadata map[
 		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
 
+	fmt.Printf("✅ Pinata upload successful: CID=%s, Size=%d bytes\n", pinataResp.IpfsHash, pinataResp.PinSize)
 	return pinataResp.IpfsHash, nil
 }
 

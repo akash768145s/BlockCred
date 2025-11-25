@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	httpx "blockcred-backend/internal/http"
@@ -22,6 +23,10 @@ func (h *CertificateHandler) IssueCertificate(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Log file data info for debugging
+	log.Printf("📄 Certificate Issuance Request: StudentID=%s, CertType=%s, FileName=%s, FileDataLength=%d bytes", 
+		req.StudentID, req.CertType, req.FileName, len(req.FileData))
+
 	// Get user from context (set by auth middleware)
 	user, ok := r.Context().Value("user").(models.User)
 	if !ok {
@@ -33,9 +38,13 @@ func (h *CertificateHandler) IssueCertificate(w http.ResponseWriter, r *http.Req
 
 	certificate, err := h.Certificates.IssueCertificate(req, issuerID)
 	if err != nil {
+		log.Printf("❌ Certificate issuance failed: %v", err)
 		httpx.JSON(w, http.StatusInternalServerError, false, err.Error(), nil)
 		return
 	}
+
+	log.Printf("✅ Certificate issued successfully: CertID=%s, IPFSURL=%s, TxHash=%s", 
+		certificate.CertID, certificate.IPFSURL, certificate.TxHash)
 
 	httpx.JSON(w, http.StatusCreated, true, "certificate issued successfully", map[string]interface{}{
 		"certificate_id": certificate.ID,

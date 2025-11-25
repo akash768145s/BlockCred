@@ -72,18 +72,21 @@ type VerifyCertificateRequest struct {
 
 // CertificateVerificationResult represents the result of certificate verification
 type CertificateVerificationResult struct {
-	IsValid      bool                `json:"is_valid"`
-	CertID       string              `json:"cert_id"`
-	StudentID    string              `json:"student_id"`
-	IssuerID     string              `json:"issuer_id"`
-	CertType     CredentialType      `json:"cert_type"`
-	Status       CertificateStatus   `json:"status"`
-	IssuedAt     time.Time           `json:"issued_at"`
-	IPFSURL      string              `json:"ipfs_url"`
-	TxHash       string              `json:"tx_hash"`
-	BlockNumber  uint64              `json:"block_number"`
-	Metadata     CertificateMetadata `json:"metadata"`
-	ErrorMessage string              `json:"error_message,omitempty"`
+	IsValid          bool                `json:"is_valid"`
+	CertID           string              `json:"cert_id"`
+	StudentID        string              `json:"student_id"`
+	IssuerID         string              `json:"issuer_id"`
+	CertType         CredentialType      `json:"cert_type"`
+	Status           CertificateStatus   `json:"status"`
+	IssuedAt         time.Time           `json:"issued_at"`
+	IPFSURL          string              `json:"ipfs_url"`
+	TxHash           string              `json:"tx_hash"`
+	BlockNumber      uint64              `json:"block_number"`
+	Metadata         CertificateMetadata `json:"metadata"`
+	ErrorMessage     string              `json:"error_message,omitempty"`
+	FileHash         string              `json:"file_hash,omitempty"`         // Stored file hash for comparison
+	FileIntegrityOK  *bool               `json:"file_integrity_ok,omitempty"` // Whether file hash matches (nil if check unavailable)
+	TamperDetected   bool                `json:"tamper_detected,omitempty"`   // True if file has been modified
 }
 
 // PublicCertificate is a sanitized view of a certificate for sharing

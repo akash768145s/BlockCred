@@ -54,9 +54,17 @@ export class ApiService {
     }
 
     static async fetchCredentials(): Promise<Credential[]> {
-        const response = await fetch(`${API_BASE_URL}/credentials`, {
+        // Try /api/certificates first (new endpoint), fallback to /api/credentials
+        let response = await fetch(`${API_BASE_URL}/certificates`, {
             headers: this.getAuthHeaders(),
         });
+
+        // If certificates endpoint fails, try credentials endpoint
+        if (!response.ok && response.status !== 401) {
+            response = await fetch(`${API_BASE_URL}/credentials`, {
+                headers: this.getAuthHeaders(),
+            });
+        }
 
         if (!response.ok) {
             if (response.status === 401) {
@@ -180,19 +188,101 @@ export class ApiService {
     }
 
     static async getDashboardStats(): Promise<DashboardStats> {
-        const [users, credentials] = await Promise.all([
-            this.fetchUsers(),
-            this.fetchCredentials(),
-        ]);
+        // Check if token exists before making requests
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.warn('No token found, returning default stats');
+            return {
+                total_users: 0,
+                pending_users: 0,
+                total_credentials: 0,
+                issued_today: 0,
+                verified_today: 0,
+            };
+        }
 
-        const today = new Date().toISOString().split('T')[0];
+        try {
+            // Fetch users and credentials separately to handle errors gracefully
+            let users: User[] = [];
+            let credentials: Credential[] = [];
 
-        return {
-            total_users: users.length,
-            pending_users: users.filter(u => !u.is_approved).length,
-            total_credentials: credentials.length,
-            issued_today: credentials.filter(c => c.issued_date === today).length,
-            verified_today: credentials.filter(c => c.status === 'verified' && c.verified_at?.startsWith(today)).length,
-        };
+            try {
+                users = await this.fetchUsers();
+            } catch (err: any) {
+                console.error('Error fetching users for stats:', err);
+                // If it's an auth error, clear storage and return defaults
+                if (err.message?.includes('Unauthorized')) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    // Redirect will be handled by the component
+                    return {
+                        total_users: 0,
+                        pending_users: 0,
+                        total_credentials: 0,
+                        issued_today: 0,
+                        verified_today: 0,
+                    };
+                }
+            }
+
+            try {
+                credentials = await this.fetchCredentials();
+            } catch (err: any) {
+                console.error('Error fetching credentials for stats:', err);
+                // If it's an auth error, clear storage and return defaults
+                if (err.message?.includes('Unauthorized')) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    // Use users we already fetched, but return defaults for credentials
+                    return {
+                        total_users: users.length || 0,
+                        pending_users: users.filter((u: any) => !u.is_approved && !u.is_active).length || 0,
+                        total_credentials: 0,
+                        issued_today: 0,
+                        verified_today: 0,
+                    };
+                }
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+
+            // Handle different date field names (issued_date vs issued_at)
+            const issuedToday = credentials.filter((c: any) => {
+                const issuedDate = c.issued_date || c.issued_at;
+                if (!issuedDate) return false;
+                // Handle both date string and ISO date formats
+                const dateStr = typeof issuedDate === 'string' 
+                    ? issuedDate.split('T')[0] 
+                    : new Date(issuedDate).toISOString().split('T')[0];
+                return dateStr === today;
+            }).length;
+
+            const verifiedToday = credentials.filter((c: any) => {
+                const verifiedAt = c.verified_at;
+                if (!verifiedAt) return false;
+                const dateStr = typeof verifiedAt === 'string' 
+                    ? verifiedAt.split('T')[0] 
+                    : new Date(verifiedAt).toISOString().split('T')[0];
+                return c.status === 'verified' && dateStr === today;
+            }).length;
+
+            return {
+                total_users: users.length || 0,
+                pending_users: users.filter((u: any) => !u.is_approved && !u.is_active).length || 0,
+                total_credentials: credentials.length || 0,
+                issued_today: issuedToday,
+                verified_today: verifiedToday,
+            };
+        } catch (error) {
+            console.error('Unexpected error fetching dashboard stats:', error);
+            // Return default stats on error
+            return {
+                total_users: 0,
+                pending_users: 0,
+                total_credentials: 0,
+                issued_today: 0,
+                verified_today: 0,
+            };
+        }
     }
 }
