@@ -36,8 +36,20 @@ type VerificationResult = {
     status: string;
     issued_at: string;
     ipfs_url: string;
-    tx_hash: string;
-    block_number: number;
+
+    // NEW: Cryptographic proofs (DApp architecture)
+    issuer_signature?: string;
+    issuer_public_key?: string;
+    signature_verified?: boolean;
+    merkle_root?: string;
+    merkle_proof_valid?: boolean;
+    transparency_log_index?: number;
+    signed_document_url?: string;
+
+    // DEPRECATED: Blockchain fields (kept for backward compatibility)
+    tx_hash?: string;
+    block_number?: number;
+
     metadata: CertificateMetadata;
     error_message?: string;
     file_hash?: string;
@@ -183,23 +195,42 @@ export default function VerifyCertificatePage() {
                                             className={`rounded-2xl px-4 py-3 text-sm font-semibold text-center ${result.is_valid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
                                                 }`}
                                         >
-                                            {result.is_valid ? "VALID ON BLOCKCHAIN" : "FAILED VERIFICATION"}
+                                            {result.is_valid ? "VALID CERTIFICATE" : "FAILED VERIFICATION"}
                                         </div>
+                                        {result.signature_verified !== undefined && (
+                                            <div
+                                                className={`rounded-2xl px-4 py-2 text-xs font-semibold text-center ${result.signature_verified
+                                                    ? "bg-emerald-50 text-emerald-700"
+                                                    : "bg-red-50 text-red-600"
+                                                    }`}
+                                            >
+                                                {result.signature_verified ? "✅ SIGNATURE VERIFIED" : "❌ INVALID SIGNATURE"}
+                                            </div>
+                                        )}
+                                        {result.merkle_proof_valid !== undefined && (
+                                            <div
+                                                className={`rounded-2xl px-4 py-2 text-xs font-semibold text-center ${result.merkle_proof_valid
+                                                    ? "bg-emerald-50 text-emerald-700"
+                                                    : "bg-red-50 text-red-600"
+                                                    }`}
+                                            >
+                                                {result.merkle_proof_valid ? "✅ MERKLE PROOF VALID" : "❌ INVALID MERKLE PROOF"}
+                                            </div>
+                                        )}
                                         {result.tamper_detected !== undefined && (
                                             <div
-                                                className={`rounded-2xl px-4 py-2 text-xs font-semibold text-center ${
-                                                    result.tamper_detected
-                                                        ? "bg-red-50 text-red-600 border-2 border-red-300"
-                                                        : result.file_integrity_ok
+                                                className={`rounded-2xl px-4 py-2 text-xs font-semibold text-center ${result.tamper_detected
+                                                    ? "bg-red-50 text-red-600 border-2 border-red-300"
+                                                    : result.file_integrity_ok
                                                         ? "bg-emerald-50 text-emerald-700"
                                                         : "bg-yellow-50 text-yellow-700"
-                                                }`}
+                                                    }`}
                                             >
                                                 {result.tamper_detected
                                                     ? "⚠️ FILE TAMPERED"
                                                     : result.file_integrity_ok
-                                                    ? "✅ FILE INTEGRITY OK"
-                                                    : "⚠️ INTEGRITY CHECK UNAVAILABLE"}
+                                                        ? "✅ FILE INTEGRITY OK"
+                                                        : "⚠️ INTEGRITY CHECK UNAVAILABLE"}
                                             </div>
                                         )}
                                     </div>
@@ -225,16 +256,71 @@ export default function VerifyCertificatePage() {
                                 </div>
 
                                 <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 text-white p-6 border border-white/10 space-y-3 shadow-xl">
-                                    <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">Blockchain Proof</p>
-                                    <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                        <div>
-                                            <p className="text-white/70 text-xs tracking-[0.3em]">Transaction Hash</p>
-                                            <p className="font-mono text-xs break-all mt-1">{result.tx_hash}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-white/70 text-xs tracking-[0.3em]">Block Number</p>
-                                            <p className="text-lg font-semibold mt-1">{result.block_number}</p>
-                                        </div>
+                                    {result.issuer_signature ? (
+                                        <>
+                                            <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">Cryptographic Proofs (DApp Architecture)</p>
+                                            <div className="grid md:grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <p className="text-white/70 text-xs tracking-[0.3em]">Issuer Signature</p>
+                                                    <p className="font-mono text-xs break-all mt-1 bg-white/5 p-2 rounded-lg">
+                                                        {result.issuer_signature.substring(0, 32)}...
+                                                    </p>
+                                                </div>
+                                                {result.merkle_root && (
+                                                    <div>
+                                                        <p className="text-white/70 text-xs tracking-[0.3em]">Merkle Root</p>
+                                                        <p className="font-mono text-xs break-all mt-1 bg-white/5 p-2 rounded-lg">
+                                                            {result.merkle_root.substring(0, 32)}...
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {result.transparency_log_index !== undefined && (
+                                                    <div>
+                                                        <p className="text-white/70 text-xs tracking-[0.3em]">Transparency Log Index</p>
+                                                        <p className="text-lg font-semibold mt-1">{result.transparency_log_index}</p>
+                                                    </div>
+                                                )}
+                                                {result.signed_document_url && (
+                                                    <div>
+                                                        <p className="text-white/70 text-xs tracking-[0.3em]">Signed Document</p>
+                                                        <a
+                                                            href={result.signed_document_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="inline-flex items-center gap-2 text-xs underline mt-1 break-all"
+                                                        >
+                                                            View Signed Document
+                                                        </a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">Legacy Certificate (Blockchain-based)</p>
+                                            {result.tx_hash && (
+                                                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                                                    <div>
+                                                        <p className="text-white/70 text-xs tracking-[0.3em]">Transaction Hash</p>
+                                                        <p className="font-mono text-xs break-all mt-1 bg-white/5 p-2 rounded-lg">
+                                                            {result.tx_hash}
+                                                        </p>
+                                                    </div>
+                                                    {result.block_number && (
+                                                        <div>
+                                                            <p className="text-white/70 text-xs tracking-[0.3em]">Block Number</p>
+                                                            <p className="text-lg font-semibold mt-1">{result.block_number}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            <p className="text-white/60 text-[10px] mt-2">
+                                                This is a legacy certificate issued before the DApp architecture migration. Verification is based on database record and file integrity.
+                                            </p>
+                                        </>
+                                    )}
+
+                                    <div className="grid md:grid-cols-2 gap-4 text-sm">
                                         <div>
                                             <p className="text-white/70 text-xs tracking-[0.3em]">IPFS URL</p>
                                             <a
@@ -247,6 +333,7 @@ export default function VerifyCertificatePage() {
                                             </a>
                                         </div>
                                     </div>
+
                                     {result.file_hash && (
                                         <div className="mt-4 pt-4 border-t border-white/10">
                                             <p className="text-white/70 text-xs tracking-[0.3em] mb-2">File Hash (SHA-256)</p>
@@ -254,7 +341,9 @@ export default function VerifyCertificatePage() {
                                                 {result.file_hash}
                                             </p>
                                             <p className="text-white/60 text-[10px] mt-2">
-                                                This hash is stored on-chain. If the file is modified, the hash will change and tampering will be detected.
+                                                {result.issuer_signature
+                                                    ? "This hash is cryptographically signed. If the file is modified, the hash will change and tampering will be detected."
+                                                    : "This hash is stored on-chain. If the file is modified, the hash will change and tampering will be detected."}
                                             </p>
                                         </div>
                                     )}

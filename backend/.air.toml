@@ -9,7 +9,7 @@ tmp_dir = "tmp"
   delay = 1000
   env = ["CGO_ENABLED=0"]
   exclude_dir = ["assets", "tmp", "vendor", "testdata", "blockchain-data", "blockchain", "grafana"]
-  exclude_file = []
+  exclude_file = ["blockchain_besu.go", "blockchain_goeth.go", "blockchain.go"]
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false

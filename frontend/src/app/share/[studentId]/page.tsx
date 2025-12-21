@@ -19,8 +19,17 @@ type PublicCertificate = {
     status: string;
     issued_at: string;
     ipfs_url: string;
-    tx_hash: string;
-    block_number: number;
+
+    // NEW: Cryptographic proofs (DApp architecture)
+    issuer_signature?: string;
+    merkle_root?: string;
+    transparency_log_index?: number;
+    signed_document_url?: string;
+
+    // DEPRECATED: Blockchain fields (kept for backward compatibility)
+    tx_hash?: string;
+    block_number?: number;
+
     metadata: {
         student_name?: string;
         student_email?: string;
@@ -188,146 +197,154 @@ export default function ShareableStudentProfilePage() {
                         )}
                     </div>
 
-                {certificateCount === 0 ? (
-                    <div className="bg-black/30 rounded-2xl border border-white/10 p-8 text-center text-slate-300">
-                        No certificates are linked to this student yet. Check back after issuance.
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {profile.certificates.map((certificate) => {
-                            const nonBCsubjects: Subject[] | undefined = Array.isArray(certificate.metadata?.subjects)
-                                ? certificate.metadata.subjects
-                                : Array.isArray(
-                                      (certificate.metadata?.additional_data as Record<string, any> | undefined)?.subjects
-                                  )
-                                    ? (((certificate.metadata?.additional_data as Record<string, any>)?.subjects) as Subject[])
-                                    : undefined;
+                    {certificateCount === 0 ? (
+                        <div className="bg-black/30 rounded-2xl border border-white/10 p-8 text-center text-slate-300">
+                            No certificates are linked to this student yet. Check back after issuance.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {profile.certificates.map((certificate) => {
+                                const nonBCsubjects: Subject[] | undefined = Array.isArray(certificate.metadata?.subjects)
+                                    ? certificate.metadata.subjects
+                                    : Array.isArray(
+                                        (certificate.metadata?.additional_data as Record<string, any> | undefined)?.subjects
+                                    )
+                                        ? (((certificate.metadata?.additional_data as Record<string, any>)?.subjects) as Subject[])
+                                        : undefined;
 
-                            const verifyUrl = origin
-                                ? `${origin}/verify?certId=${certificate.cert_id}`
-                                : `/verify?certId=${certificate.cert_id}`;
+                                const verifyUrl = origin
+                                    ? `${origin}/verify?certId=${certificate.cert_id}`
+                                    : `/verify?certId=${certificate.cert_id}`;
 
-                            const issuedDate = new Date(certificate.issued_at).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                            });
+                                const issuedDate = new Date(certificate.issued_at).toLocaleDateString("en-US", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                });
 
-                            return (
-                                <div
-                                    key={certificate.cert_id}
-                                    className="relative bg-white text-slate-900 rounded-3xl shadow-2xl p-6 border border-indigo-100"
-                                >
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div>
-                                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Certificate Type</p>
-                                                <h3 className="text-xl font-semibold mt-1">
-                                                    {certificate.cert_type.replace(/_/g, " ").toUpperCase()}
-                                                </h3>
-                                                <p className="text-sm text-slate-500">Issued {issuedDate}</p>
-                                                <span
-                                                    className={`mt-2 inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold ${
-                                                        certificate.status === "revoked"
-                                                            ? "bg-red-50 text-red-600 border border-red-100"
-                                                            : "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                                                    }`}
+                                return (
+                                    <div
+                                        key={certificate.cert_id}
+                                        className="relative bg-white text-slate-900 rounded-3xl shadow-2xl p-6 border border-indigo-100"
+                                    >
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div>
+                                                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Certificate Type</p>
+                                                    <h3 className="text-xl font-semibold mt-1">
+                                                        {certificate.cert_type.replace(/_/g, " ").toUpperCase()}
+                                                    </h3>
+                                                    <p className="text-sm text-slate-500">Issued {issuedDate}</p>
+                                                    <span
+                                                        className={`mt-2 inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold ${certificate.status === "revoked"
+                                                                ? "bg-red-50 text-red-600 border border-red-100"
+                                                                : "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                                            }`}
+                                                    >
+                                                        {certificate.status === "revoked"
+                                                            ? "Revoked"
+                                                            : (certificate.issuer_signature ? "Cryptographically Verified" : "Verified on-chain")}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <QRCodeCanvas
+                                                        value={verifyUrl}
+                                                        size={120}
+                                                        bgColor="#ffffff"
+                                                        fgColor="#111827"
+                                                        level="H"
+                                                    />
+                                                    <span className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                                        Scan to verify
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                                {certificate.metadata?.semester && (
+                                                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                                                        <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400">Semester</p>
+                                                        <p className="text-base font-semibold text-slate-900 mt-1">
+                                                            {certificate.metadata.semester}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {certificate.metadata?.academic_year && (
+                                                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                                                        <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400">Academic Year</p>
+                                                        <p className="text-base font-semibold text-slate-900 mt-1">
+                                                            {certificate.metadata.academic_year}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {certificate.metadata?.cgpa && (
+                                                    <div className="col-span-2 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-4 border border-emerald-100">
+                                                        <p className="text-[10px] uppercase tracking-[0.4em] text-emerald-600">CGPA</p>
+                                                        <p className="text-3xl font-bold text-emerald-700 mt-1">{certificate.metadata.cgpa}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {nonBCsubjects && nonBCsubjects.length > 0 && (
+                                                <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+                                                    <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400 mb-3">
+                                                        Subjects
+                                                    </p>
+                                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                                        {nonBCsubjects.map((subject, index) => (
+                                                            <div
+                                                                key={`${subject.subject_code}-${index}`}
+                                                                className="flex items-center justify-between text-xs bg-white rounded-xl border border-slate-100 px-3 py-2"
+                                                            >
+                                                                <div>
+                                                                    <p className="font-semibold text-slate-900">
+                                                                        {subject.subject_code || subject.subject_name}
+                                                                    </p>
+                                                                    <p className="text-slate-500">{subject.subject_name}</p>
+                                                                </div>
+                                                                <div className="text-right font-semibold text-slate-900">
+                                                                    {subject.marks && <p>{subject.marks} marks</p>}
+                                                                    {subject.grade && <p className="text-emerald-600">{subject.grade}</p>}
+                                                                    {subject.credits && <p className="text-[10px] text-slate-400">{subject.credits} Credits</p>}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                                                <Link
+                                                    href={`/verify?certId=${certificate.cert_id}`}
+                                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-xs font-semibold"
                                                 >
-                                                    {certificate.status === "revoked" ? "Revoked" : "Verified on-chain"}
-                                                </span>
+                                                    Verify Now
+                                                </Link>
+                                                <a
+                                                    href={certificate.ipfs_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 text-slate-600"
+                                                >
+                                                    View IPFS Proof
+                                                </a>
+                                                {certificate.tx_hash && (
+                                                    <span className="text-[11px] uppercase tracking-[0.3em] text-slate-400">
+                                                        Tx: {certificate.tx_hash.slice(0, 10)}...
+                                                    </span>
+                                                )}
+                                                {certificate.issuer_signature && (
+                                                    <span className="text-[11px] uppercase tracking-[0.3em] text-slate-400">
+                                                        Signature: {certificate.issuer_signature.slice(0, 10)}...
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div className="flex flex-col items-center gap-2">
-                                                <QRCodeCanvas
-                                                    value={verifyUrl}
-                                                    size={120}
-                                                    bgColor="#ffffff"
-                                                    fgColor="#111827"
-                                                    level="H"
-                                                />
-                                                <span className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
-                                                    Scan to verify
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-2 text-sm">
-                                            {certificate.metadata?.semester && (
-                                                <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
-                                                    <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400">Semester</p>
-                                                    <p className="text-base font-semibold text-slate-900 mt-1">
-                                                        {certificate.metadata.semester}
-                                                    </p>
-                                                </div>
-                                            )}
-                                            {certificate.metadata?.academic_year && (
-                                                <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
-                                                    <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400">Academic Year</p>
-                                                    <p className="text-base font-semibold text-slate-900 mt-1">
-                                                        {certificate.metadata.academic_year}
-                                                    </p>
-                                                </div>
-                                            )}
-                                            {certificate.metadata?.cgpa && (
-                                                <div className="col-span-2 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-4 border border-emerald-100">
-                                                    <p className="text-[10px] uppercase tracking-[0.4em] text-emerald-600">CGPA</p>
-                                                    <p className="text-3xl font-bold text-emerald-700 mt-1">{certificate.metadata.cgpa}</p>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {nonBCsubjects && nonBCsubjects.length > 0 && (
-                                            <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
-                                                <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400 mb-3">
-                                                    Subjects
-                                                </p>
-                                                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                                    {nonBCsubjects.map((subject, index) => (
-                                                        <div
-                                                            key={`${subject.subject_code}-${index}`}
-                                                            className="flex items-center justify-between text-xs bg-white rounded-xl border border-slate-100 px-3 py-2"
-                                                        >
-                                                            <div>
-                                                                <p className="font-semibold text-slate-900">
-                                                                    {subject.subject_code || subject.subject_name}
-                                                                </p>
-                                                                <p className="text-slate-500">{subject.subject_name}</p>
-                                                            </div>
-                                                            <div className="text-right font-semibold text-slate-900">
-                                                                {subject.marks && <p>{subject.marks} marks</p>}
-                                                                {subject.grade && <p className="text-emerald-600">{subject.grade}</p>}
-                                                                {subject.credits && <p className="text-[10px] text-slate-400">{subject.credits} Credits</p>}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                                            <Link
-                                                href={`/verify?certId=${certificate.cert_id}`}
-                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-xs font-semibold"
-                                            >
-                                                Verify Now
-                                            </Link>
-                                            <a
-                                                href={certificate.ipfs_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 text-slate-600"
-                                            >
-                                                View IPFS Proof
-                                            </a>
-                                            <span className="text-[11px] uppercase tracking-[0.3em] text-slate-400">
-                                                Tx: {certificate.tx_hash.slice(0, 10)}...
-                                            </span>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                );
+                            })}
+                        </div>
+                    )}
                 </section>
             </div>
         </main>

@@ -324,7 +324,11 @@ export default function StudentDashboard() {
                                             {verificationResult.is_valid ? 'Certificate Verified' : 'Verification Failed'}
                                         </h3>
                                         <p className="text-sm text-gray-600 mt-1">
-                                            {verificationResult.is_valid ? 'This certificate is valid and verified on the blockchain' : verificationResult.error_message || 'Certificate verification failed'}
+                                            {verificationResult.is_valid 
+                                                ? (verificationResult.signature_verified 
+                                                    ? 'This certificate is valid and cryptographically verified' 
+                                                    : 'This certificate is valid and verified on the blockchain')
+                                                : verificationResult.error_message || 'Certificate verification failed'}
                                         </p>
                                     </div>
                                 </div>

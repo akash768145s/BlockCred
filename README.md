@@ -1,17 +1,20 @@
 # BlockCred
 
-A blockchain-based credential management system for educational institutions with comprehensive Role-Based Access Control (RBAC). BlockCred ensures tamper-proof credential storage using Hyperledger Besu (Proof of Authority) blockchain and IPFS for decentralized file storage.
+A **cost-efficient DApp credential management system** for educational institutions with comprehensive Role-Based Access Control (RBAC). BlockCred ensures tamper-proof credential storage using **cryptographic signatures, Merkle trees, and transparency logs** with IPFS for decentralized file storage.
+
+> **🚀 New Architecture:** BlockCred has been redesigned as a DApp that eliminates blockchain infrastructure costs while maintaining equivalent security guarantees. See [DApp Architecture](#dapp-architecture) for details. The original blockchain-based architecture is documented for reference.
 
 ## Table of Contents
 
 - [Technology Stack](#technology-stack)
+- [DApp Architecture](#dapp-architecture) ⭐ **NEW**
 - [Project Structure](#project-structure)
 - [Application Flow](#application-flow)
 - [Quick Start](#quick-start)
 - [Complete File Structure](#complete-file-structure)
 - [API Endpoints](#api-endpoints)
 - [Frontend Routes](#frontend-routes)
-- [Blockchain Integration](#blockchain-integration)
+- [Blockchain Integration](#blockchain-integration) (Legacy - See DApp Architecture)
 - [System Roles](#system-roles)
 
 ## Technology Stack
@@ -20,10 +23,11 @@ A blockchain-based credential management system for educational institutions wit
 - **Language**: Go 1.21+
 - **Framework**: Gorilla Mux (HTTP router)
 - **Database**: MongoDB (with in-memory fallback)
-- **Blockchain**: Hyperledger Besu (PoA)
-- **Storage**: IPFS (InterPlanetary File System)
+- **Cryptography**: Ed25519/ECDSA signatures, Merkle trees
+- **Storage**: IPFS (InterPlanetary File System via Pinata)
 - **Authentication**: JWT (JSON Web Tokens)
 - **Hot Reload**: Air
+- **Optional**: Public blockchain anchoring (Ethereum/Polygon) for periodic timestamping
 
 ### Frontend
 - **Framework**: Next.js 15+ (React 19)
@@ -32,11 +36,128 @@ A blockchain-based credential management system for educational institutions wit
 - **Icons**: Lucide React
 - **Linting**: Biome
 
-### Blockchain
-- **Network**: Hyperledger Besu (Proof of Authority)
+### Trust Model (DApp Architecture)
+- **Cryptographic Signatures**: Ed25519/ECDSA for certificate signing
+- **Transparency Log**: Append-only Merkle tree for tamper detection
+- **Public Key Infrastructure**: Issuer public key registry
+- **Optional Anchoring**: Periodic Merkle root anchoring to public blockchain (Ethereum/Polygon)
+- **Revocation Log**: Signed revocation records in append-only log
+
+### Legacy Blockchain (Reference)
+- **Network**: Hyperledger Besu (Proof of Authority) - **Deprecated**
 - **Consensus**: Clique PoA
 - **Network ID**: 1337
 - **RPC**: JSON-RPC over HTTP/WebSocket
+
+## DApp Architecture
+
+BlockCred uses a **cost-efficient DApp architecture** that eliminates blockchain infrastructure while maintaining cryptographic integrity and public verifiability.
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    FRONTEND (Next.js)                       │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ HTTP/REST API
+┌──────────────────────▼──────────────────────────────────────┐
+│                    BACKEND (Go)                              │
+│  - Certificate Service                                       │
+│  - Cryptographic Service (Signatures, Merkle Trees)        │
+│  - Transparency Log Service (Append-only log)                │
+│  - IPFS Service (Pinata)                                    │
+│  - Optional: Public Blockchain Anchor Service               │
+└──────┬──────────────┬──────────────┬────────────────────────┘
+       │              │              │
+┌──────▼──────┐ ┌─────▼──────┐ ┌─────▼──────────────┐
+│  MongoDB   │ │   IPFS     │ │ Public Blockchain  │
+│  (Metadata │ │  (Pinata)  │ │  (Ethereum/Polygon)│
+│  + Proofs) │ │  (Files +  │ │  (Optional Anchor)│
+│            │ │  Signatures)│ │  (Periodic Only)  │
+└────────────┘ └────────────┘ └────────────────────┘
+```
+
+### Key Components
+
+#### 1. **Cryptographic Signatures**
+- Each certificate is **signed** by the issuer's private key (Ed25519/ECDSA)
+- Public keys are registered and publicly accessible
+- Anyone can verify signatures without blockchain infrastructure
+
+#### 2. **Transparency Log**
+- Append-only Merkle tree of all certificate issuances
+- Root hash published periodically (daily/weekly)
+- Enables tamper detection and auditability
+- No blockchain consensus required
+
+#### 3. **Signed Certificate Documents**
+- Certificates stored as signed JSON documents (JWT/VC format)
+- Includes: certificate data, issuer signature, timestamp, revocation status
+- Stored in IPFS for public access
+
+#### 4. **Optional Public Blockchain Anchoring**
+- Periodically anchor Merkle root hash to Ethereum/Polygon (monthly batch)
+- Single transaction anchors thousands of certificates
+- **Cost:** ~$0.01-0.10 per anchor (vs $0.50+ per certificate on-chain)
+
+### Certificate Issuance Flow (DApp)
+
+```
+Issuer → Dashboard → Fill Form → POST /api/certificates/issue
+→ Backend Service:
+  1. Validate student exists
+  2. Compute file hash (SHA-256)
+  3. Upload PDF to IPFS → Get IPFS CID
+  4. Compute metadata hash
+  5. Generate certificate ID
+  6. Sign certificate with issuer's private key ← NEW
+  7. Append to transparency log → Get Merkle proof ← NEW
+  8. Store signed document in IPFS ← NEW
+  9. Store certificate in MongoDB (with cryptographic proofs)
+  10. Optional: Queue for public blockchain anchoring ← NEW
+→ Return: cert_id, issuer_signature, merkle_root, ipfs_url
+```
+
+### Certificate Verification Flow (DApp)
+
+```
+Verifier → Enter Certificate ID → GET /api/certificates/verify/{certId}
+→ Backend:
+  1. Query MongoDB for certificate
+  2. Verify issuer signature ← NEW
+  3. Verify issuer public key is trusted ← NEW
+  4. Verify Merkle proof in transparency log ← NEW
+  5. Check revocation log ← NEW
+  6. Verify file integrity (hash match)
+  7. Optional: Verify public blockchain anchor ← NEW
+→ Return: Verification result with cryptographic proofs
+```
+
+### Cost Comparison
+
+| Component | Blockchain (Besu) | DApp Architecture | Savings |
+|-----------|------------------|-------------------|---------|
+| **Validator Nodes** | $50-200/month | $0 | **100%** |
+| **Gas Fees** | $0.50+ per cert | $0 (or $0.01/month batch) | **98-99%** |
+| **Total (1000 certs/month)** | $85-800/month | $35-150/month | **59-81%** |
+
+### Security Guarantees
+
+✅ **Tamper Detection** - Cryptographic hashing and signature verification  
+✅ **Public Verifiability** - Anyone can verify without authentication  
+✅ **Cryptographic Integrity** - Digital signatures and Merkle proofs  
+✅ **Trust Minimization** - Issuer public keys and transparency logs  
+✅ **Shareable Verification** - QR codes with embedded verification URLs  
+
+### Migration from Blockchain
+
+The system maintains backward compatibility while transitioning to the DApp architecture:
+
+- **Old certificates:** Can still be verified via blockchain (if available)
+- **New certificates:** Use cryptographic signatures and transparency logs
+- **Gradual migration:** Both systems can coexist during transition
+
+For complete architecture details, see [`DAPP_ARCHITECTURE.md`](DAPP_ARCHITECTURE.md)
 
 ## Project Structure
 
@@ -222,9 +343,28 @@ User → Login Page → POST /api/login → JWT Token → Stored in localStorage
 → Role-based redirect → Dashboard (admin/coe/faculty/club/verifier/student)
 ```
 
-### 2. **Certificate Issuance Flow**
+### 2. **Certificate Issuance Flow (DApp Architecture)**
+
+**New DApp Flow:**
 ```
 Issuer (COE/Faculty/Club) → Dashboard → Fill Form → POST /api/certificates/issue
+→ Backend Service:
+  1. Validate student exists
+  2. Compute file hash (SHA-256)
+  3. Upload to IPFS → Get IPFS CID
+  4. Compute metadata hash
+  5. Generate certificate ID
+  6. Sign certificate with issuer's private key
+  7. Append to transparency log → Get Merkle proof
+  8. Store signed document in IPFS
+  9. Store certificate in MongoDB (with cryptographic proofs)
+  10. Optional: Queue for public blockchain anchoring
+→ Return: cert_id, issuer_signature, merkle_root, transparency_log_index, ipfs_url
+```
+
+**Legacy Blockchain Flow (Deprecated):**
+```
+Issuer → Dashboard → Fill Form → POST /api/certificates/issue
 → Backend Service:
   1. Validate student exists
   2. Compute file hash (SHA-256)
@@ -237,8 +377,33 @@ Issuer (COE/Faculty/Club) → Dashboard → Fill Form → POST /api/certificates
 → Return: cert_id, tx_hash, block_number, ipfs_url
 ```
 
-### 3. **On-Chain Data Storage**
-When a certificate is issued, the following data is stored on the Besu blockchain:
+### 3. **Data Storage Strategy (DApp Architecture)**
+
+**MongoDB (Off-Chain Metadata + Proofs):**
+- Full certificate metadata (student name, email, subjects, grades, CGPA)
+- IPFS URLs (PDF file, signed document)
+- **Cryptographic proofs** (signatures, Merkle paths, transparency log index)
+- **Issuer public keys** (for verification)
+- Status tracking (issued, verified, revoked)
+- Revocation records
+
+**IPFS (Pinata Gateway):**
+- PDF certificate files (original)
+- **Signed certificate documents** (JSON with signature)
+- Merkle tree data (for batch verification)
+
+**Transparency Log (Append-Only):**
+- Merkle tree of all certificate issuances
+- Root hash (published periodically)
+- Revocation log (append-only list of revoked certificates)
+
+**Optional: Public Blockchain (Ethereum/Polygon):**
+- Merkle root hash (periodic anchor, e.g., monthly)
+- Timestamp (block timestamp)
+- Anchor transaction hash (proof of anchoring)
+
+**Legacy: On-Chain Data Storage (Deprecated)**
+When a certificate was issued on Besu blockchain, the following data was stored:
 - **Certificate Hash** (SHA-256 of file) - For verifiability & tamper detection
 - **Metadata Hash** - Prevents unauthorized edits
 - **Issuer Blockchain Address** - Establishes trust of authority
@@ -246,7 +411,23 @@ When a certificate is issued, the following data is stored on the Besu blockchai
 - **Student Identity Mapping** - Links to student wallet address
 - **Revocation Flag** - Allows certificate invalidation
 
-### 4. **Verification Flow**
+### 4. **Verification Flow (DApp Architecture)**
+
+**New DApp Flow:**
+```
+Verifier → Enter Certificate ID → GET /api/certificates/verify/{certId}
+→ Backend:
+  1. Query MongoDB for certificate
+  2. Verify issuer signature (cryptographic verification)
+  3. Verify issuer public key is trusted
+  4. Verify Merkle proof in transparency log
+  5. Check revocation log
+  6. Verify file integrity (hash match)
+  7. Optional: Verify public blockchain anchor
+→ Return: Verification result with cryptographic proofs
+```
+
+**Legacy Blockchain Flow (Deprecated):**
 ```
 Verifier → Enter Certificate ID → GET /api/blockchain/verify-certificate
 → Backend:
@@ -274,7 +455,8 @@ Student → Register Page → POST /api/register
 - **Go 1.21+** - [Download](https://golang.org/dl/)
 - **Node.js 18+** - [Download](https://nodejs.org/)
 - **MongoDB Atlas** - [Sign up](https://cloud.mongodb.com) (or local MongoDB)
-- **Hyperledger Besu** - See [Blockchain Setup](#blockchain-setup)
+- **IPFS/Pinata** - [Sign up](https://pinata.cloud) (for file storage)
+- **Optional:** Public blockchain wallet (Ethereum/Polygon) for periodic anchoring
 
 ### Backend Setup
 
@@ -324,7 +506,36 @@ npm run dev
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8080/api
 
-### Blockchain Setup
+### DApp Setup (No Blockchain Required)
+
+The DApp architecture **does not require blockchain infrastructure**. Setup is simplified:
+
+1. **Configure IPFS/Pinata:**
+   ```env
+   IPFS_API_URL=https://api.pinata.cloud
+   PINATA_JWT=your-pinata-jwt-token
+   ```
+
+2. **Generate Issuer Keys** (one-time setup):
+   ```bash
+   # Backend will auto-generate keys on first certificate issuance
+   # Or use: backend/scripts/generate-issuer-keys.sh
+   ```
+
+3. **Optional: Configure Public Blockchain Anchoring:**
+   ```env
+   ENABLE_PUBLIC_ANCHORING=true
+   ANCHOR_CHAIN=ethereum  # or polygon
+   ANCHOR_RPC_URL=https://mainnet.infura.io/v3/YOUR_KEY
+   ANCHOR_PRIVATE_KEY=your_wallet_private_key
+   ANCHOR_FREQUENCY=monthly  # or weekly
+   ```
+
+For detailed DApp setup, see [`DAPP_ARCHITECTURE.md`](DAPP_ARCHITECTURE.md)
+
+### Legacy Blockchain Setup (Deprecated)
+
+> **Note:** Blockchain setup is no longer required. This is kept for reference only.
 
 1. **Install Besu:**
    ```powershell
@@ -455,12 +666,32 @@ POST   /api/certificates/{cert_id}/revoke      # Revoke certificate
 GET    /api/certificates/test-ipfs   # Test IPFS connection
 ```
 
-### Blockchain
+### Certificates (DApp Architecture)
 ```
-GET    /api/blockchain/status        # Get blockchain network status
-POST   /api/blockchain/register-issuer         # Register issuer on-chain
-GET    /api/blockchain/verify-certificate      # Verify certificate on-chain
-GET    /api/blockchain/certificate              # Get certificate from blockchain
+POST   /api/certificates/issue       # Issue new certificate (signed, Merkle proof)
+GET    /api/certificates              # List all certificates (authenticated)
+GET    /api/certificates/student/{student_id}  # Get student's certificates
+GET    /api/certificates/issuer     # Get certificates issued by current user
+GET    /api/certificates/verify/{cert_id}      # Verify certificate (public, cryptographic)
+POST   /api/certificates/{cert_id}/revoke      # Revoke certificate (signed revocation)
+GET    /api/certificates/test-ipfs   # Test IPFS connection
+```
+
+### Cryptographic Services (DApp)
+```
+GET    /api/cryptographic/status     # Get cryptographic service status
+POST   /api/issuers/register         # Register issuer public key
+GET    /api/issuers/{issuer_id}/public-key  # Get issuer public key
+GET    /api/transparency-log/root    # Get latest Merkle root
+GET    /api/transparency-log/proof/{cert_id}  # Get Merkle proof for certificate
+```
+
+### Legacy Blockchain (Deprecated)
+```
+GET    /api/blockchain/status        # Get blockchain network status (deprecated)
+POST   /api/blockchain/register-issuer         # Register issuer on-chain (deprecated)
+GET    /api/blockchain/verify-certificate      # Verify certificate on-chain (deprecated)
+GET    /api/blockchain/certificate              # Get certificate from blockchain (deprecated)
 ```
 
 ### Credentials (Legacy)
@@ -519,11 +750,13 @@ GET    /health                       # Server health check
   - QR code generation
   - Public credential viewing
 
-## Blockchain Integration
+## Blockchain Integration (Legacy - Deprecated)
 
-### On-Chain Data Storage
+> **Note:** The blockchain integration is deprecated in favor of the DApp architecture. See [DApp Architecture](#dapp-architecture) for the current implementation.
 
-When a certificate is issued, the following data is **immutably stored** on the Besu blockchain:
+### Legacy: On-Chain Data Storage
+
+When a certificate was issued on Besu blockchain, the following data was **immutably stored**:
 
 | Field | Purpose |
 |-------|---------|
@@ -534,15 +767,15 @@ When a certificate is issued, the following data is **immutably stored** on the 
 | **Student Identity Mapping** | Links to student wallet address (persistent academic identity) |
 | **Revocation Flag** | Allows certificate invalidation |
 
-### Smart Contract
+### Legacy Smart Contract
 
-**`CertificateManager.sol`** provides:
+**`CertificateManager.sol`** (deprecated) provided:
 - `issueCertificate()` - Store certificate data on-chain
 - `verifyCertificate()` - Verify certificate authenticity
 - `revokeCertificate()` - Mark certificate as revoked
 - `getCertificate()` - Retrieve certificate data
 
-### Blockchain Scripts
+### Legacy Blockchain Scripts
 
 **Setup Scripts** (`blockchain/scripts/setup/`):
 - `install-besu.ps1` - Install Hyperledger Besu
@@ -738,9 +971,18 @@ For detailed metrics documentation, see [`METRICS.md`](METRICS.md)
 
 [Add your license here]
 
+## Documentation
+
+- **[DAPP_ARCHITECTURE.md](DAPP_ARCHITECTURE.md)** - Complete DApp architecture documentation
+- **[SYSTEM_FLOW.md](SYSTEM_FLOW.md)** - Detailed system flows (legacy blockchain + new DApp)
+- **[backend/README.md](backend/README.md)** - Backend-specific documentation
+- **[frontend/README.md](frontend/README.md)** - Frontend documentation
+- **[backend/blockchain/README.md](backend/blockchain/README.md)** - Legacy blockchain setup (deprecated)
+
 ## Support
 
 For issues and questions:
-- Check [`backend/blockchain/README.md`](backend/blockchain/README.md) for blockchain setup
+- Check [`DAPP_ARCHITECTURE.md`](DAPP_ARCHITECTURE.md) for DApp architecture details
 - Check [`backend/README.md`](backend/README.md) for backend documentation
 - Check [`frontend/README.md`](frontend/README.md) for frontend documentation
+- Check [`backend/blockchain/README.md`](backend/blockchain/README.md) for legacy blockchain setup (deprecated)

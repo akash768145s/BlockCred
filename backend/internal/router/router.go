@@ -32,39 +32,12 @@ func New(cfg config.Config) http.Handler {
 	userSvc := services.NewUserService(st)
 	credSvc := services.NewCredentialService(st)
 	
-	// Initialize IPFS and Blockchain services
+	// Initialize IPFS service (DApp Architecture)
 	ipfsService := services.NewIPFSService(cfg)
-	// Try Besu blockchain service first, then GoEth, then mock
-	var blockchainService services.BlockchainServiceInterface
-	log.Printf("🔍 Checking Besu blockchain node connection...")
-	besuService, err := services.NewBesuBlockchainService(cfg)
-	if err != nil {
-		log.Printf("⚠️  Besu blockchain service initialization failed: %v", err)
-		log.Printf("💡 Make sure Besu is running: .\\blockchain\\scripts\\setup\\start-besu.bat")
-		log.Printf("🔄 Trying GoEth blockchain service...")
-		goEthService, err := services.NewGoEthBlockchainService(cfg)
-		if err != nil {
-			log.Printf("⚠️  GoEth blockchain service initialization failed: %v", err)
-			log.Printf("🔄 Falling back to mock blockchain service...")
-			mockService, err := services.NewBlockchainService(cfg)
-			if err != nil {
-				log.Printf("⚠️  Mock blockchain service initialization failed: %v", err)
-				log.Printf("🔄 Certificate issuance will be limited")
-				blockchainService = nil
-			} else {
-				blockchainService = mockService
-				log.Printf("⚠️  Using mock blockchain service (certificates will not be stored on-chain)")
-			}
-		} else {
-			blockchainService = goEthService
-			log.Printf("✅ Using GoEth blockchain service")
-		}
-	} else {
-		blockchainService = besuService
-		log.Printf("✅ Using Besu blockchain service")
-	}
 	
-	certSvc := services.NewCertificateService(st, ipfsService, blockchainService)
+	// Certificate service creates cryptographic and transparency log services internally
+	// Pass nil for blockchain service (not used in DApp architecture)
+	certSvc := services.NewCertificateService(st, ipfsService, nil)
 	authMiddleware := middleware.NewAuthMiddleware(st)
 
 	auth := &handlerspkg.AuthHandler{Auth: authSvc}
@@ -110,25 +83,9 @@ func New(cfg config.Config) http.Handler {
 	api.HandleFunc("/certificates/test-ipfs", certificates.TestIPFS).Methods("GET")
 	api.HandleFunc("/public/student/{student_id}", certificates.GetPublicStudentProfile).Methods("GET")
 
-	// Blockchain endpoints
-	var blockchain *handlerspkg.BlockchainHandler
-	if blockchainService != nil {
-		// Support both Besu and GoEth services
-		if besuSvc, ok := blockchainService.(*services.BesuBlockchainService); ok {
-			// Create a wrapper that implements the same interface
-			blockchain = &handlerspkg.BlockchainHandler{Blockchain: besuSvc}
-			api.HandleFunc("/blockchain/status", blockchain.GetBlockchainStatus).Methods("GET")
-			api.HandleFunc("/blockchain/register-issuer", authMiddleware.RequireAuth(blockchain.RegisterIssuer)).Methods("POST")
-			api.HandleFunc("/blockchain/verify-certificate", blockchain.VerifyCertificateOnChain).Methods("GET")
-			api.HandleFunc("/blockchain/certificate", blockchain.GetCertificateFromChain).Methods("GET")
-		} else if goEthSvc, ok := blockchainService.(*services.GoEthBlockchainService); ok {
-			blockchain = &handlerspkg.BlockchainHandler{Blockchain: goEthSvc}
-			api.HandleFunc("/blockchain/status", blockchain.GetBlockchainStatus).Methods("GET")
-			api.HandleFunc("/blockchain/register-issuer", authMiddleware.RequireAuth(blockchain.RegisterIssuer)).Methods("POST")
-			api.HandleFunc("/blockchain/verify-certificate", blockchain.VerifyCertificateOnChain).Methods("GET")
-			api.HandleFunc("/blockchain/certificate", blockchain.GetCertificateFromChain).Methods("GET")
-		}
-	}
+	// Cryptographic endpoints (DApp Architecture)
+	// Note: Cryptographic operations are handled internally by certificate service
+	// These endpoints can be added if needed for public key management, etc.
 
 	corsOptions := cors.Options{
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

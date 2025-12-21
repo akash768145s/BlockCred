@@ -16,8 +16,26 @@ type Certificate struct {
 	FileHash     string              `bson:"file_hash" json:"file_hash"`       // SHA256 hash of the certificate file
 	IPFSCID      string              `bson:"ipfs_cid" json:"ipfs_cid"`         // IPFS Content Identifier
 	IPFSURL      string              `bson:"ipfs_url" json:"ipfs_url"`         // Full IPFS URL
-	TxHash       string              `bson:"tx_hash" json:"tx_hash"`           // Blockchain transaction hash
-	BlockNumber  uint64              `bson:"block_number" json:"block_number"` // Block number where tx was mined
+	
+	// NEW: Cryptographic proofs (DApp architecture)
+	IssuerSignature      string    `bson:"issuer_signature,omitempty" json:"issuer_signature,omitempty"`
+	IssuerPublicKey       string    `bson:"issuer_public_key,omitempty" json:"issuer_public_key,omitempty"`
+	SignedDocument        string    `bson:"signed_document,omitempty" json:"signed_document,omitempty"` // JSON string
+	SignedDocumentCID     string    `bson:"signed_document_cid,omitempty" json:"signed_document_cid,omitempty"`
+	SignedDocumentURL     string    `bson:"signed_document_url,omitempty" json:"signed_document_url,omitempty"`
+	MerkleRoot            string    `bson:"merkle_root,omitempty" json:"merkle_root,omitempty"`
+	MerklePath            []string  `bson:"merkle_path,omitempty" json:"merkle_path,omitempty"`
+	TransparencyLogIndex   int64     `bson:"transparency_log_index,omitempty" json:"transparency_log_index,omitempty"`
+	
+	// Optional: Public blockchain anchor
+	AnchorTxHash          string    `bson:"anchor_tx_hash,omitempty" json:"anchor_tx_hash,omitempty"`
+	AnchorBlockNumber     uint64    `bson:"anchor_block_number,omitempty" json:"anchor_block_number,omitempty"`
+	AnchorTimestamp       *time.Time `bson:"anchor_timestamp,omitempty" json:"anchor_timestamp,omitempty"`
+	
+	// DEPRECATED: Blockchain fields (kept for backward compatibility)
+	TxHash       string              `bson:"tx_hash,omitempty" json:"tx_hash,omitempty"`           // Deprecated
+	BlockNumber  uint64              `bson:"block_number,omitempty" json:"block_number,omitempty"` // Deprecated
+	
 	Status       CertificateStatus   `bson:"status" json:"status"`             // issued, verified, revoked
 	IssuedAt     time.Time           `bson:"issued_at" json:"issued_at"`
 	VerifiedAt   *time.Time          `bson:"verified_at,omitempty" json:"verified_at,omitempty"`
@@ -80,8 +98,25 @@ type CertificateVerificationResult struct {
 	Status           CertificateStatus   `json:"status"`
 	IssuedAt         time.Time           `json:"issued_at"`
 	IPFSURL          string              `json:"ipfs_url"`
-	TxHash           string              `json:"tx_hash"`
-	BlockNumber      uint64              `json:"block_number"`
+	
+	// NEW: Cryptographic proofs
+	IssuerSignature      string    `json:"issuer_signature,omitempty"`
+	IssuerPublicKey       string    `json:"issuer_public_key,omitempty"`
+	SignatureVerified     bool      `json:"signature_verified,omitempty"`
+	MerkleRoot            string    `json:"merkle_root,omitempty"`
+	MerkleProofValid      bool      `json:"merkle_proof_valid,omitempty"`
+	TransparencyLogIndex   int64     `json:"transparency_log_index,omitempty"`
+	SignedDocumentURL     string    `json:"signed_document_url,omitempty"`
+	
+	// Optional: Public blockchain anchor
+	AnchorTxHash          string    `json:"anchor_tx_hash,omitempty"`
+	AnchorBlockNumber     uint64    `json:"anchor_block_number,omitempty"`
+	AnchorVerified        bool      `json:"anchor_verified,omitempty"`
+	
+	// DEPRECATED: Blockchain fields (kept for backward compatibility)
+	TxHash           string              `json:"tx_hash,omitempty"`
+	BlockNumber      uint64              `json:"block_number,omitempty"`
+	
 	Metadata         CertificateMetadata `json:"metadata"`
 	ErrorMessage     string              `json:"error_message,omitempty"`
 	FileHash         string              `json:"file_hash,omitempty"`         // Stored file hash for comparison
@@ -96,8 +131,17 @@ type PublicCertificate struct {
 	Status      CertificateStatus   `json:"status"`
 	IssuedAt    time.Time           `json:"issued_at"`
 	IPFSURL     string              `json:"ipfs_url"`
-	TxHash      string              `json:"tx_hash"`
-	BlockNumber uint64              `json:"block_number"`
+	
+	// NEW: Cryptographic proofs
+	IssuerSignature      string    `json:"issuer_signature,omitempty"`
+	MerkleRoot            string    `json:"merkle_root,omitempty"`
+	TransparencyLogIndex   int64     `json:"transparency_log_index,omitempty"`
+	SignedDocumentURL     string    `json:"signed_document_url,omitempty"`
+	
+	// DEPRECATED: Blockchain fields (kept for backward compatibility)
+	TxHash      string              `json:"tx_hash,omitempty"`
+	BlockNumber uint64              `json:"block_number,omitempty"`
+	
 	Metadata    CertificateMetadata `json:"metadata"`
 }
 

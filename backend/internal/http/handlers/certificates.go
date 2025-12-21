@@ -43,16 +43,27 @@ func (h *CertificateHandler) IssueCertificate(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	log.Printf("✅ Certificate issued successfully: CertID=%s, IPFSURL=%s, TxHash=%s", 
-		certificate.CertID, certificate.IPFSURL, certificate.TxHash)
+	log.Printf("✅ Certificate issued successfully: CertID=%s, IPFSURL=%s, Signature=%s", 
+		certificate.CertID, certificate.IPFSURL, certificate.IssuerSignature[:16]+"...")
 
-	httpx.JSON(w, http.StatusCreated, true, "certificate issued successfully", map[string]interface{}{
+	response := map[string]interface{}{
 		"certificate_id": certificate.ID,
 		"cert_id":        certificate.CertID,
 		"ipfs_url":       certificate.IPFSURL,
-		"tx_hash":        certificate.TxHash,
-		"block_number":   certificate.BlockNumber,
-	})
+		
+		// NEW: Cryptographic proofs (DApp architecture)
+		"issuer_signature":      certificate.IssuerSignature,
+		"issuer_public_key":     certificate.IssuerPublicKey,
+		"signed_document_url":   certificate.SignedDocumentURL,
+		"merkle_root":           certificate.MerkleRoot,
+		"transparency_log_index": certificate.TransparencyLogIndex,
+		
+		// DEPRECATED: Blockchain fields (kept for backward compatibility)
+		"tx_hash":      certificate.TxHash,
+		"block_number": certificate.BlockNumber,
+	}
+
+	httpx.JSON(w, http.StatusCreated, true, "certificate issued successfully", response)
 }
 
 func (h *CertificateHandler) VerifyCertificate(w http.ResponseWriter, r *http.Request) {
