@@ -272,6 +272,20 @@ func (s *MemoryStore) UpdateCertificate(certID string, updates models.Certificat
 	return models.Certificate{}, fmt.Errorf("certificate not found")
 }
 
+func (s *MemoryStore) DeleteCertificate(certID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	for i, cert := range s.certificates {
+		if cert.CertID == certID || cert.ID.Hex() == certID {
+			// Remove certificate from slice
+			s.certificates = append(s.certificates[:i], s.certificates[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("certificate not found")
+}
+
 func (s *MemoryStore) Close() error {
 	// Memory store doesn't need cleanup
 	return nil

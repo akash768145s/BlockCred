@@ -530,6 +530,27 @@ func (c *CertificateService) RevokeCertificate(certID, reason string) error {
 	return nil
 }
 
+// DeleteCertificate deletes a certificate permanently
+func (c *CertificateService) DeleteCertificate(certID string) error {
+	// First check if certificate exists
+	_, err := c.store.GetCertificateByCertID(certID)
+	if err != nil {
+		// Try by ID if cert_id didn't work
+		_, err = c.store.GetCertificateByID(certID)
+		if err != nil {
+			return fmt.Errorf("certificate not found: %w", err)
+		}
+	}
+
+	// Delete the certificate
+	err = c.store.DeleteCertificate(certID)
+	if err != nil {
+		return fmt.Errorf("failed to delete certificate: %w", err)
+	}
+
+	return nil
+}
+
 // Helper functions
 
 func (c *CertificateService) computeFileHash(fileData []byte) string {

@@ -13,10 +13,10 @@ export interface RegisterData {
     phone: string;
     password: string;
     dob: string;
-    school_name: string;
     photo: File | null;
     father_name: string;
     aadhar_number: string;
+    department: string;
     tenth_school: string;
     tenth_marks: number;
     twelfth_school: string;
@@ -64,9 +64,9 @@ export class AuthService {
         formData.append('phone', data.phone);
         formData.append('password', data.password);
         formData.append('dob', data.dob);
-        formData.append('school_name', data.school_name);
         formData.append('father_name', data.father_name);
         formData.append('aadhar_number', data.aadhar_number);
+        formData.append('department', data.department);
         formData.append('tenth_school', data.tenth_school);
         formData.append('tenth_marks', data.tenth_marks.toString());
         formData.append('twelfth_school', data.twelfth_school);
@@ -122,15 +122,15 @@ export class AuthService {
     static getRoleRedirectPath(role: UserRole): string {
         switch (role) {
             case 'ssn_main_admin':
-                return '/admin-dashboard';
+                return '/admin';
             case 'coe':
-                return '/coe-dashboard';
+                return '/coe';
             case 'department_faculty':
-                return '/faculty-dashboard';
+                return '/faculty';
             case 'club_coordinator':
-                return '/club-dashboard';
+                return '/club';
             case 'student':
-                return '/student-dashboard';
+                return '/student';
             default:
                 return '/dashboard';
         }

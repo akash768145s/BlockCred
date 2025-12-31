@@ -21,6 +21,7 @@ type Store interface {
 	ListCertificatesByStudent(studentID string) ([]models.Certificate, error)
 	ListCertificatesByIssuer(issuerID string) ([]models.Certificate, error)
 	UpdateCertificate(certID string, updates models.Certificate) (models.Certificate, error)
+	DeleteCertificate(certID string) error
 
 	// Credential operations
 	CreateCredential(credential models.Credential) (models.Credential, error)

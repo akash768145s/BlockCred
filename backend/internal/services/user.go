@@ -40,14 +40,14 @@ type RegisterStudentInput struct {
 	Phone            string `json:"phone"`
 	Password         string `json:"password"`
 	DOB              string `json:"dob"`
-	SchoolName       string `json:"school_name"`
+	SchoolName       string `json:"school_name,omitempty"` // Optional, will use tenth_school or twelfth_school if empty
 	FatherName       string `json:"father_name"`
 	AadharNumber     string `json:"aadhar_number"`
-	TenthSchool      string `json:"tenth_school"`
-	TenthMarks       int    `json:"tenth_marks"`
-	TwelfthSchool    string `json:"twelfth_school"`
-	TwelfthMarks     int    `json:"twelfth_marks"`
-	Cutoff           int    `json:"cutoff"`
+	TenthSchool      string  `json:"tenth_school"`
+	TenthMarks       float64 `json:"tenth_marks"`
+	TwelfthSchool    string  `json:"twelfth_school"`
+	TwelfthMarks     float64 `json:"twelfth_marks"`
+	Cutoff           int     `json:"cutoff"`
 	Department       string `json:"department"` // Added department field
 }
 
@@ -61,9 +61,9 @@ type UpdateUserInput struct {
 	FatherName       string          `json:"father_name,omitempty"`
 	AadharNumber     string          `json:"aadhar_number,omitempty"`
 	TenthSchool      string          `json:"tenth_school,omitempty"`
-	TenthMarks       int             `json:"tenth_marks,omitempty"`
+	TenthMarks       float64         `json:"tenth_marks,omitempty"`
 	TwelfthSchool    string          `json:"twelfth_school,omitempty"`
-	TwelfthMarks     int             `json:"twelfth_marks,omitempty"`
+	TwelfthMarks     float64         `json:"twelfth_marks,omitempty"`
 	Cutoff           int             `json:"cutoff,omitempty"`
 	Department       string          `json:"department,omitempty"`
 	Institution      string          `json:"institution,omitempty"`
@@ -89,7 +89,17 @@ func (u *UserService) Onboard(in OnboardInput) (models.User, error) {
 }
 
 func (u *UserService) RegisterStudent(in RegisterStudentInput) (models.User, error) {
-	studentID := generateStudentID(in.Name, in.SchoolName, in.TenthMarks, in.TwelfthMarks)
+	// Use school_name if provided, otherwise use tenth_school, or twelfth_school as fallback
+	schoolName := in.SchoolName
+	if schoolName == "" {
+		if in.TenthSchool != "" {
+			schoolName = in.TenthSchool
+		} else if in.TwelfthSchool != "" {
+			schoolName = in.TwelfthSchool
+		}
+	}
+	
+	studentID := generateStudentID(in.Name, schoolName, int(in.TenthMarks), int(in.TwelfthMarks))
 	user := models.User{
 		Name:           in.Name,
 		Email:          strings.TrimSpace(in.Email),
@@ -97,7 +107,7 @@ func (u *UserService) RegisterStudent(in RegisterStudentInput) (models.User, err
 		Role:           models.RoleStudent,
 		StudentID:      studentID,
 		DOB:            in.DOB,
-		SchoolName:     in.SchoolName,
+		SchoolName:     schoolName, // Use the determined school name
 		FatherName:     in.FatherName,
 		AadharNumber:   in.AadharNumber,
 		TenthSchool:    in.TenthSchool,

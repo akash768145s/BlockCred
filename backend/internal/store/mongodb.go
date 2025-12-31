@@ -382,6 +382,35 @@ func (s *MongoDBStore) UpdateCertificate(certID string, updates models.Certifica
 	return s.GetCertificateByCertID(certID)
 }
 
+func (s *MongoDBStore) DeleteCertificate(certID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Try to delete by cert_id first
+	result, err := s.certificates.DeleteOne(ctx, bson.M{"cert_id": certID})
+	if err != nil {
+		return fmt.Errorf("failed to delete certificate: %w", err)
+	}
+
+	if result.DeletedCount == 0 {
+		// Try to delete by MongoDB _id if cert_id didn't work
+		objectID, err := primitive.ObjectIDFromHex(certID)
+		if err == nil {
+			result, err := s.certificates.DeleteOne(ctx, bson.M{"_id": objectID})
+			if err != nil {
+				return fmt.Errorf("failed to delete certificate: %w", err)
+			}
+			if result.DeletedCount == 0 {
+				return fmt.Errorf("certificate not found")
+			}
+			return nil
+		}
+		return fmt.Errorf("certificate not found")
+	}
+
+	return nil
+}
+
 func (s *MongoDBStore) CreateCredential(c models.Credential) (models.Credential, error) {
 	ctx := context.Background()
 	

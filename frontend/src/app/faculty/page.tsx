@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-    Award,
+    GraduationCap,
     FileText,
-    Trophy,
+    Award,
     Plus,
     Search,
     Eye,
@@ -13,111 +13,22 @@ import {
     CheckCircle,
     Clock,
     Users,
-    Calendar,
+    BookOpen,
     TrendingUp,
-    Star
+    Shield,
+    XCircle
 } from 'lucide-react';
+import { useFaculty } from '@/hooks/useFaculty';
+import { Student } from '@/types/dashboard';
+import { facultyService } from '@/services/facultyService';
 
-interface Student {
-    id: number;
-    name: string;
-    student_id: string;
-    email: string;
-    department: string;
-    semester: string;
-    is_active: boolean;
-}
-
-interface Credential {
-    id: string;
-    cert_id: string;
-    cert_type: string;
-    student_id: string;
-    issuer_id: string;
-    file_hash: string;
-    ipfs_cid: string;
-    ipfs_url: string;
-    tx_hash: string;
-    block_number: number;
-    status: string;
-    issued_at: string;
-    metadata: {
-        student_name: string;
-        event_name: string;
-        position: string;
-        description: string;
-        [key: string]: any;
-    };
-}
-
-const ClubDashboard: React.FC = () => {
+const FacultyDashboard: React.FC = () => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('overview');
-    const [students, setStudents] = useState<Student[]>([]);
-    const [credentials, setCredentials] = useState<Credential[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { students, credentials, loading, fetchCredentials } = useFaculty();
     const [showIssueCredential, setShowIssueCredential] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterEvent, setFilterEvent] = useState('all');
-
-    useEffect(() => {
-        fetchStudents();
-        fetchCredentials();
-    }, []);
-
-    const fetchStudents = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/users', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const allUsers = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-                const studentUsers = allUsers.filter((user: any) => user.role === 'student');
-                setStudents(studentUsers);
-            } else {
-                console.error('Failed to fetch students:', response.statusText);
-                setStudents([]);
-            }
-        } catch (error) {
-            console.error('Error fetching students:', error);
-            setStudents([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchCredentials = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/certificates', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const allCertificates = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-                const clubCertificates = allCertificates.filter((cert: any) =>
-                    cert.cert_type === 'participation_cert'
-                );
-                setCredentials(clubCertificates);
-            } else {
-                console.error('Failed to fetch certificates:', response.statusText);
-                setCredentials([]);
-            }
-        } catch (error) {
-            console.error('Error fetching certificates:', error);
-            setCredentials([]);
-        }
-    };
+    const [filterType, setFilterType] = useState('all');
 
     const filteredStudents = (Array.isArray(students) ? students : []).filter(student => {
         const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,16 +37,21 @@ const ClubDashboard: React.FC = () => {
     });
 
     const filteredCredentials = (Array.isArray(credentials) ? credentials : []).filter(credential => {
-        if (filterEvent === 'all') return true;
-        return credential.event_name.toLowerCase().includes(filterEvent.toLowerCase());
+        if (filterType === 'all') return true;
+        return (credential.cert_type || credential.type) === filterType;
     });
 
     const stats = {
         totalStudents: Array.isArray(students) ? students.length : 0,
-        totalCertificates: Array.isArray(credentials) ? credentials.length : 0,
+        totalCredentials: Array.isArray(credentials) ? credentials.length : 0,
         issuedToday: Array.isArray(credentials) ? credentials.filter(c => {
             const today = new Date().toISOString().split('T')[0];
-            return c.issued_date === today;
+            const issuedDate = (c as any).issued_date || (c as any).issued_at;
+            if (!issuedDate) return false;
+            const dateStr = typeof issuedDate === 'string' 
+                ? issuedDate.split('T')[0] 
+                : new Date(issuedDate).toISOString().split('T')[0];
+            return dateStr === today;
         }).length : 0,
         pendingVerification: Array.isArray(credentials) ? credentials.filter(c => c.status === 'pending').length : 0
     };
@@ -146,7 +62,7 @@ const ClubDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
                     <div className="flex flex-col items-center text-center">
-                        <Users className="h-7 w-7 text-blue-400 mb-3" />
+                        <Users className="h-7 w-7 text-indigo-400 mb-3" />
                         <p className="text-xs font-medium text-slate-300 mb-2">Total Students</p>
                         <p className="text-2xl font-bold text-white">{stats.totalStudents}</p>
                     </div>
@@ -154,15 +70,15 @@ const ClubDashboard: React.FC = () => {
 
                 <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
                     <div className="flex flex-col items-center text-center">
-                        <Award className="h-7 w-7 text-purple-400 mb-3" />
+                        <FileText className="h-7 w-7 text-emerald-400 mb-3" />
                         <p className="text-xs font-medium text-slate-300 mb-2">Total Certificates</p>
-                        <p className="text-2xl font-bold text-white">{stats.totalCertificates}</p>
+                        <p className="text-2xl font-bold text-white">{stats.totalCredentials}</p>
                     </div>
                 </div>
 
                 <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
                     <div className="flex flex-col items-center text-center">
-                        <TrendingUp className="h-7 w-7 text-green-400 mb-3" />
+                        <TrendingUp className="h-7 w-7 text-purple-400 mb-3" />
                         <p className="text-xs font-medium text-slate-300 mb-2">Issued Today</p>
                         <p className="text-2xl font-bold text-white">{stats.issuedToday}</p>
                     </div>
@@ -170,7 +86,7 @@ const ClubDashboard: React.FC = () => {
 
                 <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
                     <div className="flex flex-col items-center text-center">
-                        <Clock className="h-7 w-7 text-yellow-400 mb-3" />
+                        <Clock className="h-7 w-7 text-amber-400 mb-3" />
                         <p className="text-xs font-medium text-slate-300 mb-2">Pending Verification</p>
                         <p className="text-2xl font-bold text-white">{stats.pendingVerification}</p>
                     </div>
@@ -186,10 +102,10 @@ const ClubDashboard: React.FC = () => {
                         className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
-                            <Trophy className="h-5 w-5 text-blue-400" />
-                            <span className="ml-2 font-medium text-white">Issue Participation Certificate</span>
+                            <Shield className="h-5 w-5 text-indigo-400" />
+                            <span className="ml-2 font-medium text-white">Issue NOC</span>
                         </div>
-                        <p className="text-sm text-slate-300">Issue certificate for event participation</p>
+                        <p className="text-sm text-slate-300">Issue No Objection Certificate</p>
                     </button>
 
                     <button
@@ -197,10 +113,10 @@ const ClubDashboard: React.FC = () => {
                         className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
-                            <Star className="h-5 w-5 text-green-400" />
-                            <span className="ml-2 font-medium text-white">Issue Achievement Certificate</span>
+                            <FileText className="h-5 w-5 text-emerald-400" />
+                            <span className="ml-2 font-medium text-white">Issue Bonafide</span>
                         </div>
-                        <p className="text-sm text-slate-300">Issue certificate for achievements</p>
+                        <p className="text-sm text-slate-300">Issue Bonafide Certificate</p>
                     </button>
 
                     <button
@@ -231,13 +147,13 @@ const ClubDashboard: React.FC = () => {
                                 placeholder="Search students..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white/20"
+                                className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:bg-white/20"
                             />
                         </div>
                     </div>
                     <button
                         onClick={() => setShowIssueCredential(true)}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-semibold flex items-center"
                     >
                         <Plus className="h-4 w-4 mr-2" />
                         Issue Certificate
@@ -273,17 +189,17 @@ const ClubDashboard: React.FC = () => {
                         </thead>
                         <tbody className="bg-slate-800/30 divide-y divide-white/10">
                             {filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-white/5">
+                                <tr key={student.id} className="hover:bg-white/5 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="flex-shrink-0 h-10 w-10">
-                                                <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/30">
-                                                    <Users className="h-5 w-5 text-purple-400" />
+                                                <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center">
+                                                    <Users className="h-5 w-5 text-emerald-400" />
                                                 </div>
                                             </div>
                                             <div className="ml-4">
-                                                <div className="text-sm font-medium text-white">{student.name}</div>
-                                                <div className="text-sm text-slate-400">{student.email}</div>
+                                                <div className="text-sm font-semibold text-white">{student.name}</div>
+                                                <div className="text-sm text-indigo-200">{student.email}</div>
                                             </div>
                                         </div>
                                     </td>
@@ -299,25 +215,25 @@ const ClubDashboard: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center space-x-2">
                                             {student.is_active ? (
-                                                <CheckCircle className="h-4 w-4 text-green-400" />
+                                                <CheckCircle className="h-4 w-4 text-emerald-400" />
                                             ) : (
-                                                <Clock className="h-4 w-4 text-yellow-400" />
+                                                <Clock className="h-4 w-4 text-amber-400" />
                                             )}
-                                            <span className={`text-sm ${student.is_active ? 'text-green-400' : 'text-yellow-400'}`}>
+                                            <span className={`text-sm font-semibold ${student.is_active ? 'text-emerald-300' : 'text-amber-300'}`}>
                                                 {student.is_active ? 'Active' : 'Pending'}
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                                         <div className="flex items-center space-x-2">
-                                            <button className="text-blue-400 hover:text-blue-300">
+                                            <button className="text-indigo-300 hover:text-white transition-colors">
                                                 <Eye className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => setShowIssueCredential(true)}
-                                                className="text-purple-400 hover:text-purple-300"
+                                                className="text-emerald-300 hover:text-emerald-200 transition-colors"
                                             >
-                                                <Award className="h-4 w-4" />
+                                                <FileText className="h-4 w-4" />
                                             </button>
                                         </div>
                                     </td>
@@ -343,21 +259,19 @@ const ClubDashboard: React.FC = () => {
                                 placeholder="Search certificates..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white/20"
+                                className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:bg-white/20"
                             />
                         </div>
                     </div>
                     <div className="md:w-48">
                         <select
-                            value={filterEvent}
-                            onChange={(e) => setFilterEvent(e.target.value)}
-                            className="w-full px-3 py-2 border border-white/20 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value)}
+                            className="w-full px-3 py-2 border border-white/20 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400"
                         >
-                            <option value="all">All Events</option>
-                            <option value="coding">Coding Events</option>
-                            <option value="sports">Sports Events</option>
-                            <option value="cultural">Cultural Events</option>
-                            <option value="technical">Technical Events</option>
+                            <option value="all">All Types</option>
+                            <option value="noc">NOC</option>
+                            <option value="bonafide">Bonafide</option>
                         </select>
                     </div>
                 </div>
@@ -376,13 +290,13 @@ const ClubDashboard: React.FC = () => {
                                     Student
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Event
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Position
+                                    Purpose
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Date
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                    Status
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Actions
@@ -393,58 +307,34 @@ const ClubDashboard: React.FC = () => {
                             {filteredCredentials.map((credential) => (
                                 <tr key={credential.id} className="hover:bg-white/5">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-white">{(credential as any).title || ((credential as any).cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
-                                        <div className="text-sm text-slate-400">{((credential as any).cert_type || (credential as any).type || 'certificate').replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm font-medium text-white">{credential.title || ((credential as any).cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm text-slate-400">{((credential as any).cert_type || credential.type || 'certificate').replace('_', ' ').toUpperCase()}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        {(credential as any).student_name || credential.metadata?.student_name || 'Unknown Student'}
+                                        {credential.student_name || (credential as any).metadata?.student_name || 'Unknown Student'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        {(credential as any).event_name || credential.metadata?.event_name || 'N/A'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                            {(credential as any).position || credential.metadata?.position || 'Participant'}
-                                        </span>
+                                        {credential.purpose || (credential as any).metadata?.description || ''}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                                        {(credential as any).issued_date || credential.issued_at ? new Date((credential as any).issued_date || credential.issued_at).toLocaleDateString() : 'N/A'}
+                                        {credential.issued_date || (credential as any).issued_at ? new Date(credential.issued_date || (credential as any).issued_at).toLocaleDateString() : ''}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${credential.status === 'issued' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
+                                            credential.status === 'verified' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                                                'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                                            }`}>
+                                            {credential.status}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
-                                            {credential.ipfs_url && (
-                                                <a
-                                                    href={credential.ipfs_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-400 hover:text-blue-300"
-                                                    title="View Certificate"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </a>
-                                            )}
-                                            {credential.cert_id && (
-                                                <button
-                                                    onClick={() => {
-                                                        fetch(`http://localhost:8080/api/certificates/verify/${credential.cert_id}`)
-                                                            .then(res => res.json())
-                                                            .then(data => {
-                                                                if (data.success && data.data.is_valid) {
-                                                                    const studentName = data.data.metadata?.student_name || 'Unknown Student';
-                                                                    const issuerName = data.data.metadata?.issuer_name || 'Unknown Issuer';
-                                                                    alert(`✅ Certificate is valid!\n\nStudent: ${studentName}\nIssuer: ${issuerName}\nType: ${data.data.cert_type}\nStatus: ${data.data.status}`);
-                                                                } else {
-                                                                    alert(`❌ Certificate verification failed: ${data.message}`);
-                                                                }
-                                                            })
-                                                            .catch(err => alert('Failed to verify certificate'));
-                                                    }}
-                                                    className="text-green-400 hover:text-green-300"
-                                                    title="Verify Certificate"
-                                                >
-                                                    <CheckCircle className="h-4 w-4" />
-                                                </button>
-                                            )}
+                                            <button className="text-blue-400 hover:text-blue-300">
+                                                <Eye className="h-4 w-4" />
+                                            </button>
+                                            <button className="text-green-400 hover:text-green-300">
+                                                <Download className="h-4 w-4" />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -462,7 +352,7 @@ const ClubDashboard: React.FC = () => {
                 <div className="text-center">
                     <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto mt-4 mb-4"></div>
-                    <p className="text-sm text-slate-300">Loading club dashboard...</p>
+                    <p className="text-sm text-slate-300">Loading faculty dashboard...</p>
                 </div>
             </main>
         );
@@ -475,17 +365,17 @@ const ClubDashboard: React.FC = () => {
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl border border-white/20 bg-white/10 flex items-center justify-center shadow-lg">
-                            <Award className="h-6 w-6 text-purple-300" />
+                            <GraduationCap className="h-6 w-6 text-emerald-300" />
                         </div>
                         <div>
                             <p className="text-[10px] uppercase tracking-[0.4em] text-indigo-300 font-semibold">BlockCred</p>
-                            <h1 className="text-xl font-semibold text-white mt-1">Club Coordinator Dashboard</h1>
-                            <p className="text-xs text-indigo-200">Manage participation certificates & achievements</p>
+                            <h1 className="text-xl font-semibold text-white mt-1">Faculty Dashboard</h1>
+                            <p className="text-xs text-indigo-200">Manage student certificates & documents</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-purple-200 border border-white/20">
-                            Club Coordinator
+                        <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-emerald-200 border border-white/20">
+                            Department Faculty
                         </span>
                         <button
                             onClick={() => {
@@ -566,250 +456,198 @@ const IssueCertificateModal: React.FC<{
 }> = ({ onClose, onCertificateIssued, students }) => {
     const [formData, setFormData] = useState({
         student_id: '',
-        type: 'participation_cert',
+        type: 'noc',
         title: '',
-        event_name: '',
-        position: '',
+        purpose: '',
         description: '',
-        event_date: ''
+        valid_until: ''
     });
     const [loading, setLoading] = useState(false);
+    const [studentSearch, setStudentSearch] = useState('');
+    const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowStudentDropdown(false);
+            }
+        };
+
+        if (showStudentDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showStudentDropdown]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-
-            // Create a sample PDF file for participation certificate
-            const samplePdfContent = `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
-
-2 0 obj
-<<
-/Type /Pages
-/Kids [3 0 R]
-/Count 1
->>
-endobj
-
-3 0 obj
-<<
-/Type /Page
-/Parent 2 0 R
-/MediaBox [0 0 612 792]
-/Contents 4 0 R
->>
-endobj
-
-4 0 obj
-<<
-/Length 120
->>
-stream
-BT
-/F1 12 Tf
-72 720 Td
-(PARTICIPATION CERTIFICATE) Tj
-0 -20 Td
-(Student: ${formData.student_id}) Tj
-0 -20 Td
-(Event: ${formData.event_name}) Tj
-0 -20 Td
-(Position: ${formData.position}) Tj
-0 -20 Td
-(Date: ${formData.event_date}) Tj
-ET
-endstream
-endobj
-
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000204 00000 n 
-trailer
-<<
-/Size 5
-/Root 1 0 R
->>
-startxref
-373
-%%EOF`;
-
-            // Convert to base64
-            const base64Content = btoa(samplePdfContent);
-
-            const certificateData = {
-                student_id: formData.student_id,
-                cert_type: 'participation_cert',
-                file_data: base64Content,
-                file_name: `participation_${formData.student_id}_${Date.now()}.pdf`,
-                metadata: {
-                    student_name: students.find(s => s.student_id === formData.student_id)?.name || 'Unknown Student',
-                    student_email: students.find(s => s.student_id === formData.student_id)?.email || '',
-                    issuer_name: 'Club Coordinator',
-                    issuer_role: 'club_coordinator',
-                    institution: 'SSN College of Engineering',
-                    course: students.find(s => s.student_id === formData.student_id)?.department || 'Computer Science',
-                    academic_year: '2024-25',
-                    event_name: formData.event_name,
-                    position: formData.position,
-                    event_date: formData.event_date,
-                    valid_from: new Date().toISOString(),
-                    valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-                    description: formData.description || `Participation certificate for ${formData.event_name}`
-                }
-            };
-
-            const response = await fetch('http://localhost:8080/api/certificates/issue', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(certificateData),
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
-                onCertificateIssued();
-            } else {
-                const errorData = await response.json();
-                alert(`Error: ${errorData.message}`);
-            }
+            const result = await facultyService.issueCertificate(formData);
+            alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
+            onCredentialIssued();
         } catch (error) {
-            console.error('Error issuing certificate:', error);
-            alert('Failed to issue certificate');
+            alert(error instanceof Error ? error.message : 'Failed to issue certificate');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold">Issue Participation Certificate</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-800/95 backdrop-blur-md border border-white/10 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div className="p-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 className="text-2xl font-bold text-white">Issue Certificate</h3>
+                            <p className="text-sm text-slate-300 mt-1">Fill in the details to issue a new certificate</p>
+                        </div>
                         <button
                             onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
                         >
-                            ✕
+                            <XCircle className="h-6 w-6" />
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Student *
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="relative" ref={dropdownRef}>
+                                <label className="block text-sm font-semibold text-white mb-2">
+                                    Student <span className="text-red-400">*</span>
                                 </label>
-                                <select
-                                    required
-                                    value={formData.student_id}
-                                    onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                >
-                                    <option value="">Select Student</option>
-                                    {students.map(student => (
-                                        <option key={student.id} value={student.student_id}>
-                                            {student.name} ({student.student_id})
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10">
+                                        <Search className="h-4 w-4 text-slate-400" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={studentSearch || students.find(s => s.student_id === formData.student_id)?.name || ''}
+                                        onChange={(e) => {
+                                            setStudentSearch(e.target.value);
+                                            setShowStudentDropdown(true);
+                                            if (!e.target.value) {
+                                                setFormData({ ...formData, student_id: '' });
+                                            }
+                                        }}
+                                        onFocus={() => setShowStudentDropdown(true)}
+                                        placeholder="Search student by name or ID..."
+                                        className="w-full pl-10 pr-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
+                                    />
+                                    {showStudentDropdown && (
+                                        <div className="absolute z-50 w-full mt-1 bg-slate-800/95 backdrop-blur-md border border-white/20 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                            {students
+                                                .filter(student => 
+                                                    !studentSearch || 
+                                                    student.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                                    student.student_id.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                                    student.email.toLowerCase().includes(studentSearch.toLowerCase())
+                                                )
+                                                .map(student => (
+                                                    <button
+                                                        key={student.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setFormData({ ...formData, student_id: student.student_id });
+                                                            setStudentSearch(student.name);
+                                                            setShowStudentDropdown(false);
+                                                        }}
+                                                        className="w-full px-4 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 last:border-b-0"
+                                                    >
+                                                        <div className="text-white font-medium">{student.name}</div>
+                                                        <div className="text-sm text-slate-400">{student.student_id} • {student.email}</div>
+                                                    </button>
+                                                ))
+                                            }
+                                            {students.filter(student => 
+                                                !studentSearch || 
+                                                student.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                                student.student_id.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                                student.email.toLowerCase().includes(studentSearch.toLowerCase())
+                                            ).length === 0 && (
+                                                <div className="px-4 py-3 text-slate-400 text-sm">No students found</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                {formData.student_id && (
+                                    <input type="hidden" name="student_id" value={formData.student_id} required />
+                                )}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Certificate Type *
+                                <label className="block text-sm font-semibold text-white mb-2">
+                                    Certificate Type <span className="text-red-400">*</span>
                                 </label>
                                 <select
                                     required
                                     value={formData.type}
                                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
                                 >
-                                    <option value="participation_cert">Participation Certificate</option>
-                                    <option value="achievement_cert">Achievement Certificate</option>
+                                    <option value="noc" className="text-white bg-slate-800">No Objection Certificate (NOC)</option>
+                                    <option value="bonafide" className="text-white bg-slate-800">Bonafide Certificate</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Event Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.event_name}
-                                    onChange={(e) => setFormData({ ...formData, event_name: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                    placeholder="Enter event name"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Position/Achievement
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.position}
-                                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                    placeholder="e.g., 1st Place, Participant, Winner"
-                                />
-                            </div>
-                        </div>
-
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Event Date
+                            <label className="block text-sm font-semibold text-white mb-2">
+                                Purpose <span className="text-red-400">*</span>
                             </label>
                             <input
-                                type="date"
-                                value={formData.event_date}
-                                onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                type="text"
+                                required
+                                value={formData.purpose}
+                                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
+                                placeholder="Enter purpose of the certificate"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-white mb-2">
                                 Description
                             </label>
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                placeholder="Enter event details and achievements"
+                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all resize-none"
+                                placeholder="Enter additional details"
                             />
                         </div>
 
-                        <div className="flex justify-end space-x-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-white mb-2">
+                                Valid Until
+                            </label>
+                            <input
+                                type="date"
+                                value={formData.valid_until}
+                                onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
+                            />
+                        </div>
+
+                        <div className="flex justify-end space-x-4 pt-4 border-t border-white/10">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                className="px-6 py-3 border-2 border-white/20 rounded-lg text-white hover:bg-white/10 transition-colors font-medium"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+                                className="px-6 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-md"
                             >
                                 {loading ? 'Issuing...' : 'Issue Certificate'}
                             </button>
@@ -821,4 +659,4 @@ startxref
     );
 };
 
-export default ClubDashboard;
+export default FacultyDashboard;

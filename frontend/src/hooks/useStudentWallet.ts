@@ -16,16 +16,12 @@ export const useStudentWallet = () => {
 
     useEffect(() => {
         if (studentId) {
-            generateShareUrl(studentId);
+            const url = generateShareUrl(studentId);
+            setShareUrl(url);
         } else {
             router.push('/login');
         }
     }, [studentId, router]);
-
-    const generateShareUrl = (id: string) => {
-        const url = generateShareUrl(id);
-        setShareUrl(url);
-    };
 
     const handleCopyToClipboard = async () => {
         const success = await copyToClipboard(shareUrl);

@@ -112,12 +112,12 @@ export const useStudentCredentials = (studentId: string | null) => {
     };
 };
 
-export const useStudentData = (userId: number | null) => {
+export const useStudentData = (userId: number | string | null) => {
     const [student, setStudent] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchStudentData = async (id: number) => {
+    const fetchStudentData = async (id: number | string) => {
         try {
             setLoading(true);
             setError(null);
@@ -134,6 +134,8 @@ export const useStudentData = (userId: number | null) => {
     useEffect(() => {
         if (userId) {
             fetchStudentData(userId);
+        } else {
+            setLoading(false);
         }
     }, [userId]);
 

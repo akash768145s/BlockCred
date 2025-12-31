@@ -10,7 +10,9 @@ import CertificatesTab from "./components/CertificatesTab";
 export default function StudentDashboard() {
     const router = useRouter();
     const { user, logout, isAuthenticated, loading: authLoading } = useAuth();
-    const { student, loading, error, fetchStudentData } = useStudentData(user?.id || null);
+    // Use the user ID directly (can be string or number)
+    const userId = user?.id ? String(user.id) : null;
+    const { student, loading, error, fetchStudentData } = useStudentData(userId);
     const [certificates, setCertificates] = useState<any[]>([]);
     const [certificatesLoading, setCertificatesLoading] = useState(false);
     const [verificationResult, setVerificationResult] = useState<any | null>(null);

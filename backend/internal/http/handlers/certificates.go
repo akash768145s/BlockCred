@@ -183,3 +183,21 @@ func (h *CertificateHandler) GetPublicStudentProfile(w http.ResponseWriter, r *h
 
 	httpx.JSON(w, http.StatusOK, true, "public profile ready", profile)
 }
+
+// DeleteCertificate deletes a certificate permanently
+func (h *CertificateHandler) DeleteCertificate(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	certID, ok := vars["cert_id"]
+	if !ok {
+		httpx.JSON(w, http.StatusBadRequest, false, "certificate ID required", nil)
+		return
+	}
+
+	err := h.Certificates.DeleteCertificate(certID)
+	if err != nil {
+		httpx.JSON(w, http.StatusNotFound, false, err.Error(), nil)
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, true, "certificate deleted successfully", nil)
+}

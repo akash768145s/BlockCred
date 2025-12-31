@@ -21,7 +21,7 @@ export interface RolePermissions {
 }
 
 export interface User {
-    id: number;
+    id: number | string;
     name: string;
     email: string;
     phone: string;
@@ -51,17 +51,8 @@ export interface LoginResponse {
     success: boolean;
     message: string;
     data: {
+        user: User;
         token: string;
-        user_id: number;
-        role: UserRole;
-        role_name: string;
-        permissions: RolePermissions;
-    };
-    user: {
-        id: number;
-        name: string;
-        role: UserRole;
-        role_name: string;
     };
 }
 

@@ -31,6 +31,7 @@ func New(cfg config.Config) http.Handler {
 	authSvc := services.NewAuthService(st)
 	userSvc := services.NewUserService(st)
 	credSvc := services.NewCredentialService(st)
+	dashboardSvc := services.NewDashboardService(st)
 	
 	// Initialize IPFS service (DApp Architecture)
 	ipfsService := services.NewIPFSService(cfg)
@@ -44,6 +45,7 @@ func New(cfg config.Config) http.Handler {
 	users := &handlerspkg.UserHandler{Users: userSvc}
 	credentials := &handlerspkg.CredentialHandler{Credentials: credSvc}
 	certificates := &handlerspkg.CertificateHandler{Certificates: certSvc}
+	dashboard := &handlerspkg.DashboardHandler{Dashboard: dashboardSvc}
 
 	r := mux.NewRouter()
 
@@ -80,8 +82,14 @@ func New(cfg config.Config) http.Handler {
 	api.HandleFunc("/certificates/student/{student_id}", authMiddleware.RequireAuth(certificates.ListCertificatesByStudent)).Methods("GET")
 	api.HandleFunc("/certificates/issuer", authMiddleware.RequireAuth(certificates.ListCertificatesByIssuer)).Methods("GET")
 	api.HandleFunc("/certificates/{cert_id}/revoke", authMiddleware.RequireAuth(certificates.RevokeCertificate)).Methods("POST")
+	api.HandleFunc("/certificates/{cert_id}", authMiddleware.RequireAuth(certificates.DeleteCertificate)).Methods("DELETE")
 	api.HandleFunc("/certificates/test-ipfs", certificates.TestIPFS).Methods("GET")
 	api.HandleFunc("/public/student/{student_id}", certificates.GetPublicStudentProfile).Methods("GET")
+
+	// Dashboard endpoints
+	api.HandleFunc("/dashboard/stats", authMiddleware.RequireAuth(dashboard.GetStats)).Methods("GET")
+	api.HandleFunc("/dashboard/students/{id}", authMiddleware.RequireAuth(dashboard.GetStudentData)).Methods("GET")
+	api.HandleFunc("/dashboard/students/{student_id}/credentials", authMiddleware.RequireAuth(dashboard.GetStudentCredentials)).Methods("GET")
 
 	// Cryptographic endpoints (DApp Architecture)
 	// Note: Cryptographic operations are handled internally by certificate service

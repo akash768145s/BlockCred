@@ -18,101 +18,17 @@ import {
     TrendingUp,
     XCircle
 } from 'lucide-react';
-
-interface Student {
-    id: number;
-    name: string;
-    student_id: string;
-    email: string;
-    department: string;
-    semester: string;
-    is_active: boolean;
-}
-
-interface Credential {
-    id: number;
-    type: string;
-    title: string;
-    student_id: string;
-    student_name: string;
-    semester: string;
-    subject: string;
-    marks: string;
-    grade: string;
-    issued_date: string;
-    status: string;
-}
+import { useCOE } from '@/hooks/useCOE';
+import { Student, Subject } from '@/types/dashboard';
+import { coeService } from '@/services/coeService';
 
 const COEDashboard: React.FC = () => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('overview');
-    const [students, setStudents] = useState<Student[]>([]);
-    const [credentials, setCredentials] = useState<Credential[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { students, credentials, loading, fetchCredentials } = useCOE();
     const [showIssueCredential, setShowIssueCredential] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterSemester, setFilterSemester] = useState('all');
-
-    useEffect(() => {
-        fetchStudents();
-        fetchCredentials();
-    }, []);
-
-    const fetchStudents = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/users', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                // Ensure we have an array and filter only students
-                const allUsers = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-                const studentUsers = allUsers.filter((user: any) => user.role === 'student');
-                setStudents(studentUsers);
-            } else {
-                console.error('Failed to fetch students:', response.statusText);
-                setStudents([]);
-            }
-        } catch (error) {
-            console.error('Error fetching students:', error);
-            setStudents([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchCredentials = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/certificates', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                // Ensure we have an array and filter only marksheet credentials
-                const allCredentials = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-                const marksheetCredentials = allCredentials.filter((cert: any) =>
-                    cert.cert_type === 'marksheet' || cert.cert_type === 'degree'
-                );
-                setCredentials(marksheetCredentials);
-            } else {
-                console.error('Failed to fetch credentials:', response.statusText);
-                setCredentials([]);
-            }
-        } catch (error) {
-            console.error('Error fetching credentials:', error);
-            setCredentials([]);
-        }
-    };
 
     const filteredStudents = (Array.isArray(students) ? students : []).filter(student => {
         const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,7 +42,12 @@ const COEDashboard: React.FC = () => {
         totalCredentials: Array.isArray(credentials) ? credentials.length : 0,
         issuedToday: Array.isArray(credentials) ? credentials.filter(c => {
             const today = new Date().toISOString().split('T')[0];
-            return c.issued_date === today;
+            const issuedDate = (c as any).issued_date || (c as any).issued_at;
+            if (!issuedDate) return false;
+            const dateStr = typeof issuedDate === 'string'
+                ? issuedDate.split('T')[0]
+                : new Date(issuedDate).toISOString().split('T')[0];
+            return dateStr === today;
         }).length : 0,
         pendingVerification: Array.isArray(credentials) ? credentials.filter(c => c.status === 'pending').length : 0
     };
@@ -359,7 +280,7 @@ const COEDashboard: React.FC = () => {
                                     Subject
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Marks/Grade
+                                    Grade
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Date
@@ -380,19 +301,21 @@ const COEDashboard: React.FC = () => {
                                         {credential.student_name || (credential as any).metadata?.student_name || 'Unknown Student'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        {credential.semester || (credential as any).metadata?.semester || 'N/A'}
+                                        {credential.semester || (credential as any).metadata?.semester || ''}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        {credential.subject || (credential as any).metadata?.course || 'N/A'}
+                                        {credential.subject || (credential as any).metadata?.course || ''}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         <div className="flex items-center space-x-2">
-                                            <span className="font-medium">{credential.marks || (credential as any).metadata?.cgpa || 'N/A'}</span>
-                                            <span className="text-slate-400">({credential.grade || (credential as any).metadata?.grade || 'N/A'})</span>
+                                            <span className="font-medium">{credential.marks || (credential as any).metadata?.cgpa || ''}</span>
+                                            {credential.grade || (credential as any).metadata?.grade ? (
+                                                <span className="text-slate-400">({credential.grade || (credential as any).metadata?.grade})</span>
+                                            ) : null}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                                        {credential.issued_date || (credential as any).issued_at ? new Date(credential.issued_date || (credential as any).issued_at).toLocaleDateString() : 'N/A'}
+                                        {credential.issued_date || (credential as any).issued_at ? new Date(credential.issued_date || (credential as any).issued_at).toLocaleDateString() : ''}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
@@ -515,16 +438,6 @@ const COEDashboard: React.FC = () => {
     );
 };
 
-// Subject interface
-interface Subject {
-    id: string;
-    subject_code: string;
-    subject_name: string;
-    marks: string;
-    grade: string;
-    credits: string;
-}
-
 // Issue Credential Modal Component
 const IssueCredentialModal: React.FC<{
     onClose: () => void;
@@ -541,164 +454,54 @@ const IssueCredentialModal: React.FC<{
         { id: '1', subject_code: '', subject_name: '', marks: '', grade: '', credits: '' }
     ]);
     const [loading, setLoading] = useState(false);
+    const [studentSearch, setStudentSearch] = useState('');
+    const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowStudentDropdown(false);
+            }
+        };
+
+        if (showStudentDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showStudentDropdown]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-
-            // Create a sample PDF file (in real implementation, this would be a file upload)
-            const samplePdfContent = `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
-
-2 0 obj
-<<
-/Type /Pages
-/Kids [3 0 R]
-/Count 1
->>
-endobj
-
-3 0 obj
-<<
-/Type /Page
-/Parent 2 0 R
-/MediaBox [0 0 612 792]
-/Contents 4 0 R
->>
-endobj
-
-4 0 obj
-<<
-/Length 44
->>
-stream
-BT
-/F1 12 Tf
-72 720 Td
-(Semester ${formData.semester} Marksheet - ${formData.student_id}) Tj
-ET
-endstream
-endobj
-
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000204 00000 n 
-trailer
-<<
-/Size 5
-/Root 1 0 R
->>
-startxref
-297
-%%EOF`;
-
-            // Convert to base64
-            const base64Content = btoa(samplePdfContent);
-
-            // Validate subjects
-            const validSubjects = subjects.filter(s =>
-                s.subject_code.trim() && s.subject_name.trim() && s.marks.trim() && s.credits.trim()
-            );
-
-            if (validSubjects.length === 0) {
-                alert('Please add at least one subject with all required fields');
-                setLoading(false);
-                return;
-            }
-
-            // Calculate total credits and weighted GPA
-            let totalCredits = 0;
-            let totalPoints = 0;
-            const gradePoints: { [key: string]: number } = {
-                'S': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C+': 5, 'C': 4, 'D': 3, 'F': 0
-            };
-
-            validSubjects.forEach(subject => {
-                const credits = parseFloat(subject.credits) || 0;
-                const points = gradePoints[subject.grade.toUpperCase()] || 0;
-                totalCredits += credits;
-                totalPoints += points * credits;
-            });
-
-            const calculatedCGPA = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : formData.cgpa;
-
-            const certificateData = {
-                student_id: formData.student_id,
-                cert_type: formData.type === 'degree' ? 'degree' : 'marksheet',
-                file_data: base64Content,
-                file_name: `${formData.type}_${formData.student_id}_${Date.now()}.pdf`,
-                metadata: {
-                    student_name: students.find(s => s.student_id === formData.student_id)?.name || 'Unknown Student',
-                    student_email: students.find(s => s.student_id === formData.student_id)?.email || '',
-                    issuer_name: 'COE Office',
-                    issuer_role: 'coe',
-                    institution: 'SSN College of Engineering',
-                    course: students.find(s => s.student_id === formData.student_id)?.department || 'Computer Science',
-                    semester: formData.semester,
-                    academic_year: '2024-25',
-                    cgpa: parseFloat(formData.cgpa || calculatedCGPA) || 0,
-                    valid_from: new Date().toISOString(),
-                    valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-                    description: `${formData.type} certificate`,
-                    subjects: validSubjects.map(s => ({
-                        subject_code: s.subject_code,
-                        subject_name: s.subject_name,
-                        marks: parseFloat(s.marks) || 0,
-                        grade: s.grade,
-                        credits: parseFloat(s.credits) || 0
-                    }))
-                }
-            };
-
-            const response = await fetch('http://localhost:8080/api/certificates/issue', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(certificateData),
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
-                onCredentialIssued();
-            } else {
-                const errorData = await response.json();
-                alert(`Error: ${errorData.message}`);
-            }
+            const result = await coeService.issueCredential(formData, subjects);
+            alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
+            onCredentialIssued();
         } catch (error) {
-            console.error('Error issuing certificate:', error);
-            alert('Failed to issue certificate');
+            alert(error instanceof Error ? error.message : 'Failed to issue certificate');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-800/95 backdrop-blur-md border border-white/10 rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-6">
                         <div>
-                            <h3 className="text-2xl font-bold text-[#1E293B]">Issue Academic Credential</h3>
-                            <p className="text-sm text-[#64748B] mt-1">Fill in the details to issue a new credential</p>
+                            <h3 className="text-2xl font-bold text-white">Issue Academic Credential</h3>
+                            <p className="text-sm text-slate-300 mt-1">Fill in the details to issue a new credential</p>
                         </div>
                         <button
                             onClick={onClose}
-                            className="text-[#94A3B8] hover:text-[#1E293B] transition-colors p-2 hover:bg-[#F8FAFC] rounded-lg"
+                            className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
                         >
                             <XCircle className="h-6 w-6" />
                         </button>
@@ -706,65 +509,110 @@ startxref
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Student <span className="text-red-500">*</span>
+                            <div className="relative" ref={dropdownRef}>
+                                <label className="block text-sm font-semibold text-white mb-2">
+                                    Student <span className="text-red-400">*</span>
                                 </label>
-                                <select
-                                    required
-                                    value={formData.student_id}
-                                    onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
-                                >
-                                    <option value="" className="text-[#94A3B8]">Select Student</option>
-                                    {students.map(student => (
-                                        <option key={student.id} value={student.student_id} className="text-[#1E293B]">
-                                            {student.name} ({student.student_id})
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10">
+                                        <Search className="h-4 w-4 text-slate-400" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={studentSearch || students.find(s => s.student_id === formData.student_id)?.name || ''}
+                                        onChange={(e) => {
+                                            setStudentSearch(e.target.value);
+                                            setShowStudentDropdown(true);
+                                            if (!e.target.value) {
+                                                setFormData({ ...formData, student_id: '' });
+                                            }
+                                        }}
+                                        onFocus={() => setShowStudentDropdown(true)}
+                                        placeholder="Search student by name or ID..."
+                                        className="w-full pl-10 pr-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
+                                    />
+                                    {showStudentDropdown && (
+                                        <div className="absolute z-50 w-full mt-1 bg-slate-800/95 backdrop-blur-md border border-white/20 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                            {students
+                                                .filter(student =>
+                                                    !studentSearch ||
+                                                    student.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                                    student.student_id.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                                    student.email.toLowerCase().includes(studentSearch.toLowerCase())
+                                                )
+                                                .map(student => (
+                                                    <button
+                                                        key={student.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setFormData({ ...formData, student_id: student.student_id });
+                                                            setStudentSearch(student.name);
+                                                            setShowStudentDropdown(false);
+                                                        }}
+                                                        className="w-full px-4 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 last:border-b-0"
+                                                    >
+                                                        <div className="text-white font-medium">{student.name}</div>
+                                                        <div className="text-sm text-slate-400">{student.student_id} • {student.email}</div>
+                                                    </button>
+                                                ))
+                                            }
+                                            {students.filter(student =>
+                                                !studentSearch ||
+                                                student.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                                student.student_id.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                                student.email.toLowerCase().includes(studentSearch.toLowerCase())
+                                            ).length === 0 && (
+                                                    <div className="px-4 py-3 text-slate-400 text-sm">No students found</div>
+                                                )}
+                                        </div>
+                                    )}
+                                </div>
+                                {formData.student_id && (
+                                    <input type="hidden" name="student_id" value={formData.student_id} required />
+                                )}
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Credential Type <span className="text-red-500">*</span>
+                                <label className="block text-sm font-semibold text-white mb-2">
+                                    Credential Type <span className="text-red-400">*</span>
                                 </label>
                                 <select
                                     required
                                     value={formData.type}
                                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                    className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
                                 >
-                                    <option value="marksheet" className="text-[#1E293B]">Semester Marksheet</option>
-                                    <option value="degree" className="text-[#1E293B]">Degree Certificate</option>
+                                    <option value="marksheet" className="text-white bg-slate-800">Semester Marksheet</option>
+                                    <option value="degree" className="text-white bg-slate-800">Degree Certificate</option>
                                 </select>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    Semester <span className="text-red-500">*</span>
+                                <label className="block text-sm font-semibold text-white mb-2">
+                                    Semester <span className="text-red-400">*</span>
                                 </label>
                                 <select
                                     required
                                     value={formData.semester}
                                     onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                    className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
                                 >
-                                    <option value="" className="text-[#94A3B8]">Select Semester</option>
-                                    <option value="1" className="text-[#1E293B]">Semester 1</option>
-                                    <option value="2" className="text-[#1E293B]">Semester 2</option>
-                                    <option value="3" className="text-[#1E293B]">Semester 3</option>
-                                    <option value="4" className="text-[#1E293B]">Semester 4</option>
-                                    <option value="5" className="text-[#1E293B]">Semester 5</option>
-                                    <option value="6" className="text-[#1E293B]">Semester 6</option>
-                                    <option value="7" className="text-[#1E293B]">Semester 7</option>
-                                    <option value="8" className="text-[#1E293B]">Semester 8</option>
+                                    <option value="" className="text-slate-400 bg-slate-800">Select Semester</option>
+                                    <option value="1" className="text-white bg-slate-800">Semester 1</option>
+                                    <option value="2" className="text-white bg-slate-800">Semester 2</option>
+                                    <option value="3" className="text-white bg-slate-800">Semester 3</option>
+                                    <option value="4" className="text-white bg-slate-800">Semester 4</option>
+                                    <option value="5" className="text-white bg-slate-800">Semester 5</option>
+                                    <option value="6" className="text-white bg-slate-800">Semester 6</option>
+                                    <option value="7" className="text-white bg-slate-800">Semester 7</option>
+                                    <option value="8" className="text-white bg-slate-800">Semester 8</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                    CGPA <span className="text-red-500">*</span>
+                                <label className="block text-sm font-semibold text-white mb-2">
+                                    CGPA <span className="text-red-400">*</span>
                                 </label>
                                 <input
                                     type="number"
@@ -774,18 +622,18 @@ startxref
                                     step="0.01"
                                     value={formData.cgpa}
                                     onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                    className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
                                     placeholder="Enter CGPA (0-10)"
                                 />
-                                <p className="text-xs text-[#64748B] mt-1">Range: 0.00 - 10.00</p>
+                                <p className="text-xs text-slate-400 mt-1">Range: 0.00 - 10.00</p>
                             </div>
                         </div>
 
                         {/* Subjects Section */}
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <label className="block text-sm font-semibold text-[#1E293B]">
-                                    Subjects <span className="text-red-500">*</span>
+                                <label className="block text-sm font-semibold text-white">
+                                    Subjects <span className="text-red-400">*</span>
                                 </label>
                                 <button
                                     type="button"
@@ -799,7 +647,7 @@ startxref
                                             credits: ''
                                         }]);
                                     }}
-                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
+                                    className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors text-sm font-medium"
                                 >
                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -809,10 +657,10 @@ startxref
                             </div>
 
                             {/* Subjects Table */}
-                            <div className="border-2 border-[#06B6D4]/20 rounded-lg overflow-hidden shadow-sm bg-white">
+                            <div className="border-2 border-cyan-500/30 rounded-lg overflow-hidden shadow-sm bg-slate-800/50">
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
-                                        <thead className="bg-gradient-to-r from-[#06B6D4] to-[#0891B2]">
+                                        <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700">
                                             <tr>
                                                 <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[15%]">Subject Code</th>
                                                 <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[30%]">Subject Name</th>
@@ -821,10 +669,10 @@ startxref
                                                 <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[12%]">Credits</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-100">
+                                        <tbody className="bg-slate-800/30 divide-y divide-white/10">
                                             {subjects.map((subject, index) => (
-                                                <tr key={subject.id} className="hover:bg-[#F0FDFF] transition-colors bg-white">
-                                                    <td className="px-6 py-3 bg-white">
+                                                <tr key={subject.id} className="hover:bg-white/5 transition-colors">
+                                                    <td className="px-6 py-3">
                                                         <input
                                                             type="text"
                                                             required
@@ -834,11 +682,11 @@ startxref
                                                                 updated[index].subject_code = e.target.value;
                                                                 setSubjects(updated);
                                                             }}
-                                                            className="w-full min-w-[140px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                            className="w-full min-w-[140px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
                                                             placeholder="e.g., CS101"
                                                         />
                                                     </td>
-                                                    <td className="px-6 py-3 bg-white">
+                                                    <td className="px-6 py-3">
                                                         <input
                                                             type="text"
                                                             required
@@ -848,11 +696,11 @@ startxref
                                                                 updated[index].subject_name = e.target.value;
                                                                 setSubjects(updated);
                                                             }}
-                                                            className="w-full min-w-[280px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                            className="w-full min-w-[280px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
                                                             placeholder="e.g., Data Structures"
                                                         />
                                                     </td>
-                                                    <td className="px-6 py-3 bg-white">
+                                                    <td className="px-6 py-3">
                                                         <input
                                                             type="number"
                                                             required
@@ -864,11 +712,11 @@ startxref
                                                                 updated[index].marks = e.target.value;
                                                                 setSubjects(updated);
                                                             }}
-                                                            className="w-full min-w-[120px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                            className="w-full min-w-[120px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
                                                             placeholder="0-100"
                                                         />
                                                     </td>
-                                                    <td className="px-6 py-3 bg-white">
+                                                    <td className="px-6 py-3">
                                                         <select
                                                             value={subject.grade}
                                                             onChange={(e) => {
@@ -876,21 +724,21 @@ startxref
                                                                 updated[index].grade = e.target.value;
                                                                 setSubjects(updated);
                                                             }}
-                                                            className="w-full min-w-[140px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                            className="w-full min-w-[140px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
                                                         >
-                                                            <option value="" className="text-gray-400">Select</option>
-                                                            <option value="S" className="text-[#1E293B]">S (10)</option>
-                                                            <option value="A+" className="text-[#1E293B]">A+ (9)</option>
-                                                            <option value="A" className="text-[#1E293B]">A (8)</option>
-                                                            <option value="B+" className="text-[#1E293B]">B+ (7)</option>
-                                                            <option value="B" className="text-[#1E293B]">B (6)</option>
-                                                            <option value="C+" className="text-[#1E293B]">C+ (5)</option>
-                                                            <option value="C" className="text-[#1E293B]">C (4)</option>
-                                                            <option value="D" className="text-[#1E293B]">D (3)</option>
-                                                            <option value="F" className="text-[#1E293B]">F (0)</option>
+                                                            <option value="" className="text-slate-400 bg-slate-800">Select</option>
+                                                            <option value="S" className="text-white bg-slate-800">S (10)</option>
+                                                            <option value="A+" className="text-white bg-slate-800">A+ (9)</option>
+                                                            <option value="A" className="text-white bg-slate-800">A (8)</option>
+                                                            <option value="B+" className="text-white bg-slate-800">B+ (7)</option>
+                                                            <option value="B" className="text-white bg-slate-800">B (6)</option>
+                                                            <option value="C+" className="text-white bg-slate-800">C+ (5)</option>
+                                                            <option value="C" className="text-white bg-slate-800">C (4)</option>
+                                                            <option value="D" className="text-white bg-slate-800">D (3)</option>
+                                                            <option value="F" className="text-white bg-slate-800">F (0)</option>
                                                         </select>
                                                     </td>
-                                                    <td className="px-6 py-3 bg-white">
+                                                    <td className="px-6 py-3">
                                                         <input
                                                             type="number"
                                                             required
@@ -903,7 +751,7 @@ startxref
                                                                 updated[index].credits = e.target.value;
                                                                 setSubjects(updated);
                                                             }}
-                                                            className="w-full min-w-[120px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
+                                                            className="w-full min-w-[120px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
                                                             placeholder="e.g., 3"
                                                         />
                                                     </td>
@@ -913,21 +761,21 @@ startxref
                                     </table>
                                 </div>
                             </div>
-                            <p className="text-xs text-[#64748B] mt-2">Add multiple subjects using the "+" button above</p>
+                            <p className="text-xs text-slate-400 mt-2">Add multiple subjects using the "+" button above</p>
                         </div>
 
-                        <div className="flex justify-end space-x-4 pt-4 border-t border-[#E2E8F0]">
+                        <div className="flex justify-end space-x-4 pt-4 border-t border-white/10">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-6 py-3 border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] hover:bg-[#F8FAFC] transition-colors font-medium"
+                                className="px-6 py-3 border-2 border-white/20 rounded-lg text-white hover:bg-white/10 transition-colors font-medium"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="px-6 py-3 bg-[#06B6D4] text-white rounded-lg hover:bg-[#0891B2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-md"
+                                className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-md"
                             >
                                 {loading ? 'Issuing...' : 'Issue Credential'}
                             </button>

@@ -11,10 +11,10 @@ export default function RegisterPage() {
         phone: "",
         password: "",
         dob: "",
-        school_name: "",
         photo: null as File | null,
         father_name: "",
         aadhar_number: "",
+        department: "",
         tenth_school: "",
         tenth_marks: "",
         twelfth_school: "",
@@ -49,16 +49,16 @@ export default function RegisterPage() {
             phone: formData.phone,
             password: formData.password,
             dob: formData.dob,
-            school_name: formData.school_name,
             photo: formData.photo,
             father_name: formData.father_name,
             aadhar_number: formData.aadhar_number,
+            department: formData.department,
             tenth_school: formData.tenth_school,
-            tenth_marks: parseInt(formData.tenth_marks),
+            tenth_marks: parseFloat(formData.tenth_marks),
             twelfth_school: formData.twelfth_school,
-            twelfth_marks: parseInt(formData.twelfth_marks),
+            twelfth_marks: parseFloat(formData.twelfth_marks),
             twelfth_marksheet: formData.twelfth_marksheet,
-            cutoff: parseInt(formData.cutoff),
+            cutoff: parseFloat(formData.cutoff),
         });
 
         if (result.success) {
@@ -70,10 +70,10 @@ export default function RegisterPage() {
                 phone: "",
                 password: "",
                 dob: "",
-                school_name: "",
                 photo: null,
                 father_name: "",
                 aadhar_number: "",
+                department: "",
                 tenth_school: "",
                 tenth_marks: "",
                 twelfth_school: "",
@@ -165,37 +165,6 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="school_name" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
-                                School Name *
-                            </label>
-                            <input
-                                type="text"
-                                id="school_name"
-                                name="school_name"
-                                value={formData.school_name}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-                                placeholder="Enter your school name"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="photo" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
-                                Photo *
-                            </label>
-                            <input
-                                type="file"
-                                id="photo"
-                                name="photo"
-                                onChange={handleChange}
-                                accept="image/*"
-                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-                                required
-                            />
-                        </div>
-
-                        <div>
                             <label htmlFor="father_name" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 Father Name *
                             </label>
@@ -230,6 +199,30 @@ export default function RegisterPage() {
                         </div>
 
                         <div>
+                            <label htmlFor="department" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
+                                Department *
+                            </label>
+                            <select
+                                id="department"
+                                name="department"
+                                value={formData.department}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+                                required
+                            >
+                                <option value="" className="bg-slate-800 text-slate-400">Select Department</option>
+                                <option value="Electrical and Electronics Engineering" className="bg-slate-800 text-white">Electrical and Electronics Engineering</option>
+                                <option value="Electronics and Communication Engineering" className="bg-slate-800 text-white">Electronics and Communication Engineering</option>
+                                <option value="Computer Science and Engineering" className="bg-slate-800 text-white">Computer Science and Engineering</option>
+                                <option value="Information Technology" className="bg-slate-800 text-white">Information Technology</option>
+                                <option value="Mechanical Engineering" className="bg-slate-800 text-white">Mechanical Engineering</option>
+                                <option value="Chemical Engineering" className="bg-slate-800 text-white">Chemical Engineering</option>
+                                <option value="Biomedical Engineering" className="bg-slate-800 text-white">Biomedical Engineering</option>
+                                <option value="Civil Engineering" className="bg-slate-800 text-white">Civil Engineering</option>
+                            </select>
+                        </div>
+
+                        <div>
                             <label htmlFor="tenth_school" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
                                 10th Grade School *
                             </label>
@@ -257,6 +250,7 @@ export default function RegisterPage() {
                                 onChange={handleChange}
                                 min="0"
                                 max="100"
+                                step="0.01"
                                 className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Enter your 10th marks (0-100)"
                                 required
@@ -291,23 +285,9 @@ export default function RegisterPage() {
                                 onChange={handleChange}
                                 min="0"
                                 max="100"
+                                step="0.01"
                                 className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-                                placeholder="Enter your 12th marks"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="twelfth_marksheet" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
-                                12th Mark Sheet (PDF) *
-                            </label>
-                            <input
-                                type="file"
-                                id="twelfth_marksheet"
-                                name="twelfth_marksheet"
-                                onChange={handleChange}
-                                accept=".pdf"
-                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+                                placeholder="Enter your 12th marks (0-100)"
                                 required
                             />
                         </div>
@@ -323,9 +303,9 @@ export default function RegisterPage() {
                                 value={formData.cutoff}
                                 onChange={handleChange}
                                 min="0"
-                                max="100"
+                                max="200"
                                 className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-                                placeholder="Enter cut-off marks"
+                                placeholder="Enter cut-off marks (0-200)"
                                 required
                             />
                         </div>
@@ -342,6 +322,36 @@ export default function RegisterPage() {
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 placeholder="Create a password"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="photo" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
+                                Photo *
+                            </label>
+                            <input
+                                type="file"
+                                id="photo"
+                                name="photo"
+                                onChange={handleChange}
+                                accept="image/*"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="twelfth_marksheet" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
+                                12th Mark Sheet (PDF) *
+                            </label>
+                            <input
+                                type="file"
+                                id="twelfth_marksheet"
+                                name="twelfth_marksheet"
+                                onChange={handleChange}
+                                accept=".pdf"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                                 required
                             />
                         </div>
@@ -388,8 +398,6 @@ export default function RegisterPage() {
                         <li>Upload your photo and 12th mark sheet PDF</li>
                         <li>A unique Student ID will be generated based on your information</li>
                         <li>Admin will review and approve your registration</li>
-                        <li>Once approved, a blockchain node will be assigned to you</li>
-                        <li>Your credentials will be stored securely on the blockchain</li>
                     </ol>
                 </div>
             </div>
