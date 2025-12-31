@@ -97,81 +97,67 @@ export default function CertificatesTab({
                 {certificates.map((certificate) => {
                     const nftData = certificate?.metadata?.additional_data?.nft;
                     const isNFT = certificate?.cert_type === 'nft_certificate' || !!nftData;
+                    const certTitle = certificate.title || certificate.cert_type?.replace('_', ' ').toUpperCase() || 'CERTIFICATE';
+                    const institution = certificate.institution || certificate.metadata?.institution || 'SSN College of Engineering';
+                    const issuedDate = certificate.issued_date || certificate.issued_at;
+                    const formattedDate = issuedDate ? new Date(issuedDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    }) : '';
 
                     return (
                         <div
                             key={certificate.id}
-                            className="relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border-2 border-indigo-100 cursor-pointer overflow-hidden"
+                            className="relative bg-white rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 p-6 border border-gray-200 cursor-pointer overflow-hidden group"
                             onClick={() => setSelectedCertificate(certificate)}
                         >
-                            {/* SSN Logo Verification Stamp */}
-                            <div className="absolute top-2 right-2 z-10 flex flex-col items-center">
-                                <div className="bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-xl border-3 border-emerald-500">
-                                    <img
-                                        src="/ssnlogo.png"
-                                        alt="SSN Verified"
-                                        className="w-12 h-12 object-contain"
-                                    />
-                                </div>
-                                <div className="mt-1 bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-lg">
-                                    VERIFIED
-                                </div>
-                            </div>
-
                             {/* NFT Badge */}
                             {isNFT && (
-                                <div className="absolute top-2 left-2 bg-purple-600 text-white text-[10px] tracking-[0.2em] font-semibold px-3 py-1 rounded-full shadow-lg z-10">
+                                <div className="absolute top-3 left-3 bg-purple-600 text-white text-[9px] tracking-[0.2em] font-bold px-2.5 py-1 rounded-full shadow-lg z-20">
                                     NFT
                                 </div>
                             )}
 
-                            {/* Certificate Header */}
-                            <div className="mb-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center">
-                                        <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
-                                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-lg text-slate-900">{certificate.title || certificate.cert_type?.replace('_', ' ').toUpperCase()}</h3>
-                                            <p className="text-sm text-slate-600">{certificate.institution || certificate.metadata?.institution || 'SSN College of Engineering'}</p>
-                                        </div>
-                                    </div>
-                                    <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${certificate.status === 'issued'
-                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                        : 'bg-amber-100 text-amber-700 border border-amber-200'
-                                        }`}>
-                                        ✓ {certificate.status?.toUpperCase() || 'ISSUED'}
-                                    </span>
+                            {/* Certificate Content */}
+                            <div className="flex items-start gap-4 mb-4">
+                                {/* SSN Logo Icon - No Background */}
+                                <div className="w-14 h-14 flex items-center justify-center flex-shrink-0 p-2">
+                                    <img
+                                        src="/ssnlogo.png"
+                                        alt="SSN"
+                                        className="w-full h-full object-contain"
+                                    />
                                 </div>
 
-                                {/* Issued Date */}
-                                <div className="text-xs text-slate-500 font-medium">
-                                    Issued: {new Date(certificate.issued_date || certificate.issued_at).toLocaleDateString('en-US', {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    })}
+                                {/* Certificate Title and Info */}
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-2xl text-gray-800 mb-1 leading-tight">{certTitle}</h3>
+                                    <p className="text-sm text-gray-600 mb-2">{institution}</p>
+                                    {formattedDate && (
+                                        <p className="text-xs text-gray-500">Issued: {formattedDate}</p>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Certificate Preview */}
-                            <div className="space-y-2 text-sm">
+                            {/* Academic Details */}
+                            <div className="space-y-3">
                                 {certificate.metadata?.semester && (
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-slate-500">Semester</span>
-                                        <span className="font-semibold text-slate-900">{certificate.metadata.semester}</span>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-500 font-medium">Semester</span>
+                                        <span className="text-2xl font-bold text-emerald-600">{certificate.metadata.semester}</span>
                                     </div>
                                 )}
                                 {certificate.metadata?.cgpa && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">CGPA</span>
-                                        <span className="font-bold text-emerald-600 text-lg">{certificate.metadata.cgpa}</span>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-500 font-medium">CGPA</span>
+                                        <span className="text-2xl font-bold text-emerald-600">{certificate.metadata.cgpa}</span>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Hover Effect Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"></div>
                         </div>
                     );
                 })}

@@ -111,8 +111,27 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     }
 };
 
-export const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString();
+export const formatDate = (dateString: string | Date | undefined | null): string => {
+    if (!dateString) return '';
+
+    try {
+        const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+
+        // Format as "1/1/2025" (month/day/year)
+        const month = date.getMonth() + 1; // getMonth() returns 0-11
+        const day = date.getDate();
+        const year = date.getFullYear();
+
+        return `${month}/${day}/${year}`;
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return '';
+    }
 };
 
 export const formatDateTime = (dateString: string): string => {

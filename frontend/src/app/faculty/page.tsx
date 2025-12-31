@@ -490,8 +490,8 @@ const IssueCertificateModal: React.FC<{
 
         try {
             const result = await facultyService.issueCertificate(formData);
-            alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
-            onCredentialIssued();
+                alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
+                onCredentialIssued();
         } catch (error) {
             alert(error instanceof Error ? error.message : 'Failed to issue certificate');
         } finally {
@@ -528,7 +528,7 @@ const IssueCertificateModal: React.FC<{
                                     </div>
                                     <input
                                         type="text"
-                                        required
+                                    required
                                         value={studentSearch || students.find(s => s.student_id === formData.student_id)?.name || ''}
                                         onChange={(e) => {
                                             setStudentSearch(e.target.value);
