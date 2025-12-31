@@ -143,83 +143,75 @@ const ClubDashboard: React.FC = () => {
     const renderOverview = () => (
         <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-md border">
-                    <div className="flex items-center">
-                        <Users className="h-8 w-8 text-blue-600" />
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Total Students</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <Users className="h-7 w-7 text-blue-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Total Students</p>
+                        <p className="text-2xl font-bold text-white">{stats.totalStudents}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
-                    <div className="flex items-center">
-                        <Award className="h-8 w-8 text-purple-600" />
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Total Certificates</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalCertificates}</p>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <Award className="h-7 w-7 text-purple-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Total Certificates</p>
+                        <p className="text-2xl font-bold text-white">{stats.totalCertificates}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
-                    <div className="flex items-center">
-                        <TrendingUp className="h-8 w-8 text-green-600" />
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Issued Today</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.issuedToday}</p>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <TrendingUp className="h-7 w-7 text-green-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Issued Today</p>
+                        <p className="text-2xl font-bold text-white">{stats.issuedToday}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
-                    <div className="flex items-center">
-                        <Clock className="h-8 w-8 text-yellow-600" />
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Pending Verification</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.pendingVerification}</p>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <Clock className="h-7 w-7 text-yellow-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Pending Verification</p>
+                        <p className="text-2xl font-bold text-white">{stats.pendingVerification}</p>
                     </div>
                 </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white p-6 rounded-lg shadow-md border">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <button
                         onClick={() => setShowIssueCredential(true)}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
-                            <Trophy className="h-5 w-5 text-blue-600" />
-                            <span className="ml-2 font-medium text-gray-900">Issue Participation Certificate</span>
+                            <Trophy className="h-5 w-5 text-blue-400" />
+                            <span className="ml-2 font-medium text-white">Issue Participation Certificate</span>
                         </div>
-                        <p className="text-sm text-gray-600">Issue certificate for event participation</p>
+                        <p className="text-sm text-slate-300">Issue certificate for event participation</p>
                     </button>
 
                     <button
                         onClick={() => setShowIssueCredential(true)}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
-                            <Star className="h-5 w-5 text-green-600" />
-                            <span className="ml-2 font-medium text-gray-900">Issue Achievement Certificate</span>
+                            <Star className="h-5 w-5 text-green-400" />
+                            <span className="ml-2 font-medium text-white">Issue Achievement Certificate</span>
                         </div>
-                        <p className="text-sm text-gray-600">Issue certificate for achievements</p>
+                        <p className="text-sm text-slate-300">Issue certificate for achievements</p>
                     </button>
 
                     <button
                         onClick={() => setActiveTab('students')}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
-                            <Users className="h-5 w-5 text-purple-600" />
-                            <span className="ml-2 font-medium text-gray-900">View Students</span>
+                            <Users className="h-5 w-5 text-purple-400" />
+                            <span className="ml-2 font-medium text-white">View Students</span>
                         </div>
-                        <p className="text-sm text-gray-600">Browse and manage student records</p>
+                        <p className="text-sm text-slate-300">Browse and manage student records</p>
                     </button>
                 </div>
             </div>
@@ -229,17 +221,17 @@ const ClubDashboard: React.FC = () => {
     const renderStudents = () => (
         <div className="space-y-6">
             {/* Search */}
-            <div className="bg-white p-6 rounded-lg shadow-md border">
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                             <input
                                 type="text"
                                 placeholder="Search students..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white/20"
                             />
                         </div>
                     </div>
@@ -254,76 +246,76 @@ const ClubDashboard: React.FC = () => {
             </div>
 
             {/* Students Table */}
-            <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-white/10">
+                        <thead className="bg-slate-900/50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Student
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Student ID
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Department
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Semester
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-slate-800/30 divide-y divide-white/10">
                             {filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-gray-50">
+                                <tr key={student.id} className="hover:bg-white/5">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="flex-shrink-0 h-10 w-10">
-                                                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                                                    <Users className="h-5 w-5 text-purple-600" />
+                                                <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/30">
+                                                    <Users className="h-5 w-5 text-purple-400" />
                                                 </div>
                                             </div>
                                             <div className="ml-4">
-                                                <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                                                <div className="text-sm text-gray-500">{student.email}</div>
+                                                <div className="text-sm font-medium text-white">{student.name}</div>
+                                                <div className="text-sm text-slate-400">{student.email}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         {student.student_id}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         {student.department}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         Semester {student.semester}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center space-x-2">
                                             {student.is_active ? (
-                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                                <CheckCircle className="h-4 w-4 text-green-400" />
                                             ) : (
-                                                <Clock className="h-4 w-4 text-yellow-500" />
+                                                <Clock className="h-4 w-4 text-yellow-400" />
                                             )}
-                                            <span className={`text-sm ${student.is_active ? 'text-green-600' : 'text-yellow-600'}`}>
+                                            <span className={`text-sm ${student.is_active ? 'text-green-400' : 'text-yellow-400'}`}>
                                                 {student.is_active ? 'Active' : 'Pending'}
                                             </span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
-                                            <button className="text-blue-600 hover:text-blue-900">
+                                            <button className="text-blue-400 hover:text-blue-300">
                                                 <Eye className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => setShowIssueCredential(true)}
-                                                className="text-purple-600 hover:text-purple-900"
+                                                className="text-purple-400 hover:text-purple-300"
                                             >
                                                 <Award className="h-4 w-4" />
                                             </button>
@@ -341,17 +333,17 @@ const ClubDashboard: React.FC = () => {
     const renderCredentials = () => (
         <div className="space-y-6">
             {/* Filter */}
-            <div className="bg-white p-6 rounded-lg shadow-md border">
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                             <input
                                 type="text"
                                 placeholder="Search certificates..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white/20"
                             />
                         </div>
                     </div>
@@ -359,7 +351,7 @@ const ClubDashboard: React.FC = () => {
                         <select
                             value={filterEvent}
                             onChange={(e) => setFilterEvent(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-white/20 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         >
                             <option value="all">All Events</option>
                             <option value="coding">Coding Events</option>
@@ -372,51 +364,51 @@ const ClubDashboard: React.FC = () => {
             </div>
 
             {/* Certificates Table */}
-            <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-white/10">
+                        <thead className="bg-slate-900/50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Certificate
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Student
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Event
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Position
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Date
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-slate-800/30 divide-y divide-white/10">
                             {filteredCredentials.map((credential) => (
-                                <tr key={credential.id} className="hover:bg-gray-50">
+                                <tr key={credential.id} className="hover:bg-white/5">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">{credential.title || (credential.cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
-                                        <div className="text-sm text-gray-500">{(credential.cert_type || credential.type || 'certificate').replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm font-medium text-white">{(credential as any).title || ((credential as any).cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm text-slate-400">{((credential as any).cert_type || (credential as any).type || 'certificate').replace('_', ' ').toUpperCase()}</div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.student_name || credential.metadata?.student_name || 'Unknown Student'}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                        {(credential as any).student_name || credential.metadata?.student_name || 'Unknown Student'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.event_name || credential.metadata?.event_name || 'N/A'}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                        {(credential as any).event_name || credential.metadata?.event_name || 'N/A'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                                            {credential.position || credential.metadata?.position || 'Participant'}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                            {(credential as any).position || credential.metadata?.position || 'Participant'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(credential.issued_date || credential.issued_at).toLocaleDateString()}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                                        {(credential as any).issued_date || credential.issued_at ? new Date((credential as any).issued_date || credential.issued_at).toLocaleDateString() : 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
@@ -425,7 +417,7 @@ const ClubDashboard: React.FC = () => {
                                                     href={credential.ipfs_url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-blue-600 hover:text-blue-900"
+                                                    className="text-blue-400 hover:text-blue-300"
                                                     title="View Certificate"
                                                 >
                                                     <Eye className="h-4 w-4" />
@@ -447,7 +439,7 @@ const ClubDashboard: React.FC = () => {
                                                             })
                                                             .catch(err => alert('Failed to verify certificate'));
                                                     }}
-                                                    className="text-green-600 hover:text-green-900"
+                                                    className="text-green-400 hover:text-green-300"
                                                     title="Verify Certificate"
                                                 >
                                                     <CheckCircle className="h-4 w-4" />

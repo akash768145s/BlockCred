@@ -134,83 +134,75 @@ const COEDashboard: React.FC = () => {
     const renderOverview = () => (
         <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-md border">
-                    <div className="flex items-center">
-                        <Users className="h-8 w-8 text-blue-600" />
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Total Students</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <Users className="h-7 w-7 text-blue-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Total Students</p>
+                        <p className="text-2xl font-bold text-white">{stats.totalStudents}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
-                    <div className="flex items-center">
-                        <FileText className="h-8 w-8 text-green-600" />
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Total Credentials</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalCredentials}</p>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <FileText className="h-7 w-7 text-green-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Total Credentials</p>
+                        <p className="text-2xl font-bold text-white">{stats.totalCredentials}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
-                    <div className="flex items-center">
-                        <TrendingUp className="h-8 w-8 text-purple-600" />
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Issued Today</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.issuedToday}</p>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <TrendingUp className="h-7 w-7 text-purple-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Issued Today</p>
+                        <p className="text-2xl font-bold text-white">{stats.issuedToday}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md border">
-                    <div className="flex items-center">
-                        <Clock className="h-8 w-8 text-yellow-600" />
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Pending Verification</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.pendingVerification}</p>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <Clock className="h-7 w-7 text-yellow-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Pending Verification</p>
+                        <p className="text-2xl font-bold text-white">{stats.pendingVerification}</p>
                     </div>
                 </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white p-6 rounded-lg shadow-md border">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <button
                         onClick={() => setShowIssueCredential(true)}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
-                            <FileText className="h-5 w-5 text-blue-600" />
-                            <span className="ml-2 font-medium text-gray-900">Issue Marksheet</span>
+                            <FileText className="h-5 w-5 text-blue-400" />
+                            <span className="ml-2 font-medium text-white">Issue Marksheet</span>
                         </div>
-                        <p className="text-sm text-gray-600">Issue semester marksheet for students</p>
+                        <p className="text-sm text-slate-300">Issue semester marksheet for students</p>
                     </button>
 
                     <button
                         onClick={() => setShowIssueCredential(true)}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
-                            <GraduationCap className="h-5 w-5 text-green-600" />
-                            <span className="ml-2 font-medium text-gray-900">Issue Degree Certificate</span>
+                            <GraduationCap className="h-5 w-5 text-green-400" />
+                            <span className="ml-2 font-medium text-white">Issue Degree Certificate</span>
                         </div>
-                        <p className="text-sm text-gray-600">Issue degree certificates for graduates</p>
+                        <p className="text-sm text-slate-300">Issue degree certificates for graduates</p>
                     </button>
 
                     <button
                         onClick={() => setActiveTab('students')}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
-                            <Users className="h-5 w-5 text-purple-600" />
-                            <span className="ml-2 font-medium text-gray-900">View Students</span>
+                            <Users className="h-5 w-5 text-purple-400" />
+                            <span className="ml-2 font-medium text-white">View Students</span>
                         </div>
-                        <p className="text-sm text-gray-600">Browse and manage student records</p>
+                        <p className="text-sm text-slate-300">Browse and manage student records</p>
                     </button>
                 </div>
             </div>
@@ -220,17 +212,17 @@ const COEDashboard: React.FC = () => {
     const renderStudents = () => (
         <div className="space-y-6">
             {/* Search and Filter */}
-            <div className="bg-white p-6 rounded-lg shadow-md border">
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                             <input
                                 type="text"
                                 placeholder="Search students..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white/20"
                             />
                         </div>
                     </div>
@@ -238,7 +230,7 @@ const COEDashboard: React.FC = () => {
                         <select
                             value={filterSemester}
                             onChange={(e) => setFilterSemester(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-white/20 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="all">All Semesters</option>
                             <option value="1">Semester 1</option>
@@ -262,76 +254,76 @@ const COEDashboard: React.FC = () => {
             </div>
 
             {/* Students Table */}
-            <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-white/10">
+                        <thead className="bg-slate-900/50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Student
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Student ID
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Department
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Semester
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-slate-800/30 divide-y divide-white/10">
                             {filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-gray-50">
+                                <tr key={student.id} className="hover:bg-white/5">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="flex-shrink-0 h-10 w-10">
-                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                                    <Users className="h-5 w-5 text-blue-600" />
+                                                <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                                                    <Users className="h-5 w-5 text-blue-400" />
                                                 </div>
                                             </div>
                                             <div className="ml-4">
-                                                <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                                                <div className="text-sm text-gray-500">{student.email}</div>
+                                                <div className="text-sm font-medium text-white">{student.name}</div>
+                                                <div className="text-sm text-slate-400">{student.email}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         {student.student_id}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         {student.department}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         Semester {student.semester}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center space-x-2">
                                             {student.is_active ? (
-                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                                <CheckCircle className="h-4 w-4 text-green-400" />
                                             ) : (
-                                                <Clock className="h-4 w-4 text-yellow-500" />
+                                                <Clock className="h-4 w-4 text-yellow-400" />
                                             )}
-                                            <span className={`text-sm ${student.is_active ? 'text-green-600' : 'text-yellow-600'}`}>
+                                            <span className={`text-sm ${student.is_active ? 'text-green-400' : 'text-yellow-400'}`}>
                                                 {student.is_active ? 'Active' : 'Pending'}
                                             </span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
-                                            <button className="text-blue-600 hover:text-blue-900">
+                                            <button className="text-blue-400 hover:text-blue-300">
                                                 <Eye className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => setShowIssueCredential(true)}
-                                                className="text-green-600 hover:text-green-900"
+                                                className="text-green-400 hover:text-green-300"
                                             >
                                                 <FileText className="h-4 w-4" />
                                             </button>
@@ -348,66 +340,66 @@ const COEDashboard: React.FC = () => {
 
     const renderCredentials = () => (
         <div className="space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow-md border">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Issued Credentials</h3>
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Issued Credentials</h3>
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-white/10">
+                        <thead className="bg-slate-900/50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Credential
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Student
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Semester
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Subject
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Marks/Grade
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Date
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-slate-800/30 divide-y divide-white/10">
                             {credentials.map((credential) => (
-                                <tr key={credential.id} className="hover:bg-gray-50">
+                                <tr key={credential.id} className="hover:bg-white/5">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">{credential.title || (credential.cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
-                                        <div className="text-sm text-gray-500">{(credential.cert_type || credential.type || 'certificate').replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm font-medium text-white">{credential.title || ((credential as any).cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
+                                        <div className="text-sm text-slate-400">{((credential as any).cert_type || credential.type || 'certificate').replace('_', ' ').toUpperCase()}</div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.student_name || credential.metadata?.student_name || 'Unknown Student'}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                        {credential.student_name || (credential as any).metadata?.student_name || 'Unknown Student'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.semester || credential.metadata?.semester || 'N/A'}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                        {credential.semester || (credential as any).metadata?.semester || 'N/A'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {credential.subject || credential.metadata?.course || 'N/A'}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                        {credential.subject || (credential as any).metadata?.course || 'N/A'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                         <div className="flex items-center space-x-2">
-                                            <span className="font-medium">{credential.marks || credential.metadata?.cgpa || 'N/A'}</span>
-                                            <span className="text-gray-500">({credential.grade || credential.metadata?.grade || 'N/A'})</span>
+                                            <span className="font-medium">{credential.marks || (credential as any).metadata?.cgpa || 'N/A'}</span>
+                                            <span className="text-slate-400">({credential.grade || (credential as any).metadata?.grade || 'N/A'})</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(credential.issued_date || credential.issued_at).toLocaleDateString()}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                                        {credential.issued_date || (credential as any).issued_at ? new Date(credential.issued_date || (credential as any).issued_at).toLocaleDateString() : 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
-                                            <button className="text-blue-600 hover:text-blue-900">
+                                            <button className="text-blue-400 hover:text-blue-300">
                                                 <Eye className="h-4 w-4" />
                                             </button>
-                                            <button className="text-green-600 hover:text-green-900">
+                                            <button className="text-green-400 hover:text-green-300">
                                                 <Download className="h-4 w-4" />
                                             </button>
                                         </div>
@@ -616,10 +608,10 @@ startxref
             const base64Content = btoa(samplePdfContent);
 
             // Validate subjects
-            const validSubjects = subjects.filter(s => 
+            const validSubjects = subjects.filter(s =>
                 s.subject_code.trim() && s.subject_name.trim() && s.marks.trim() && s.credits.trim()
             );
-            
+
             if (validSubjects.length === 0) {
                 alert('Please add at least one subject with all required fields');
                 setLoading(false);
@@ -790,7 +782,7 @@ startxref
                         </div>
 
                         {/* Subjects Section */}
-                            <div>
+                        <div>
                             <div className="flex justify-between items-center mb-4">
                                 <label className="block text-sm font-semibold text-[#1E293B]">
                                     Subjects <span className="text-red-500">*</span>
@@ -833,9 +825,9 @@ startxref
                                             {subjects.map((subject, index) => (
                                                 <tr key={subject.id} className="hover:bg-[#F0FDFF] transition-colors bg-white">
                                                     <td className="px-6 py-3 bg-white">
-                                <input
-                                    type="text"
-                                    required
+                                                        <input
+                                                            type="text"
+                                                            required
                                                             value={subject.subject_code}
                                                             onChange={(e) => {
                                                                 const updated = [...subjects];
@@ -844,11 +836,11 @@ startxref
                                                             }}
                                                             className="w-full min-w-[140px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
                                                             placeholder="e.g., CS101"
-                                />
+                                                        />
                                                     </td>
                                                     <td className="px-6 py-3 bg-white">
-                                <input
-                                    type="text"
+                                                        <input
+                                                            type="text"
                                                             required
                                                             value={subject.subject_name}
                                                             onChange={(e) => {
@@ -913,14 +905,14 @@ startxref
                                                             }}
                                                             className="w-full min-w-[120px] px-4 py-2.5 bg-white border-2 border-gray-200 rounded-md text-sm text-[#1E293B] font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
                                                             placeholder="e.g., 3"
-                                />
+                                                        />
                                                     </td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
                             </div>
-                        </div>
                             <p className="text-xs text-[#64748B] mt-2">Add multiple subjects using the "+" button above</p>
                         </div>
 

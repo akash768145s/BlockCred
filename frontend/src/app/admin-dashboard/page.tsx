@@ -31,6 +31,7 @@ const AdminDashboard: React.FC = () => {
     const [deletingUser, setDeletingUser] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
+    const [filterDepartment, setFilterDepartment] = useState('all');
 
     const { logout, isAuthenticated } = useAuth();
     const { users, loading: usersLoading, error: usersError, approveUser } = useUsers();
@@ -65,19 +66,74 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    // Define issuing authority roles
+    const issuingAuthorityRoles = ['coe', 'department_faculty', 'club_coordinator'];
+
     const filteredUsers = (Array.isArray(users) ? users : []).filter(user => {
         const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesRole = filterRole === 'all' || user.role === filterRole;
-        return matchesSearch && matchesRole;
+
+        if (filterRole === 'all') {
+            return matchesSearch;
+        } else if (filterRole === 'student') {
+            return matchesSearch && user.role === 'student';
+        } else if (filterRole === 'issuing_authorities') {
+            return matchesSearch && issuingAuthorityRoles.includes(user.role);
+        } else {
+            return matchesSearch && user.role === filterRole;
+        }
     });
 
-    // Separate students and other roles
+    // Separate students and issuing authorities
     const students = filteredUsers.filter(user => user.role === 'student');
-    const otherRoles = filteredUsers.filter(user => user.role !== 'student');
+    const issuingAuthorities = filteredUsers.filter(user => issuingAuthorityRoles.includes(user.role));
 
     const handleDeleteUser = (user: any) => {
         setDeletingUser(user);
+    };
+
+    const handleDeleteCredential = async (credentialId: number | string) => {
+        if (!confirm('Are you sure you want to delete this credential? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            // Try DELETE endpoint first
+            let response = await fetch(`http://localhost:8080/api/certificates/${credentialId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            // If DELETE doesn't work, try using the ID from the credential object
+            if (!response.ok) {
+                // Try with cert_id if available
+                const credential = (Array.isArray(credentials) ? credentials : []).find((c: any) => c.id === credentialId || c._id === credentialId);
+                if (credential && (credential as any).cert_id) {
+                    response = await fetch(`http://localhost:8080/api/certificates/${(credential as any).cert_id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                    });
+                }
+            }
+
+            if (response.ok) {
+                alert('Credential deleted successfully!');
+                window.location.reload();
+            } else {
+                const data = await response.json();
+                alert(`Error: ${data.message || 'Failed to delete credential. The delete endpoint may not be available.'}`);
+            }
+        } catch (error) {
+            console.error('Error deleting credential:', error);
+            alert('Failed to delete credential. Please try again.');
+        }
     };
 
     const confirmDeleteUser = async () => {
@@ -110,470 +166,581 @@ const AdminDashboard: React.FC = () => {
 
     const loading = usersLoading || credentialsLoading || statsLoading;
 
-    // Calculate stats from actual data if stats hook fails
-    const calculatedStats = {
-        total_users: users?.length || 0,
-        pending_users: users?.filter((u: any) => !u.is_approved && !u.is_active).length || 0,
-        total_credentials: credentials?.length || 0,
-        issued_today: 0,
-        verified_today: 0,
-    };
+    // Calculate stats from actual data
+    const allUsers = Array.isArray(users) ? users : [];
+    const allStudents = allUsers.filter((u: any) => u.role === 'student');
+    const allIssuers = allUsers.filter((u: any) => issuingAuthorityRoles.includes(u.role));
+    const totalUsers = allStudents.length + allIssuers.length;
+    const pendingUsers = allUsers.filter((u: any) => !u.is_approved && !u.is_active).length;
+    const totalCredentials = Array.isArray(credentials) ? credentials.length : 0;
 
     // Use stats from hook if available, otherwise use calculated stats
-    const displayStats = stats || calculatedStats;
+    const displayStats = {
+        total_users: stats?.total_users || totalUsers,
+        pending_users: stats?.pending_users || pendingUsers,
+        total_credentials: stats?.total_credentials || totalCredentials,
+        total_students: allStudents.length,
+        total_issuers: allIssuers.length,
+    };
 
     const renderOverview = () => (
         <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                    <div className="flex items-center">
-                        <div className="p-3 bg-[#06B6D4]/10 rounded-lg">
-                            <Users className="h-8 w-8 text-[#06B6D4]" />
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-[#64748B]">Total Users</p>
-                            <p className="text-3xl font-bold text-[#1E293B]">{displayStats.total_users}</p>
-                            {statsError && <p className="text-xs text-red-500 mt-1">Using calculated stats</p>}
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <Users className="h-7 w-7 text-blue-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Total Users</p>
+                        <p className="text-2xl font-bold text-white">{displayStats.total_users}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                    <div className="flex items-center">
-                        <div className="p-3 bg-orange-100 rounded-lg">
-                            <Clock className="h-8 w-8 text-orange-600" />
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-[#64748B]">Pending Approval</p>
-                            <p className="text-3xl font-bold text-[#1E293B]">{displayStats.pending_users}</p>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <Shield className="h-7 w-7 text-indigo-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Issuers</p>
+                        <p className="text-2xl font-bold text-white">{displayStats.total_issuers}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                    <div className="flex items-center">
-                        <div className="p-3 bg-green-100 rounded-lg">
-                            <CheckCircle className="h-8 w-8 text-green-600" />
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-[#64748B]">Active Users</p>
-                            <p className="text-3xl font-bold text-[#1E293B]">{displayStats.total_users - displayStats.pending_users}</p>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <GraduationCap className="h-7 w-7 text-cyan-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Students</p>
+                        <p className="text-2xl font-bold text-white">{displayStats.total_students}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                    <div className="flex items-center">
-                        <div className="p-3 bg-[#06B6D4]/10 rounded-lg">
-                            <FileText className="h-8 w-8 text-[#06B6D4]" />
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-[#64748B]">Total Credentials</p>
-                            <p className="text-3xl font-bold text-[#1E293B]">{displayStats.total_credentials}</p>
-                        </div>
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <Clock className="h-7 w-7 text-yellow-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Pending Approval</p>
+                        <p className="text-2xl font-bold text-white">{displayStats.pending_users}</p>
+                    </div>
+                </div>
+
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-5 rounded-lg shadow-lg">
+                    <div className="flex flex-col items-center text-center">
+                        <FileText className="h-7 w-7 text-green-400 mb-3" />
+                        <p className="text-xs font-medium text-slate-300 mb-2">Total Credentials</p>
+                        <p className="text-2xl font-bold text-white">{displayStats.total_credentials}</p>
                     </div>
                 </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white p-8 rounded-xl shadow-md border border-gray-200">
-                <h3 className="text-xl font-bold text-[#1E293B] mb-6">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <button
-                        onClick={() => setShowCreateUser(true)}
-                        className="group p-6 border-2 border-gray-200 rounded-xl hover:border-[#06B6D4] hover:shadow-lg transition-all duration-200 text-left bg-white"
-                    >
-                        <div className="flex items-center mb-3">
-                            <div className="p-3 bg-[#06B6D4]/10 rounded-lg group-hover:bg-[#06B6D4]/20 transition-colors">
-                                <UserPlus className="h-6 w-6 text-[#06B6D4]" />
-                            </div>
-                            <span className="ml-3 font-semibold text-[#1E293B]">Create COE</span>
-                        </div>
-                        <p className="text-sm text-[#64748B] group-hover:text-[#1E293B] transition-colors">Add new Controller of Examinations</p>
-                    </button>
-
-                    <button
-                        onClick={() => setShowCreateUser(true)}
-                        className="group p-6 border-2 border-gray-200 rounded-xl hover:border-[#06B6D4] hover:shadow-lg transition-all duration-200 text-left bg-white"
-                    >
-                        <div className="flex items-center mb-3">
-                            <div className="p-3 bg-[#06B6D4]/10 rounded-lg group-hover:bg-[#06B6D4]/20 transition-colors">
-                                <GraduationCap className="h-6 w-6 text-[#06B6D4]" />
-                            </div>
-                            <span className="ml-3 font-semibold text-[#1E293B]">Create Faculty</span>
-                        </div>
-                        <p className="text-sm text-[#64748B] group-hover:text-[#1E293B] transition-colors">Add new Department Faculty</p>
-                    </button>
-
-                    <button
-                        onClick={() => setShowCreateUser(true)}
-                        className="group p-6 border-2 border-gray-200 rounded-xl hover:border-[#06B6D4] hover:shadow-lg transition-all duration-200 text-left bg-white"
-                    >
-                        <div className="flex items-center mb-3">
-                            <div className="p-3 bg-[#06B6D4]/10 rounded-lg group-hover:bg-[#06B6D4]/20 transition-colors">
-                                <Award className="h-6 w-6 text-[#06B6D4]" />
-                            </div>
-                            <span className="ml-3 font-semibold text-[#1E293B]">Create Club Coordinator</span>
-                        </div>
-                        <p className="text-sm text-[#64748B] group-hover:text-[#1E293B] transition-colors">Add new Club Coordinator</p>
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-
-    const renderUsers = () => (
-        <div className="space-y-6">
-            {/* Search and Filter */}
-            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#94A3B8]" />
-                            <input
-                                type="text"
-                                placeholder="Search users..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
-                            />
-                        </div>
-                    </div>
-                    <div className="md:w-48">
-                        <select
-                            value={filterRole}
-                            onChange={(e) => setFilterRole(e.target.value)}
-                            className="w-full px-3 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
-                        >
-                            <option value="all">All Roles</option>
-                            <option value="coe">COE</option>
-                            <option value="department_faculty">Faculty</option>
-                            <option value="club_coordinator">Club Coordinator</option>
-                            <option value="student">Student</option>
-                        </select>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="px-4 py-3 bg-[#1E293B] text-white rounded-lg hover:bg-[#334155] transition-colors flex items-center font-medium shadow-md"
-                        >
-                            <Search className="h-4 w-4 mr-2" />
-                            Refresh
-                        </button>
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
+                <div className="mb-4">
+                    <h4 className="text-sm font-semibold text-indigo-300 mb-3 uppercase tracking-wide">Issuing Authorities</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <button
                             onClick={() => setShowCreateUser(true)}
-                            className="px-4 py-3 bg-[#06B6D4] text-white rounded-lg hover:bg-[#0891B2] transition-colors flex items-center font-medium shadow-md"
+                            className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                         >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create User
+                            <div className="flex items-center mb-2">
+                                <UserPlus className="h-5 w-5 text-blue-400" />
+                                <span className="ml-2 font-medium text-white">Create COE</span>
+                            </div>
+                            <p className="text-sm text-slate-300">Controller of Examinations</p>
+                        </button>
+
+                        <button
+                            onClick={() => setShowCreateUser(true)}
+                            className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
+                        >
+                            <div className="flex items-center mb-2">
+                                <GraduationCap className="h-5 w-5 text-green-400" />
+                                <span className="ml-2 font-medium text-white">Create Faculty</span>
+                            </div>
+                            <p className="text-sm text-slate-300">Department Faculty</p>
+                        </button>
+
+                        <button
+                            onClick={() => setShowCreateUser(true)}
+                            className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
+                        >
+                            <div className="flex items-center mb-2">
+                                <Award className="h-5 w-5 text-purple-400" />
+                                <span className="ml-2 font-medium text-white">Create Club Coordinator</span>
+                            </div>
+                            <p className="text-sm text-slate-300">Club Coordinator</p>
                         </button>
                     </div>
                 </div>
             </div>
-
-            {/* Students Table */}
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-cyan-50">
-                    <h3 className="text-lg font-bold text-[#1E293B] flex items-center">
-                        <GraduationCap className="h-5 w-5 mr-2 text-[#06B6D4]" />
-                        Students ({students.length})
-                    </h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-[#F8FAFC]">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    User
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Student ID
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Department
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    10th School
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    12th School
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Created
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {students.length > 0 ? (
-                                students.map((user) => (
-                                    <tr key={user.id} className="hover:bg-[#F8FAFC] transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="flex-shrink-0 h-10 w-10">
-                                                    <div className="h-10 w-10 rounded-full bg-[#06B6D4]/10 flex items-center justify-center">
-                                                        {getRoleIconComponent(user.role)}
-                                                    </div>
-                                                </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-[#1E293B]">{user.name}</div>
-                                                    <div className="text-sm text-[#64748B]">{user.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B] font-medium">
-                                            {user.student_id || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
-                                            {user.department || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
-                                            {user.tenth_school || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
-                                            {user.twelfth_school || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center space-x-2">
-                                                {user.is_active ? (
-                                                    <CheckCircle className="h-4 w-4 text-green-500" />
-                                                ) : (
-                                                    <XCircle className="h-4 w-4 text-red-500" />
-                                                )}
-                                                <span className={`text-sm font-medium ${user.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {user.is_active ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#64748B]">
-                                            {formatDate(user.created_at)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex items-center space-x-2">
-                                                {!user.is_approved && (
-                                                    <button
-                                                        onClick={() => approveUser(user.id)}
-                                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors shadow-sm"
-                                                        title="Approve User"
-                                                    >
-                                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                                        Approve
-                                                    </button>
-                                                )}
-                                                {user.is_approved && (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
-                                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                                        Approved
-                                                    </span>
-                                                )}
-                                                <button
-                                                    onClick={() => setViewingUser(user)}
-                                                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
-                                                    title="View Details"
-                                                >
-                                                    <Eye className="h-3.5 w-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => setEditingUser(user)}
-                                                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
-                                                    title="Edit User"
-                                                >
-                                                    <Edit className="h-3.5 w-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteUser(user)}
-                                                    className="inline-flex items-center px-2.5 py-1.5 border border-red-300 text-xs font-medium rounded-lg text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
-                                                    title="Delete User"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-8 text-center text-sm text-[#64748B]">
-                                        No students found
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Other Roles Table */}
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden mt-6">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
-                    <h3 className="text-lg font-bold text-[#1E293B] flex items-center">
-                        <Shield className="h-5 w-5 mr-2 text-[#06B6D4]" />
-                        Staff & Other Roles ({otherRoles.length})
-                    </h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-[#F8FAFC]">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    User
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Role
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {otherRoles.length > 0 ? (
-                                otherRoles.map((user) => (
-                                    <tr key={user.id} className="hover:bg-[#F8FAFC] transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="flex-shrink-0 h-10 w-10">
-                                                    <div className="h-10 w-10 rounded-full bg-[#06B6D4]/10 flex items-center justify-center">
-                                                        {getRoleIconComponent(user.role)}
-                                                    </div>
-                                                </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-[#1E293B]">{user.name}</div>
-                                                    <div className="text-sm text-[#64748B]">{user.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-[#06B6D4]/10 text-[#06B6D4]">
-                                                {getRoleDisplayName(user.role)}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center space-x-2">
-                                                {user.is_active ? (
-                                                    <CheckCircle className="h-4 w-4 text-green-500" />
-                                                ) : (
-                                                    <XCircle className="h-4 w-4 text-red-500" />
-                                                )}
-                                                <span className={`text-sm font-medium ${user.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {user.is_active ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex items-center space-x-2">
-                                                {!user.is_approved && (
-                                                    <button
-                                                        onClick={() => approveUser(user.id)}
-                                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors shadow-sm"
-                                                        title="Approve User"
-                                                    >
-                                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                                        Approve
-                                                    </button>
-                                                )}
-                                                {user.is_approved && (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
-                                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                                        Approved
-                                                    </span>
-                                                )}
-                                                <button
-                                                    onClick={() => setViewingUser(user)}
-                                                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
-                                                    title="View Details"
-                                                >
-                                                    <Eye className="h-3.5 w-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => setEditingUser(user)}
-                                                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-[#1E293B] bg-white hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] transition-colors"
-                                                    title="Edit User"
-                                                >
-                                                    <Edit className="h-3.5 w-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteUser(user)}
-                                                    className="inline-flex items-center px-2.5 py-1.5 border border-red-300 text-xs font-medium rounded-lg text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
-                                                    title="Delete User"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-sm text-[#64748B]">
-                                        No staff or other roles found
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     );
+
+    const renderAuthorities = () => {
+        // Filter only issuing authorities
+        const issuingAuthorityRoles = ['coe', 'department_faculty', 'club_coordinator'];
+        const filteredAuthorities = (Array.isArray(users) ? users : []).filter(user => {
+            const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchTerm.toLowerCase());
+            const isIssuingAuthority = issuingAuthorityRoles.includes(user.role);
+
+            if (filterRole === 'all' || filterRole === 'issuing_authorities') {
+                return matchesSearch && isIssuingAuthority;
+            } else {
+                return matchesSearch && user.role === filterRole && isIssuingAuthority;
+            }
+        });
+
+        return (
+            <div className="space-y-6">
+                {/* Search and Filter */}
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search issuing authorities..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white/20"
+                                />
+                            </div>
+                        </div>
+                        <div className="md:w-56">
+                            <select
+                                value={filterRole}
+                                onChange={(e) => setFilterRole(e.target.value)}
+                                className="w-full px-3 py-2 border border-white/20 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="all">All Authorities</option>
+                                <option value="coe">COE</option>
+                                <option value="department_faculty">Faculty</option>
+                                <option value="club_coordinator">Club Coordinator</option>
+                            </select>
+                        </div>
+                        <button
+                            onClick={() => setShowCreateUser(true)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Authority
+                        </button>
+                    </div>
+                </div>
+
+                {/* Issuing Authorities Table */}
+                {filteredAuthorities.length > 0 ? (
+                    <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg overflow-hidden">
+                        <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-indigo-900/50 to-purple-900/50">
+                            <h3 className="text-lg font-semibold text-white flex items-center">
+                                <Shield className="h-5 w-5 mr-2 text-indigo-400" />
+                                Issuing Authorities ({filteredAuthorities.length})
+                            </h3>
+                            <p className="text-xs text-slate-300 mt-1">COE, Faculty, and Club Coordinators</p>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-white/10">
+                                <thead className="bg-slate-900/50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            User
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            Role
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-slate-800/30 divide-y divide-white/10">
+                                    {filteredAuthorities.map((user) => (
+                                        <tr key={user.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <div className="flex-shrink-0 h-10 w-10">
+                                                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                            {getRoleIconComponent(user.role)}
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-medium text-white">{user.name}</div>
+                                                        <div className="text-sm text-slate-400">{user.email}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                                    {getRoleDisplayName(user.role)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center space-x-2">
+                                                    {user.is_active ? (
+                                                        <CheckCircle className="h-4 w-4 text-green-400" />
+                                                    ) : (
+                                                        <Clock className="h-4 w-4 text-yellow-400" />
+                                                    )}
+                                                    <span className={`text-sm ${user.is_active ? 'text-green-400' : 'text-yellow-400'}`}>
+                                                        {user.is_active ? 'Active' : 'Pending'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <div className="flex items-center space-x-2">
+                                                    {!user.is_approved && (
+                                                        <button
+                                                            onClick={() => approveUser(user.id)}
+                                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors shadow-sm"
+                                                            title="Approve User"
+                                                        >
+                                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                                            Approve
+                                                        </button>
+                                                    )}
+                                                    {user.is_approved && (
+                                                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
+                                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                                            Approved
+                                                        </span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => setViewingUser(user)}
+                                                        className="text-blue-600 hover:text-blue-900"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditingUser(user)}
+                                                        className="text-green-600 hover:text-green-900"
+                                                        title="Edit User"
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteUser(user)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                        title="Delete User"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg p-12 text-center">
+                        <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-white mb-2">No issuing authorities found</h3>
+                        <p className="text-sm text-slate-300 mb-4">
+                            {searchTerm || filterRole !== 'all'
+                                ? 'Try adjusting your search or filter criteria'
+                                : 'Get started by creating a new issuing authority'}
+                        </p>
+                        {!searchTerm && filterRole === 'all' && (
+                            <button
+                                onClick={() => setShowCreateUser(true)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center"
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Authority
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const renderStudents = () => {
+        // Department options
+        const departments = [
+            { value: 'all', label: 'All Departments' },
+            { value: 'Computer Science Engineering', label: 'CSE' },
+            { value: 'Information Technology', label: 'IT' },
+            { value: 'Electronics and Communication Engineering', label: 'ECE' },
+            { value: 'Electrical and Electronics Engineering', label: 'EEE' },
+            { value: 'Civil Engineering', label: 'Civil' },
+            { value: 'Mechanical Engineering', label: 'Mech' },
+            { value: 'Biomedical Engineering', label: 'Biomedical' },
+            { value: 'Chemical Engineering', label: 'Chemical' }
+        ];
+
+        // Filter only students
+        const filteredStudents = (Array.isArray(users) ? users : []).filter(user => {
+            const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesDepartment = filterDepartment === 'all' ||
+                (user.department && user.department.toLowerCase() === filterDepartment.toLowerCase());
+            return matchesSearch && matchesDepartment && user.role === 'student';
+        });
+
+        return (
+            <div className="space-y-6">
+                {/* Department Navbar */}
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg overflow-hidden">
+                    <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-blue-900/50 to-cyan-900/50">
+                        <h3 className="text-sm font-semibold text-slate-200 mb-3">Filter by Department</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {departments.map((dept) => (
+                                <button
+                                    key={dept.value}
+                                    onClick={() => setFilterDepartment(dept.value)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterDepartment === dept.value
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-white/10 text-slate-300 hover:bg-white/20 border border-white/20'
+                                        }`}
+                                >
+                                    {dept.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Search and Filter */}
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search students..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white/20"
+                                />
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowCreateUser(true)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Student
+                        </button>
+                    </div>
+                </div>
+
+                {/* Students Table */}
+                {filteredStudents.length > 0 ? (
+                    <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg overflow-hidden">
+                        <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-blue-900/50 to-cyan-900/50">
+                            <h3 className="text-lg font-semibold text-white flex items-center">
+                                <GraduationCap className="h-5 w-5 mr-2 text-blue-400" />
+                                Students ({filteredStudents.length})
+                            </h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-white/10">
+                                <thead className="bg-slate-900/50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            User
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            Student ID
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            Department
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            10th School
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            12th School
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            Created
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-slate-800/30 divide-y divide-white/10">
+                                    {filteredStudents.map((user) => (
+                                        <tr key={user.id} className="hover:bg-white/5">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <div className="flex-shrink-0 h-10 w-10">
+                                                        <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                                                            {getRoleIconComponent(user.role)}
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-medium text-white">{user.name}</div>
+                                                        <div className="text-sm text-slate-400">{user.email}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                                {user.student_id || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                                {user.department || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                                {user.tenth_school || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                                {user.twelfth_school || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center space-x-2">
+                                                    {user.is_active ? (
+                                                        <CheckCircle className="h-4 w-4 text-green-400" />
+                                                    ) : (
+                                                        <Clock className="h-4 w-4 text-yellow-400" />
+                                                    )}
+                                                    <span className={`text-sm ${user.is_active ? 'text-green-400' : 'text-yellow-400'}`}>
+                                                        {user.is_active ? 'Active' : 'Pending'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                                                {formatDate(user.created_at)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <div className="flex items-center space-x-2">
+                                                    {!user.is_approved && (
+                                                        <button
+                                                            onClick={() => approveUser(user.id)}
+                                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors shadow-sm"
+                                                            title="Approve User"
+                                                        >
+                                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                                            Approve
+                                                        </button>
+                                                    )}
+                                                    {user.is_approved && (
+                                                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
+                                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                                            Approved
+                                                        </span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => setViewingUser(user)}
+                                                        className="text-blue-600 hover:text-blue-900"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditingUser(user)}
+                                                        className="text-green-600 hover:text-green-900"
+                                                        title="Edit User"
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteUser(user)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                        title="Delete User"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg p-12 text-center">
+                        <GraduationCap className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-white mb-2">No students found</h3>
+                        <p className="text-sm text-slate-300 mb-4">
+                            {searchTerm
+                                ? 'Try adjusting your search criteria'
+                                : 'Get started by creating a new student'}
+                        </p>
+                        {!searchTerm && (
+                            <button
+                                onClick={() => setShowCreateUser(true)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center"
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Student
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const renderCredentials = () => (
         <div className="space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 className="text-lg font-bold text-[#1E293B] mb-4">Recent Credentials</h3>
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Issued Credentials</h3>
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-[#F8FAFC]">
+                    <table className="min-w-full divide-y divide-white/10">
+                        <thead className="bg-slate-900/50">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Credential
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Student
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Issued By
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Date
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                                     Status
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                    Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {(Array.isArray(credentials) ? credentials : []).slice(0, 10).map((credential) => (
-                                <tr key={credential.id} className="hover:bg-[#F8FAFC] transition-colors">
+                        <tbody className="bg-slate-800/30 divide-y divide-white/10">
+                            {(Array.isArray(credentials) ? credentials : []).map((credential) => (
+                                <tr key={credential.id} className="hover:bg-white/5">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-[#1E293B]">{credential.title}</div>
-                                        <div className="text-sm text-[#64748B]">{credential.type}</div>
+                                        <div className="text-sm font-medium text-white">{credential.title || 'N/A'}</div>
+                                        <div className="text-sm text-slate-400">{credential.type || (credential as any).cert_type || 'N/A'}</div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
-                                        {credential.student_id}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                        {credential.student_id || 'N/A'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1E293B]">
-                                        {credential.issued_by}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                        {credential.issued_by || 'N/A'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#64748B]">
-                                        {formatDate(credential.issued_date)}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                                        {credential.issued_date ? formatDate(credential.issued_date) : 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${credential.status === 'issued' ? 'bg-green-100 text-green-700' :
-                                            credential.status === 'verified' ? 'bg-[#06B6D4]/10 text-[#06B6D4]' :
-                                                'bg-orange-100 text-orange-700'
+                                        <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${credential.status === 'issued' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
+                                            credential.status === 'verified' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                                                'bg-orange-500/20 text-orange-300 border border-orange-500/30'
                                             }`}>
-                                            {credential.status}
+                                            {credential.status || 'issued'}
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button
+                                            onClick={() => handleDeleteCredential(credential.id)}
+                                            className="text-red-400 hover:text-red-300 transition-colors"
+                                            title="Delete Credential"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
@@ -586,72 +753,81 @@ const AdminDashboard: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center">
+            <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center text-white">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#E2E8F0] border-t-[#06B6D4] mx-auto"></div>
-                    <p className="mt-4 text-[#64748B] font-medium">Loading admin dashboard...</p>
+                    <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto mt-4 mb-4"></div>
+                    <p className="text-sm text-slate-300">Loading admin dashboard...</p>
                 </div>
-            </div>
+            </main>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#F1F5F9]">
+        <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white">
             {/* Header */}
-            <div className="bg-[#1E293B] shadow-xl">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-[#06B6D4] rounded-xl shadow-lg">
-                                <Shield className="h-8 w-8 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-                                <p className="text-gray-300">Manage users and credentials</p>
-                            </div>
+            <header className="border-b border-white/10 bg-white/5 backdrop-blur-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl border border-white/20 bg-white/10 flex items-center justify-center shadow-lg">
+                            <Shield className="h-6 w-6 text-indigo-300" />
                         </div>
-                        <div className="flex items-center space-x-4">
-                            <span className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#06B6D4] text-white shadow-md">
-                                SSN Main Administrator
-                            </span>
-                            <button
-                                onClick={logout}
-                                className="px-6 py-2.5 bg-white text-[#1E293B] rounded-lg hover:bg-gray-100 transition-all duration-200 font-semibold shadow-md"
-                            >
-                                Logout
-                            </button>
+                        <div>
+                            <p className="text-[10px] uppercase tracking-[0.4em] text-indigo-300 font-semibold">BlockCred</p>
+                            <h1 className="text-xl font-semibold text-white mt-1">Main Admin Dashboard</h1>
+                            <p className="text-xs text-indigo-200">Manage users and credentials</p>
                         </div>
                     </div>
+                    <div className="flex items-center gap-3">
+                        <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-indigo-200 border border-white/20">
+                            SSN Main Administrator
+                        </span>
+                        <button
+                            onClick={logout}
+                            className="px-4 py-2 text-xs font-semibold text-white border border-white/20 rounded-lg hover:bg-white/10 transition-all"
+                        >
+                            Logout
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </header>
 
             {/* Navigation Tabs */}
-            <div className="bg-white border-b border-gray-200 shadow-sm">
+            <div className="border-b border-white/10 bg-white/5 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <nav className="flex space-x-8">
+                    <nav className="flex space-x-1">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${activeTab === 'overview'
-                                ? 'border-[#06B6D4] text-[#06B6D4]'
-                                : 'border-transparent text-[#64748B] hover:text-[#1E293B] hover:border-gray-300'
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'overview'
+                                ? 'bg-white/10 text-white border-t border-x border-white/20'
+                                : 'text-indigo-200 hover:text-white'
                                 }`}
                         >
                             Overview
                         </button>
                         <button
-                            onClick={() => setActiveTab('users')}
-                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${activeTab === 'users'
-                                ? 'border-[#06B6D4] text-[#06B6D4]'
-                                : 'border-transparent text-[#64748B] hover:text-[#1E293B] hover:border-gray-300'
+                            onClick={() => setActiveTab('authorities')}
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'authorities'
+                                ? 'bg-white/10 text-white border-t border-x border-white/20'
+                                : 'text-indigo-200 hover:text-white'
                                 }`}
                         >
-                            Users
+                            Authorities
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('students')}
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'students'
+                                ? 'bg-white/10 text-white border-t border-x border-white/20'
+                                : 'text-indigo-200 hover:text-white'
+                                }`}
+                        >
+                            Students
                         </button>
                         <button
                             onClick={() => setActiveTab('credentials')}
-                            className={`py-4 px-1 border-b-2 font-semibold text-sm transition-all duration-200 ${activeTab === 'credentials'
-                                ? 'border-[#06B6D4] text-[#06B6D4]'
-                                : 'border-transparent text-[#64748B] hover:text-[#1E293B] hover:border-gray-300'
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'credentials'
+                                ? 'bg-white/10 text-white border-t border-x border-white/20'
+                                : 'text-indigo-200 hover:text-white'
                                 }`}
                         >
                             Credentials
@@ -663,7 +839,8 @@ const AdminDashboard: React.FC = () => {
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {activeTab === 'overview' && renderOverview()}
-                {activeTab === 'users' && renderUsers()}
+                {activeTab === 'authorities' && renderAuthorities()}
+                {activeTab === 'students' && renderStudents()}
                 {activeTab === 'credentials' && renderCredentials()}
             </div>
 
@@ -706,7 +883,7 @@ const AdminDashboard: React.FC = () => {
                     onCancel={() => setDeletingUser(null)}
                 />
             )}
-        </div>
+        </main>
     );
 };
 
@@ -835,7 +1012,7 @@ const CreateUserModal: React.FC<{
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-[#1E293B] mb-2">
-                                    Role *
+                                    Issuing Authority Role *
                                 </label>
                                 <select
                                     required
@@ -843,9 +1020,11 @@ const CreateUserModal: React.FC<{
                                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                     className="w-full px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-transparent transition-all"
                                 >
-                                    <option value="coe">Controller of Examinations</option>
-                                    <option value="department_faculty">Department Faculty</option>
-                                    <option value="club_coordinator">Club Coordinator</option>
+                                    <optgroup label="Issuing Authorities">
+                                        <option value="coe">COE - Controller of Examinations</option>
+                                        <option value="department_faculty">Faculty - Department Faculty</option>
+                                        <option value="club_coordinator">Club - Club Coordinator</option>
+                                    </optgroup>
                                 </select>
                             </div>
                         </div>
@@ -1145,7 +1324,7 @@ const EditUserModal: React.FC<{
                             <div className="space-y-6">
                                 <div>
                                     <label className="block text-sm font-semibold text-[#1E293B] mb-2">
-                                        Role <span className="text-red-500">*</span>
+                                        Issuing Authority Role <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         required
@@ -1165,9 +1344,11 @@ const EditUserModal: React.FC<{
                                         className="w-full px-4 py-3 bg-white border-2 border-[#E2E8F0] rounded-lg text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:border-[#06B6D4] transition-all"
                                     >
                                         <option value="ssn_main_admin">SSN Main Admin</option>
-                                        <option value="coe">Controller of Examinations</option>
-                                        <option value="department_faculty">Department Faculty</option>
-                                        <option value="club_coordinator">Club Coordinator</option>
+                                        <optgroup label="Issuing Authorities">
+                                            <option value="coe">COE - Controller of Examinations</option>
+                                            <option value="department_faculty">Faculty - Department Faculty</option>
+                                            <option value="club_coordinator">Club - Club Coordinator</option>
+                                        </optgroup>
                                     </select>
                                 </div>
 
