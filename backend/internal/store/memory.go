@@ -13,7 +13,9 @@ type MemoryStore struct {
 	mu            sync.RWMutex
 	users         []models.User
 	credentials   []models.Credential
-	certificates  []models.Certificate
+	certificates   []models.Certificate
+	courses       []models.Course
+	resultDetails []models.ResultDetail
 	nextUserID    int
 	nextCredID    int
 	nextCertID    int
@@ -21,12 +23,14 @@ type MemoryStore struct {
 
 func NewMemoryStore() *MemoryStore {
 	s := &MemoryStore{
-		nextUserID:    1,
-		nextCredID:    1,
-		nextCertID:    1,
-		users:         make([]models.User, 0, 32),
-		credentials:   make([]models.Credential, 0, 64),
-		certificates:  make([]models.Certificate, 0, 64),
+		nextUserID:     1,
+		nextCredID:     1,
+		nextCertID:     1,
+		users:          make([]models.User, 0, 32),
+		credentials:    make([]models.Credential, 0, 64),
+		certificates:   make([]models.Certificate, 0, 64),
+		courses:        make([]models.Course, 0, 128),
+		resultDetails:  make([]models.ResultDetail, 0, 512),
 	}
 	// seed demo data
 	s.seed()
@@ -284,6 +288,50 @@ func (s *MemoryStore) DeleteCertificate(certID string) error {
 		}
 	}
 	return fmt.Errorf("certificate not found")
+}
+
+func (s *MemoryStore) UpsertCourses(courses []models.Course) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, c := range courses {
+		if c.CourseCode == "" {
+			continue
+		}
+		found := false
+		for i, existing := range s.courses {
+			if existing.CourseCode == c.CourseCode {
+				s.courses[i] = c
+				found = true
+				break
+			}
+		}
+		if !found {
+			s.courses = append(s.courses, c)
+		}
+	}
+	return nil
+}
+
+func (s *MemoryStore) UpsertResultDetails(rows []models.ResultDetail) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, r := range rows {
+		if r.RegisterNo == "" || r.CourseCode == "" {
+			continue
+		}
+		found := false
+		for i, existing := range s.resultDetails {
+			if existing.RegisterNo == r.RegisterNo && existing.CourseCode == r.CourseCode {
+				s.resultDetails[i] = r
+				found = true
+				break
+			}
+		}
+		if !found {
+			s.resultDetails = append(s.resultDetails, r)
+		}
+	}
+	return nil
 }
 
 func (s *MemoryStore) Close() error {

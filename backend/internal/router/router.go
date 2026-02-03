@@ -46,6 +46,7 @@ func New(cfg config.Config) http.Handler {
 	credentials := &handlerspkg.CredentialHandler{Credentials: credSvc}
 	certificates := &handlerspkg.CertificateHandler{Certificates: certSvc}
 	dashboard := &handlerspkg.DashboardHandler{Dashboard: dashboardSvc}
+	courses := &handlerspkg.CoursesHandler{Store: st}
 
 	r := mux.NewRouter()
 
@@ -90,6 +91,10 @@ func New(cfg config.Config) http.Handler {
 	api.HandleFunc("/dashboard/stats", authMiddleware.RequireAuth(dashboard.GetStats)).Methods("GET")
 	api.HandleFunc("/dashboard/students/{id}", authMiddleware.RequireAuth(dashboard.GetStudentData)).Methods("GET")
 	api.HandleFunc("/dashboard/students/{student_id}/credentials", authMiddleware.RequireAuth(dashboard.GetStudentCredentials)).Methods("GET")
+
+	// Add-result: course and result-detail uploads (Excel)
+	api.HandleFunc("/courses", authMiddleware.RequireAuth(courses.UploadCourses)).Methods("POST")
+	api.HandleFunc("/result-details", authMiddleware.RequireAuth(courses.UploadResultDetails)).Methods("POST")
 
 	// Cryptographic endpoints (DApp Architecture)
 	// Note: Cryptographic operations are handled internally by certificate service

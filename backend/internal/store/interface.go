@@ -28,6 +28,10 @@ type Store interface {
 	ListCredentials() ([]models.Credential, error)
 	GetCredentialsByStudentID(studentID string) ([]models.Credential, error)
 
+	// Course and result-detail operations (add-result Excel upload)
+	UpsertCourses(courses []models.Course) error
+	UpsertResultDetails(rows []models.ResultDetail) error
+
 	// Cleanup
 	Close() error
 }

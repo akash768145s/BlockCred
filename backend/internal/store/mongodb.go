@@ -14,11 +14,13 @@ import (
 )
 
 type MongoDBStore struct {
-	client       *mongo.Client
-	database     *mongo.Database
-	users        *mongo.Collection
-	credentials  *mongo.Collection
-	certificates *mongo.Collection
+	client         *mongo.Client
+	database       *mongo.Database
+	users          *mongo.Collection
+	credentials    *mongo.Collection
+	certificates   *mongo.Collection
+	courses        *mongo.Collection
+	resultDetails  *mongo.Collection
 }
 
 func NewMongoDBStore(uri, database string) (*MongoDBStore, error) {
@@ -37,11 +39,13 @@ func NewMongoDBStore(uri, database string) (*MongoDBStore, error) {
 
 	db := client.Database(database)
 	store := &MongoDBStore{
-		client:       client,
-		database:     db,
-		users:        db.Collection("users"),
-		credentials:  db.Collection("credentials"),
-		certificates: db.Collection("certificates"),
+		client:        client,
+		database:      db,
+		users:         db.Collection("users"),
+		credentials:   db.Collection("credentials"),
+		certificates:  db.Collection("certificates"),
+		courses:       db.Collection("courses"),
+		resultDetails: db.Collection("result_details"),
 	}
 
 	// Create indexes
@@ -461,6 +465,49 @@ func (s *MongoDBStore) GetCredentialsByStudentID(studentID string) ([]models.Cre
 	}
 
 	return credentials, nil
+}
+
+func (s *MongoDBStore) UpsertCourses(courses []models.Course) error {
+	ctx := context.Background()
+	for _, c := range courses {
+		if c.CourseCode == "" {
+			continue
+		}
+		filter := bson.M{"course_code": c.CourseCode}
+		update := bson.M{"$set": bson.M{
+			"course_code":  c.CourseCode,
+			"course_title": c.CourseTitle,
+			"semester":     c.Semester,
+			"credit":       c.Credit,
+		}}
+		opts := options.Update().SetUpsert(true)
+		if _, err := s.courses.UpdateOne(ctx, filter, update, opts); err != nil {
+			return fmt.Errorf("upsert course %s: %w", c.CourseCode, err)
+		}
+	}
+	return nil
+}
+
+func (s *MongoDBStore) UpsertResultDetails(rows []models.ResultDetail) error {
+	ctx := context.Background()
+	for _, r := range rows {
+		if r.RegisterNo == "" || r.CourseCode == "" {
+			continue
+		}
+		filter := bson.M{"register_no": r.RegisterNo, "course_code": r.CourseCode}
+		update := bson.M{"$set": bson.M{
+			"register_no": r.RegisterNo,
+			"name":        r.Name,
+			"course_code": r.CourseCode,
+			"grade":       r.Grade,
+			"cleared_by":  r.ClearedBy,
+		}}
+		opts := options.Update().SetUpsert(true)
+		if _, err := s.resultDetails.UpdateOne(ctx, filter, update, opts); err != nil {
+			return fmt.Errorf("upsert result detail: %w", err)
+		}
+	}
+	return nil
 }
 
 func (s *MongoDBStore) Close() error {
