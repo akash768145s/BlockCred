@@ -11,6 +11,7 @@ const (
 	RoleDepartmentFaculty UserRole = "department_faculty"
 	RoleClubCoordinator   UserRole = "club_coordinator"
 	RoleExternalVerifier  UserRole = "external_verifier"
+	RoleStudentVerifier   UserRole = "student_verifier"
 	RoleStudent           UserRole = "student"
 )
 
@@ -85,6 +86,11 @@ func GetRolePermissions(role UserRole) RolePermissions {
 			CanVerifyCredentials: true,
 			CanReadOnlyAccess:    true,
 		}
+	case RoleStudentVerifier:
+		return RolePermissions{
+			CanApproveStudents:   true,
+			CanReadOnlyAccess:    true,
+		}
 	case RoleStudent:
 		return RolePermissions{
 			CanReadOnlyAccess: true,
@@ -102,6 +108,7 @@ func IsValidRole(role string) bool {
 		RoleDepartmentFaculty,
 		RoleClubCoordinator,
 		RoleExternalVerifier,
+		RoleStudentVerifier,
 		RoleStudent,
 	}
 
@@ -160,6 +167,8 @@ func GetRoleDisplayName(role UserRole) string {
 		return "Club Coordinator"
 	case RoleExternalVerifier:
 		return "External Verifier"
+	case RoleStudentVerifier:
+		return "Student Verifier"
 	case RoleStudent:
 		return "Student"
 	default:
@@ -216,6 +225,10 @@ func GetQuickActions(role UserRole) []QuickAction {
 	case RoleExternalVerifier:
 		return []QuickAction{
 			{ID: "verify_credential", Title: "Verify Credential", Description: "Verify credential authenticity", Icon: "search", Route: "/verifier/verify", Permission: "can_verify_credentials"},
+		}
+	case RoleStudentVerifier:
+		return []QuickAction{
+			{ID: "approve_students", Title: "Approve Students", Description: "Review and approve new student registrations", Icon: "user-check", Route: "/student-verifier", Permission: "can_approve_students"},
 		}
 	case RoleStudent:
 		return []QuickAction{

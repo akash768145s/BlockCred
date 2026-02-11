@@ -50,7 +50,8 @@ func (d *DashboardService) GetStats() (DashboardStats, error) {
 	verifiedToday := 0
 
 	for _, user := range users {
-		if !user.IsApproved && !user.IsActive {
+		// Treat any unapproved student as "pending" regardless of IsActive flag
+		if !user.IsApproved {
 			pendingUsers++
 		}
 		// Count issuers (COE, Faculty, Club Coordinators)

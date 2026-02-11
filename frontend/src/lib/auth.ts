@@ -62,7 +62,8 @@ export class AuthService {
         formData.append('name', data.name);
         formData.append('email', data.email);
         formData.append('phone', data.phone);
-        formData.append('password', data.password);
+        // Password: if empty, backend sets it to part of email before @
+        formData.append('password', data.password || '');
         formData.append('dob', data.dob);
         formData.append('father_name', data.father_name);
         formData.append('aadhar_number', data.aadhar_number);
@@ -73,13 +74,7 @@ export class AuthService {
         formData.append('twelfth_marks', data.twelfth_marks.toString());
         formData.append('cutoff', data.cutoff.toString());
 
-        // Add files if they exist
-        if (data.photo) {
-            formData.append('photo', data.photo);
-        }
-        if (data.twelfth_marksheet) {
-            formData.append('twelfth_marksheet', data.twelfth_marksheet);
-        }
+        // Photo and marksheet no longer required
 
         const response = await fetch(`${API_BASE_URL}/register`, {
             method: 'POST',
@@ -119,7 +114,12 @@ export class AuthService {
         return result;
     }
 
-    static getRoleRedirectPath(role: UserRole): string {
+    static getRoleRedirectPath(role: UserRole, permissions?: RolePermissions): string {
+        // Check permissions first - if user can approve students, redirect to student-verifier
+        if (permissions?.can_approve_students && !permissions?.can_verify_credentials) {
+            return '/student-verifier';
+        }
+        
         switch (role) {
             case 'ssn_main_admin':
                 return '/admin';
@@ -131,6 +131,10 @@ export class AuthService {
                 return '/club';
             case 'student':
                 return '/student';
+            case 'external_verifier':
+                return '/verifier';
+            case 'student_verifier':
+                return '/student-verifier';
             default:
                 return '/dashboard';
         }

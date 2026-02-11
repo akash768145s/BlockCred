@@ -24,14 +24,22 @@ func (a *AuthService) Login(username, password string) (models.User, string, err
 	}
 	
 	for _, u := range users {
-		if (strings.EqualFold(u.Email, username) || strings.EqualFold(u.Name, username)) && password != "" {
-			if !u.IsApproved {
-				return models.User{}, "", errors.New("account not approved")
-			}
-			// stub token; replace with real JWT
-			token := fmt.Sprintf("token-%s", u.ID.Hex())
-			return u, token, nil
+		if !strings.EqualFold(u.Email, username) && !strings.EqualFold(u.Name, username) {
+			continue
 		}
+		// If user has a stored password hash, verify it; otherwise allow any non-empty password (legacy)
+		if u.PasswordHash != "" {
+			if password != u.PasswordHash {
+				continue
+			}
+		} else if password == "" {
+			continue
+		}
+		if !u.IsApproved {
+			return models.User{}, "", errors.New("account not approved")
+		}
+		token := fmt.Sprintf("token-%s", u.ID.Hex())
+		return u, token, nil
 	}
 	return models.User{}, "", errors.New("invalid credentials")
 }

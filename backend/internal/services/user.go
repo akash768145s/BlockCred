@@ -73,10 +73,16 @@ type UpdateUserInput struct {
 }
 
 func (u *UserService) Onboard(in OnboardInput) (models.User, error) {
+	// Validate role
+	if !models.IsValidRole(string(in.Role)) {
+		return models.User{}, fmt.Errorf("invalid role: %s", in.Role)
+	}
+	
 	user := models.User{
 		Name:        in.Name,
 		Email:       strings.TrimSpace(in.Email),
 		Phone:       in.Phone,
+		PasswordHash: in.Password, // Store password as hash (plain for now; use bcrypt in production)
 		Role:        in.Role,
 		Department:  in.Department,
 		Institution: in.Institution,
@@ -99,15 +105,27 @@ func (u *UserService) RegisterStudent(in RegisterStudentInput) (models.User, err
 		}
 	}
 	
+	// Password: use part of email before @ if not provided (e.g. john.doe@gmail.com → john.doe)
+	passwordPlain := strings.TrimSpace(in.Password)
+	if passwordPlain == "" && in.Email != "" {
+		if idx := strings.Index(in.Email, "@"); idx > 0 {
+			passwordPlain = in.Email[:idx]
+		}
+	}
+	if passwordPlain == "" {
+		passwordPlain = "student"
+	}
+
 	studentID := generateStudentID(in.Name, schoolName, int(in.TenthMarks), int(in.TwelfthMarks))
 	user := models.User{
 		Name:           in.Name,
 		Email:          strings.TrimSpace(in.Email),
 		Phone:          in.Phone,
+		PasswordHash:   passwordPlain, // stored as plain for now; use bcrypt in production
 		Role:           models.RoleStudent,
 		StudentID:      studentID,
 		DOB:            in.DOB,
-		SchoolName:     schoolName, // Use the determined school name
+		SchoolName:     schoolName,
 		FatherName:     in.FatherName,
 		AadharNumber:   in.AadharNumber,
 		TenthSchool:    in.TenthSchool,
@@ -115,7 +133,7 @@ func (u *UserService) RegisterStudent(in RegisterStudentInput) (models.User, err
 		TwelfthSchool:  in.TwelfthSchool,
 		TwelfthMarks:   in.TwelfthMarks,
 		Cutoff:         in.Cutoff,
-		Department:     in.Department, // Added department field
+		Department:     in.Department,
 		IsActive:       true,
 		IsApproved:     false,
 		NodeAssigned:   false,

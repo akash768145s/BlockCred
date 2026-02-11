@@ -145,6 +145,10 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onUse
                                         <option value="department_faculty" className="text-white bg-slate-800">Faculty - Department Faculty</option>
                                         <option value="club_coordinator" className="text-white bg-slate-800">Club - Club Coordinator</option>
                                     </optgroup>
+                                    <optgroup label="Verifiers" className="bg-slate-800">
+                                        <option value="student_verifier" className="text-white bg-slate-800">Student Verifier (approve registrations)</option>
+                                        <option value="external_verifier" className="text-white bg-slate-800">External Verifier (verify credentials)</option>
+                                    </optgroup>
                                 </select>
                             </div>
                         </div>

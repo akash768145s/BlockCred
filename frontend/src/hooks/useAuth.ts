@@ -95,7 +95,12 @@ export const useAuth = () => {
             AuthService.storeUserSession(userData, token);
             setUser(userData);
 
-            const redirectPath = AuthService.getRoleRedirectPath(userData.role);
+            // Debug: log the role received from backend
+            console.log('User role from backend:', userData.role);
+            console.log('User permissions:', userData.permissions);
+
+            const redirectPath = AuthService.getRoleRedirectPath(userData.role, userData.permissions);
+            console.log('Redirect path:', redirectPath);
             router.push(redirectPath);
 
             return { success: true, message: 'Login successful!' };

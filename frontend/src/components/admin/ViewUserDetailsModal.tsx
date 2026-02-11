@@ -7,9 +7,10 @@ import { getRoleDisplayName, formatDate } from '@/lib/utils';
 interface ViewUserDetailsModalProps {
     user: any;
     onClose: () => void;
+    onApprove?: (userId: string | number) => void;
 }
 
-export const ViewUserDetailsModal: React.FC<ViewUserDetailsModalProps> = ({ user, onClose }) => {
+export const ViewUserDetailsModal: React.FC<ViewUserDetailsModalProps> = ({ user, onClose, onApprove }) => {
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50">
             <div className="bg-slate-800/95 backdrop-blur-md border border-white/10 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -178,7 +179,19 @@ export const ViewUserDetailsModal: React.FC<ViewUserDetailsModalProps> = ({ user
                         )}
                     </div>
 
-                    <div className="flex justify-end mt-6 pt-4 border-t border-white/10">
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+                        {onApprove && !user.is_approved && (
+                            <button
+                                onClick={() => {
+                                    onApprove(user.id);
+                                    onClose();
+                                }}
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-md"
+                            >
+                                <CheckCircle className="h-5 w-5" />
+                                Approve
+                            </button>
+                        )}
                         <button
                             onClick={onClose}
                             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"

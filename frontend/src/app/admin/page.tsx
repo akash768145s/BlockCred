@@ -97,12 +97,12 @@ const AdminDashboard: React.FC = () => {
     };
 
     const handleApproveUser = async (userId: string | number) => {
-        const userIdNumber = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-        if (isNaN(userIdNumber)) {
+        const id = typeof userId === 'number' ? String(userId) : userId;
+        if (!id) {
             console.error('Invalid user ID:', userId);
             return;
         }
-        await approveUser(userIdNumber);
+        await approveUser(id);
     };
 
     const loading = usersLoading || credentialsLoading || statsLoading;

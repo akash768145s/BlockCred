@@ -121,8 +121,8 @@ export class ApiService {
         };
     }
 
-    static async approveUser(userId: number): Promise<void> {
-        const response = await fetch(`${API_BASE_URL}/users/${userId}/approve`, {
+    static async approveUser(userId: string | number): Promise<void> {
+        const response = await fetch(`${API_BASE_URL}/users/${String(userId)}/approve`, {
             method: 'POST',
             headers: this.getAuthHeaders(),
         });

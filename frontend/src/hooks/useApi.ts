@@ -26,7 +26,7 @@ export const useUsers = () => {
         fetchUsers();
     }, []);
 
-    const approveUser = async (userId: number) => {
+    const approveUser = async (userId: string | number) => {
         try {
             await ApiService.approveUser(userId);
             await fetchUsers(); // Refresh the list

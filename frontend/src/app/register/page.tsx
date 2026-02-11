@@ -9,9 +9,7 @@ export default function RegisterPage() {
         name: "",
         email: "",
         phone: "",
-        password: "",
         dob: "",
-        photo: null as File | null,
         father_name: "",
         aadhar_number: "",
         department: "",
@@ -19,7 +17,6 @@ export default function RegisterPage() {
         tenth_marks: "",
         twelfth_school: "",
         twelfth_marks: "",
-        twelfth_marksheet: null as File | null,
         cutoff: "",
     });
     const [loading, setLoading] = useState(false);
@@ -47,9 +44,9 @@ export default function RegisterPage() {
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
-            password: formData.password,
+            password: "",
             dob: formData.dob,
-            photo: formData.photo,
+            photo: null,
             father_name: formData.father_name,
             aadhar_number: formData.aadhar_number,
             department: formData.department,
@@ -57,7 +54,7 @@ export default function RegisterPage() {
             tenth_marks: parseFloat(formData.tenth_marks),
             twelfth_school: formData.twelfth_school,
             twelfth_marks: parseFloat(formData.twelfth_marks),
-            twelfth_marksheet: formData.twelfth_marksheet,
+            twelfth_marksheet: null,
             cutoff: parseFloat(formData.cutoff),
         });
 
@@ -68,9 +65,7 @@ export default function RegisterPage() {
                 name: "",
                 email: "",
                 phone: "",
-                password: "",
                 dob: "",
-                photo: null,
                 father_name: "",
                 aadhar_number: "",
                 department: "",
@@ -78,7 +73,6 @@ export default function RegisterPage() {
                 tenth_marks: "",
                 twelfth_school: "",
                 twelfth_marks: "",
-                twelfth_marksheet: null,
                 cutoff: "",
             });
         } else {
@@ -310,51 +304,6 @@ export default function RegisterPage() {
                             />
                         </div>
 
-                        <div>
-                            <label htmlFor="password" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
-                                Password *
-                            </label>
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-                                placeholder="Create a password"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="photo" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
-                                Photo *
-                            </label>
-                            <input
-                                type="file"
-                                id="photo"
-                                name="photo"
-                                onChange={handleChange}
-                                accept="image/*"
-                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="twelfth_marksheet" className="block text-xs uppercase tracking-[0.3em] font-semibold text-indigo-200 mb-2">
-                                12th Mark Sheet (PDF) *
-                            </label>
-                            <input
-                                type="file"
-                                id="twelfth_marksheet"
-                                name="twelfth_marksheet"
-                                onChange={handleChange}
-                                accept=".pdf"
-                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-indigo-200/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-                                required
-                            />
-                        </div>
                     </div>
 
                     {error && (
@@ -395,9 +344,9 @@ export default function RegisterPage() {
                     <ol className="text-sm text-indigo-100 space-y-2 list-decimal list-inside">
                         <li>Fill out the registration form with your personal details and academic records</li>
                         <li>Select your 10th grade school and marks from the dropdown</li>
-                        <li>Upload your photo and 12th mark sheet PDF</li>
                         <li>A unique Student ID will be generated based on your information</li>
-                        <li>Admin will review and approve your registration</li>
+                        <li>Your password is the part of your email before @ (e.g. john.doe@gmail.com → password: john.doe)</li>
+                        <li>Student Verifier or Admin will review and approve your registration</li>
                     </ol>
                 </div>
             </div>
