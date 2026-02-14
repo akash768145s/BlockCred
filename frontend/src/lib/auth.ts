@@ -114,30 +114,11 @@ export class AuthService {
         return result;
     }
 
-    static getRoleRedirectPath(role: UserRole, permissions?: RolePermissions): string {
-        // Check permissions first - if user can approve students, redirect to student-verifier
-        if (permissions?.can_approve_students && !permissions?.can_verify_credentials) {
-            return '/student-verifier';
-        }
-        
-        switch (role) {
-            case 'ssn_main_admin':
-                return '/admin';
-            case 'coe':
-                return '/coe';
-            case 'department_faculty':
-                return '/faculty';
-            case 'club_coordinator':
-                return '/club';
-            case 'student':
-                return '/student';
-            case 'external_verifier':
-                return '/verifier';
-            case 'student_verifier':
-                return '/student-verifier';
-            default:
-                return '/dashboard';
-        }
+    static getRoleRedirectPath(user: User): string {
+        // Use dashboard_route from role created in admin Roles tab.
+        // Backend already defaults dashboard_route to "/dashboard" when the role has no route.
+        const route = (user.dashboard_route || '').trim();
+        return route && route.startsWith('/') ? route : '/dashboard';
     }
 
     static storeUserSession(user: User, token: string): void {
@@ -149,7 +130,9 @@ export class AuthService {
             phone: user.phone,
             student_id: user.student_id,
             role: user.role,
-            role_name: user.role,
+            role_id: user.role_id,
+            role_name: user.role_name,
+            dashboard_route: user.dashboard_route,
             department: user.department,
             institution: user.institution,
             club_name: user.club_name,

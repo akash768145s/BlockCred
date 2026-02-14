@@ -26,7 +26,7 @@ export const coeService = {
     },
 
     async fetchCredentials(): Promise<COECredential[]> {
-        const response = await fetch(`${API_BASE_URL}/certificates`, {
+        const response = await fetch(`${API_BASE_URL}/certificates/issuer`, {
             headers: getAuthHeaders(),
         });
 
@@ -35,10 +35,7 @@ export const coeService = {
         }
 
         const data = await response.json();
-        const allCredentials = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-        return allCredentials.filter((cert: any) =>
-            cert.cert_type === 'marksheet' || cert.cert_type === 'degree'
-        );
+        return Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
     },
 
     async issueCredential(formData: IssueCredentialFormData, subjects: Subject[]): Promise<any> {
@@ -101,30 +98,28 @@ startxref
 
         const base64Content = btoa(samplePdfContent);
 
-        // Validate subjects
+        // Calculate CGPA from subjects if provided, otherwise trust form value
         const validSubjects = subjects.filter(s =>
             s.subject_code.trim() && s.subject_name.trim() && s.marks.trim() && s.credits.trim()
         );
 
-        if (validSubjects.length === 0) {
-            throw new Error('Please add at least one subject with all required fields');
+        let calculatedCGPA = formData.cgpa;
+        if (validSubjects.length > 0) {
+            let totalCredits = 0;
+            let totalPoints = 0;
+            const gradePoints: { [key: string]: number } = {
+                'S': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C+': 5, 'C': 4, 'D': 3, 'F': 0
+            };
+
+            validSubjects.forEach(subject => {
+                const credits = parseFloat(subject.credits) || 0;
+                const points = gradePoints[subject.grade.toUpperCase()] || 0;
+                totalCredits += credits;
+                totalPoints += points * credits;
+            });
+
+            calculatedCGPA = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : formData.cgpa;
         }
-
-        // Calculate total credits and weighted GPA
-        let totalCredits = 0;
-        let totalPoints = 0;
-        const gradePoints: { [key: string]: number } = {
-            'S': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C+': 5, 'C': 4, 'D': 3, 'F': 0
-        };
-
-        validSubjects.forEach(subject => {
-            const credits = parseFloat(subject.credits) || 0;
-            const points = gradePoints[subject.grade.toUpperCase()] || 0;
-            totalCredits += credits;
-            totalPoints += points * credits;
-        });
-
-        const calculatedCGPA = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : formData.cgpa;
 
         // Get student info
         const students = await this.fetchStudents();
@@ -132,7 +127,8 @@ startxref
 
         const certificateData = {
             student_id: formData.student_id,
-            cert_type: formData.type === 'degree' ? 'degree' : 'marksheet',
+            // Use the selected credential type name/slug directly so UI can distinguish types
+            cert_type: formData.type || 'marksheet',
             file_data: base64Content,
             file_name: `${formData.type}_${formData.student_id}_${Date.now()}.pdf`,
             metadata: {
@@ -154,7 +150,9 @@ startxref
                     marks: parseFloat(s.marks) || 0,
                     grade: s.grade,
                     credits: parseFloat(s.credits) || 0
-                }))
+                })),
+                // Dynamic custom fields for this credential type (if any)
+                extra: formData.extra || {},
             }
         };
 

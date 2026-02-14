@@ -85,6 +85,8 @@ export interface IssueCredentialFormData {
     type: string;
     semester: string;
     cgpa: string;
+    // Dynamic extra fields coming from CredentialTypeConfig.fields
+    extra?: Record<string, any>;
 }
 
 export interface IssueCertificateFormData {
@@ -94,6 +96,8 @@ export interface IssueCertificateFormData {
     purpose: string;
     description: string;
     valid_until: string;
+    // Dynamic extra fields coming from CredentialTypeConfig.fields
+    extra?: Record<string, any>;
 }
 
 export interface IssueClubCertificateFormData {
@@ -104,5 +108,7 @@ export interface IssueClubCertificateFormData {
     position: string;
     description: string;
     event_date: string;
+    // Dynamic extra fields coming from CredentialTypeConfig.fields
+    extra?: Record<string, any>;
 }
 

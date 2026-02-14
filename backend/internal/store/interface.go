@@ -13,6 +13,26 @@ type Store interface {
 	UpdateUser(userID string, updates models.User) (models.User, error)
 	DeleteUser(userID string) error
 
+	// Role operations (dynamic RBAC)
+	CreateRole(role models.Role) (models.Role, error)
+	ListRoles() ([]models.Role, error)
+	GetRoleByID(id string) (models.Role, error)
+	UpdateRole(id string, updates models.Role) (models.Role, error)
+	DeleteRole(id string) error
+
+	// Department operations
+	CreateDepartment(dept models.Department) (models.Department, error)
+	ListDepartments() ([]models.Department, error)
+	UpdateDepartment(id string, updates models.Department) (models.Department, error)
+	DeleteDepartment(id string) error
+
+	// Credential type configuration operations
+	CreateCredentialType(ct models.CredentialTypeConfig) (models.CredentialTypeConfig, error)
+	ListCredentialTypes() ([]models.CredentialTypeConfig, error)
+	GetCredentialTypeByName(name string) (models.CredentialTypeConfig, error)
+	UpdateCredentialType(id string, updates models.CredentialTypeConfig) (models.CredentialTypeConfig, error)
+	DeleteCredentialType(id string) error
+
 	// Certificate operations
 	CreateCertificate(cert models.Certificate) (models.Certificate, error)
 	GetCertificateByID(id string) (models.Certificate, error)

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { adminService } from "@/services/adminService";
 
 export default function RegisterPage() {
+    const [academicDepartments, setAcademicDepartments] = useState<{ id: string; name: string }[]>([]);
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -25,6 +27,12 @@ export default function RegisterPage() {
 
     const router = useRouter();
     const { register } = useAuth();
+
+    useEffect(() => {
+        adminService.listPublicDepartments().then((list: any[]) => {
+            if (Array.isArray(list)) setAcademicDepartments(list);
+        }).catch(() => {});
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, files } = e.target as HTMLInputElement;
@@ -205,14 +213,9 @@ export default function RegisterPage() {
                                 required
                             >
                                 <option value="" className="bg-slate-800 text-slate-400">Select Department</option>
-                                <option value="Electrical and Electronics Engineering" className="bg-slate-800 text-white">Electrical and Electronics Engineering</option>
-                                <option value="Electronics and Communication Engineering" className="bg-slate-800 text-white">Electronics and Communication Engineering</option>
-                                <option value="Computer Science and Engineering" className="bg-slate-800 text-white">Computer Science and Engineering</option>
-                                <option value="Information Technology" className="bg-slate-800 text-white">Information Technology</option>
-                                <option value="Mechanical Engineering" className="bg-slate-800 text-white">Mechanical Engineering</option>
-                                <option value="Chemical Engineering" className="bg-slate-800 text-white">Chemical Engineering</option>
-                                <option value="Biomedical Engineering" className="bg-slate-800 text-white">Biomedical Engineering</option>
-                                <option value="Civil Engineering" className="bg-slate-800 text-white">Civil Engineering</option>
+                                {academicDepartments.map((d) => (
+                                    <option key={d.id} value={d.name} className="bg-slate-800 text-white">{d.name}</option>
+                                ))}
                             </select>
                         </div>
 

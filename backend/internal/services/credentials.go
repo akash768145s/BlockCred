@@ -34,6 +34,8 @@ type IssueCredentialInput struct {
 	ValidUntil  string                `json:"valid_until,omitempty"`
 	EventDate   string                `json:"event_date,omitempty"`
 	IssuedBy    string                `json:"issued_by"`
+	// Extra carries dynamic fields configured per credential type.
+	Extra       map[string]interface{} `json:"extra,omitempty"`
 }
 
 func (c *CredentialService) IssueCredential(in IssueCredentialInput) (models.Credential, error) {
@@ -55,6 +57,7 @@ func (c *CredentialService) IssueCredential(in IssueCredentialInput) (models.Cre
 		Position:    in.Position,
 		ValidUntil:  in.ValidUntil,
 		EventDate:   in.EventDate,
+		Extra:       in.Extra,
 	}
 	return c.store.CreateCredential(credential)
 }

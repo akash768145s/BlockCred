@@ -2,6 +2,14 @@ import { User } from '@/types/auth';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
+const safeJson = async (response: Response): Promise<any> => {
+    try {
+        return await response.json();
+    } catch {
+        return {};
+    }
+};
+
 const getAuthHeaders = (): HeadersInit => {
     const token = localStorage.getItem('token');
     return {
@@ -15,7 +23,8 @@ export interface CreateUserData {
     email: string;
     phone: string;
     password: string;
-    role: string;
+    role?: string;
+    role_id?: string;
     department?: string;
     institution?: string;
     club_name?: string;
@@ -26,6 +35,7 @@ export interface UpdateUserData {
     email?: string;
     phone?: string;
     role?: string;
+    role_id?: string;
     department?: string;
     institution?: string;
     club_name?: string;
@@ -48,9 +58,8 @@ export const adminService = {
             body: JSON.stringify(data),
         });
 
-        const result = await response.json();
-
-        if (!response.ok) {
+        const result = await safeJson(response);
+        if (!response.ok || result.success === false) {
             throw new Error(result.message || 'Failed to create user');
         }
 
@@ -64,13 +73,11 @@ export const adminService = {
             body: JSON.stringify(data),
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to update user');
+        const result = await safeJson(response);
+        if (!response.ok || result.success === false) {
+            throw new Error(result.message || 'Failed to update user');
         }
-
-        const result = await response.json();
-        return result.data;
+        return result.data as User;
     },
 
     async deleteUser(userId: string | number): Promise<void> {
@@ -79,8 +86,8 @@ export const adminService = {
             headers: getAuthHeaders(),
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
+        const errorData = await safeJson(response);
+        if (!response.ok || errorData.success === false) {
             throw new Error(errorData.message || 'Failed to delete user');
         }
     },
@@ -91,9 +98,215 @@ export const adminService = {
             headers: getAuthHeaders(),
         });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+        const errorData = await safeJson(response);
+        if (!response.ok || errorData.success === false) {
             throw new Error(errorData.message || 'Failed to delete credential');
+        }
+    },
+
+    // === RBAC configuration ===
+
+    async listRoles() {
+        const response = await fetch(`${API_BASE_URL}/admin/roles`, {
+            headers: getAuthHeaders(),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to fetch roles');
+        }
+        return result.data;
+    },
+
+    async createRole(data: {
+        name: string;
+        description?: string;
+        department_id?: string;
+        can_issue_credentials: boolean;
+        permissions: string[];
+        dashboard_route?: string;
+    }) {
+        const response = await fetch(`${API_BASE_URL}/admin/roles`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to create role');
+        }
+        return result.data;
+    },
+
+    async updateRole(id: string, data: {
+        name: string;
+        description?: string;
+        department_id?: string;
+        can_issue_credentials: boolean;
+        permissions: string[];
+        dashboard_route?: string;
+    }) {
+        const response = await fetch(`${API_BASE_URL}/admin/roles/${id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to update role');
+        }
+        return result.data;
+    },
+
+    async deleteRole(id: string) {
+        const response = await fetch(`${API_BASE_URL}/admin/roles/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || result.success === false) {
+            throw new Error(result.message || 'Failed to delete role');
+        }
+    },
+
+    async listDepartments() {
+        const response = await fetch(`${API_BASE_URL}/admin/departments`, {
+            headers: getAuthHeaders(),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to fetch departments');
+        }
+        return result.data;
+    },
+
+    /** Public: academic departments only, no auth (e.g. registration). */
+    async listPublicDepartments() {
+        const response = await fetch(`${API_BASE_URL}/public/departments`, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to fetch departments');
+        }
+        return result.data;
+    },
+
+    async createDepartment(data: { name: string; description?: string; academic_department?: boolean }) {
+        const response = await fetch(`${API_BASE_URL}/admin/departments`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to create department');
+        }
+        return result.data;
+    },
+
+    async updateDepartment(id: string, data: { name: string; description?: string; academic_department: boolean }) {
+        const response = await fetch(`${API_BASE_URL}/admin/departments/${id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to update department');
+        }
+        return result.data;
+    },
+
+    async deleteDepartment(id: string) {
+        const response = await fetch(`${API_BASE_URL}/admin/departments/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || result.success === false) {
+            throw new Error(result.message || 'Failed to delete department');
+        }
+    },
+
+    async listCredentialTypes() {
+        const response = await fetch(`${API_BASE_URL}/admin/credential-types`, {
+            headers: getAuthHeaders(),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to fetch credential types');
+        }
+        return result.data;
+    },
+
+    /** Public: credential types with id, name, fields for display (e.g. student dashboard). No auth. */
+    async listPublicCredentialTypes() {
+        const response = await fetch(`${API_BASE_URL}/public/credential-types`, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to fetch credential types');
+        }
+        return result.data;
+    },
+
+    /** Credential types current user (issuer) is allowed to issue. */
+    async listIssuerCredentialTypes() {
+        const response = await fetch(`${API_BASE_URL}/issuer/credential-types`, {
+            headers: getAuthHeaders(),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to fetch issuer credential types');
+        }
+        return result.data;
+    },
+
+    async createCredentialType(data: {
+        name: string;
+        description?: string;
+        role_ids: string[];
+        fields?: import('@/types/rbac').CredentialFieldConfig[];
+    }) {
+        const response = await fetch(`${API_BASE_URL}/admin/credential-types`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to create credential type');
+        }
+        return result.data;
+    },
+
+    async updateCredentialType(id: string, data: {
+        name: string;
+        description?: string;
+        role_ids: string[];
+        fields?: import('@/types/rbac').CredentialFieldConfig[];
+    }) {
+        const response = await fetch(`${API_BASE_URL}/admin/credential-types/${id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to update credential type');
+        }
+        return result.data;
+    },
+
+    async deleteCredentialType(id: string) {
+        const response = await fetch(`${API_BASE_URL}/admin/credential-types/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        });
+        const result = await safeJson(response);
+        if (!response.ok || result.success === false) {
+            throw new Error(result.message || 'Failed to delete credential type');
         }
     },
 };

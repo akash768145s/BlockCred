@@ -94,12 +94,18 @@ func (h *CertificateHandler) ListCertificates(w http.ResponseWriter, r *http.Req
 }
 
 func (h *CertificateHandler) ListCertificatesByStudent(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	studentID, ok := vars["student_id"]
+	// For security and correctness, always derive the student ID from the authenticated user.
+	// This endpoint is only used by the student dashboard in the frontend.
+	user, ok := r.Context().Value("user").(models.User)
 	if !ok {
-		httpx.JSON(w, http.StatusBadRequest, false, "student ID required", nil)
+		httpx.JSON(w, http.StatusUnauthorized, false, "user not authenticated", nil)
 		return
 	}
+	if user.StudentID == "" {
+		httpx.JSON(w, http.StatusForbidden, false, "student profile not linked", nil)
+		return
+	}
+	studentID := user.StudentID
 
 	certificates, err := h.Certificates.ListCertificatesByStudent(studentID)
 	if err != nil {
@@ -111,12 +117,13 @@ func (h *CertificateHandler) ListCertificatesByStudent(w http.ResponseWriter, r 
 }
 
 func (h *CertificateHandler) ListCertificatesByIssuer(w http.ResponseWriter, r *http.Request) {
-	// Get issuer ID from context
-	issuerID, ok := r.Context().Value("user_id").(string)
+	// Get user from context (same as IssueCertificate)
+	user, ok := r.Context().Value("user").(models.User)
 	if !ok {
 		httpx.JSON(w, http.StatusUnauthorized, false, "user not authenticated", nil)
 		return
 	}
+	issuerID := user.ID.Hex()
 
 	certificates, err := h.Certificates.ListCertificatesByIssuer(issuerID)
 	if err != nil {

@@ -13,7 +13,14 @@ type User struct {
 	Phone         string             `bson:"phone" json:"phone"`
 	PasswordHash  string             `bson:"password_hash" json:"-"`
 	StudentID     string             `bson:"student_id,omitempty" json:"student_id,omitempty"`
-	Role          UserRole           `bson:"role" json:"role"`
+	// Legacy role field kept for backward compatibility.
+	// New code should use RoleID / RoleName and the Role collection.
+	Role          UserRole           `bson:"role,omitempty" json:"role,omitempty"`
+	// Dynamic role reference
+	RoleID        *primitive.ObjectID `bson:"role_id,omitempty" json:"role_id,omitempty"`
+	RoleName      string              `bson:"role_name,omitempty" json:"role_name,omitempty"`
+	// Department is now modeled as a separate collection, but this string
+	// field is kept for backward compatibility and display purposes.
 	Department    string             `bson:"department,omitempty" json:"department,omitempty"`
 	Institution   string             `bson:"institution,omitempty" json:"institution,omitempty"`
 	ClubName      string             `bson:"club_name,omitempty" json:"club_name,omitempty"`
@@ -36,3 +43,4 @@ type User struct {
 func (u *User) CanPerformAction(permission string) bool {
 	return CanPerformAction(u.Role, permission)
 }
+

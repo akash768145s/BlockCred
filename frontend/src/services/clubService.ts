@@ -26,7 +26,7 @@ export const clubService = {
     },
 
     async fetchCredentials(): Promise<ClubCredential[]> {
-        const response = await fetch(`${API_BASE_URL}/certificates`, {
+        const response = await fetch(`${API_BASE_URL}/certificates/issuer`, {
             headers: getAuthHeaders(),
         });
 
@@ -35,10 +35,7 @@ export const clubService = {
         }
 
         const data = await response.json();
-        const allCredentials = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-        return allCredentials.filter((cert: any) =>
-            cert.cert_type === 'participation_cert' || cert.cert_type === 'achievement_cert'
-        );
+        return Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
     },
 
     async issueCertificate(formData: IssueClubCertificateFormData): Promise<any> {
@@ -115,7 +112,7 @@ startxref
 
         const certificateData = {
             student_id: formData.student_id,
-            cert_type: 'participation_cert',
+            cert_type: formData.type || 'participation_cert',
             file_data: base64Content,
             file_name: `participation_${formData.student_id}_${Date.now()}.pdf`,
             metadata: {
@@ -131,7 +128,9 @@ startxref
                 event_date: formData.event_date,
                 valid_from: new Date().toISOString(),
                 valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-                description: formData.description || `Participation certificate for ${formData.event_name}`
+                description: formData.description || `${formData.type || 'Participation'} certificate`,
+                // Dynamic custom fields for this credential type (if any)
+                extra: formData.extra || {},
             }
         };
 

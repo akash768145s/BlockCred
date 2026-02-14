@@ -23,4 +23,6 @@ type Credential struct {
 	ValidUntil   string             `bson:"valid_until,omitempty" json:"valid_until,omitempty"`
 	EventDate    string             `bson:"event_date,omitempty" json:"event_date,omitempty"`
 	BlockchainTx string             `bson:"blockchain_tx,omitempty" json:"blockchain_tx,omitempty"`
+	// Extra holds dynamic, type-specific fields defined in CredentialTypeConfig.Fields.
+	Extra        map[string]interface{} `bson:"extra,omitempty" json:"extra,omitempty"`
 }

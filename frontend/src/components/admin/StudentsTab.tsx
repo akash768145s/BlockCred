@@ -16,6 +16,8 @@ interface StudentsTabProps {
     onViewUser: (user: any) => void;
     onEditUser: (user: any) => void;
     onDeleteUser: (user: any) => void;
+    // Optional dynamic departments from admin config
+    departments?: { id?: string; name: string }[];
 }
 
 export const StudentsTab: React.FC<StudentsTabProps> = ({
@@ -29,19 +31,19 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
     onViewUser,
     onEditUser,
     onDeleteUser,
+    departments: dynamicDepartments,
 }) => {
-    // Department options
-    const departments = [
-        { value: 'all', label: 'All Departments' },
-        { value: 'Computer Science Engineering', label: 'CSE' },
-        { value: 'Information Technology', label: 'IT' },
-        { value: 'Electronics and Communication Engineering', label: 'ECE' },
-        { value: 'Electrical and Electronics Engineering', label: 'EEE' },
-        { value: 'Civil Engineering', label: 'Civil' },
-        { value: 'Mechanical Engineering', label: 'Mech' },
-        { value: 'Biomedical Engineering', label: 'Biomedical' },
-        { value: 'Chemical Engineering', label: 'Chemical' }
-    ];
+    // Department options from admin (academic departments only, passed by parent)
+    const departments =
+        Array.isArray(dynamicDepartments) && dynamicDepartments.length > 0
+            ? [
+                  { value: 'all', label: 'All Departments' },
+                  ...dynamicDepartments.map((d) => ({
+                      value: d.name,
+                      label: d.name,
+                  })),
+              ]
+            : [{ value: 'all', label: 'All Departments' }];
 
     // Filter only students
     const filteredStudents = (Array.isArray(users) ? users : []).filter(user => {

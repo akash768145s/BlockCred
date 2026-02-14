@@ -2,29 +2,49 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, XCircle } from 'lucide-react';
-import { Student, Subject } from '@/types/dashboard';
+import { Student, IssueCredentialFormData } from '@/types/dashboard';
+import type { CredentialTypeConfig, CredentialFieldConfig } from '@/types/rbac';
 import { coeService } from '@/services/coeService';
+import { adminService } from '@/services/adminService';
 
 interface IssueCredentialModalProps {
     onClose: () => void;
     onCredentialIssued: () => void;
     students: Student[];
+    /** When opening from Credentials tab, preselect this type */
+    initialCredentialType?: CredentialTypeConfig | null;
 }
 
-export const IssueCredentialModal: React.FC<IssueCredentialModalProps> = ({ onClose, onCredentialIssued, students }) => {
-    const [formData, setFormData] = useState({
+export const IssueCredentialModal: React.FC<IssueCredentialModalProps> = ({ onClose, onCredentialIssued, students, initialCredentialType }) => {
+    const [formData, setFormData] = useState<IssueCredentialFormData>({
         student_id: '',
-        type: 'marksheet',
+        type: initialCredentialType?.name ?? '',
         semester: '',
-        cgpa: ''
+        cgpa: '',
+        extra: {},
     });
-    const [subjects, setSubjects] = useState<Subject[]>([
-        { id: '1', subject_code: '', subject_name: '', marks: '', grade: '', credits: '' }
-    ]);
+    const [credentialTypes, setCredentialTypes] = useState<CredentialTypeConfig[]>([]);
+    const [selectedType, setSelectedType] = useState<CredentialTypeConfig | null>(initialCredentialType ?? null);
     const [loading, setLoading] = useState(false);
     const [studentSearch, setStudentSearch] = useState('');
     const [showStudentDropdown, setShowStudentDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Load credential types that this issuer (COE) is allowed to issue
+    useEffect(() => {
+        adminService
+            .listIssuerCredentialTypes()
+            .then((list: CredentialTypeConfig[]) => {
+                const listArr = Array.isArray(list) ? list : [];
+                setCredentialTypes(listArr);
+                if (initialCredentialType) {
+                    const found = listArr.find((t) => t.id === initialCredentialType.id || t.name === initialCredentialType.name);
+                    setSelectedType(found ?? initialCredentialType);
+                    setFormData((prev) => ({ ...prev, type: (found ?? initialCredentialType).name, extra: {} }));
+                }
+            })
+            .catch(() => setCredentialTypes([]));
+    }, [initialCredentialType?.id]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -48,7 +68,7 @@ export const IssueCredentialModal: React.FC<IssueCredentialModalProps> = ({ onCl
         setLoading(true);
 
         try {
-            const result = await coeService.issueCredential(formData, subjects);
+            const result = await coeService.issueCredential(formData, []);
             alert(`Certificate issued successfully!\nCertificate ID: ${result.data.cert_id}\nIPFS URL: ${result.data.ipfs_url}`);
             onCredentialIssued();
         } catch (error) {
@@ -144,193 +164,164 @@ export const IssueCredentialModal: React.FC<IssueCredentialModalProps> = ({ onCl
                                 <label className="block text-sm font-semibold text-white mb-2">
                                     Credential Type <span className="text-red-400">*</span>
                                 </label>
-                                <select
-                                    required
-                                    value={formData.type}
-                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
-                                >
-                                    <option value="marksheet" className="text-white bg-slate-800">Semester Marksheet</option>
-                                    <option value="degree" className="text-white bg-slate-800">Degree Certificate</option>
-                                </select>
+                                {credentialTypes.length === 0 ? (
+                                    // Fallback: no dynamic types (likely no permission to read /admin/credential-types) – use legacy static options
+                                    <select
+                                        required
+                                        value={formData.type}
+                                        onChange={(e) =>
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                type: e.target.value,
+                                                extra: {}, // clear dynamic extra for legacy types
+                                            }))
+                                        }
+                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
+                                    >
+                                        <option value="" className="text-slate-400 bg-slate-800">
+                                            Select credential type
+                                        </option>
+                                        <option value="marksheet" className="text-white bg-slate-800">
+                                            Semester Marksheet
+                                        </option>
+                                        <option value="degree" className="text-white bg-slate-800">
+                                            Degree Certificate
+                                        </option>
+                                    </select>
+                                ) : (
+                                    <select
+                                        required
+                                        value={selectedType?.id || ''}
+                                        onChange={(e) => {
+                                            const ct = credentialTypes.find(t => t.id === e.target.value) || null;
+                                            setSelectedType(ct);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                type: ct?.name || '',
+                                                extra: {},
+                                            }));
+                                        }}
+                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
+                                    >
+                                        <option value="" className="text-slate-400 bg-slate-800">
+                                            Select credential type
+                                        </option>
+                                        {credentialTypes.map(ct => (
+                                            <option key={ct.id} value={ct.id} className="text-white bg-slate-800">
+                                                {ct.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-white mb-2">
-                                    Semester <span className="text-red-400">*</span>
-                                </label>
-                                <select
-                                    required
-                                    value={formData.semester}
-                                    onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
-                                >
-                                    <option value="" className="text-slate-400 bg-slate-800">Select Semester</option>
-                                    <option value="1" className="text-white bg-slate-800">Semester 1</option>
-                                    <option value="2" className="text-white bg-slate-800">Semester 2</option>
-                                    <option value="3" className="text-white bg-slate-800">Semester 3</option>
-                                    <option value="4" className="text-white bg-slate-800">Semester 4</option>
-                                    <option value="5" className="text-white bg-slate-800">Semester 5</option>
-                                    <option value="6" className="text-white bg-slate-800">Semester 6</option>
-                                    <option value="7" className="text-white bg-slate-800">Semester 7</option>
-                                    <option value="8" className="text-white bg-slate-800">Semester 8</option>
-                                </select>
+                        {/* If no dynamic schema is defined for this type, guide admin instead of showing legacy fields */}
+                        {selectedType && (!selectedType.fields || selectedType.fields.length === 0) && (
+                            <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                                No fields are configured for <span className="font-semibold">{selectedType.name}</span>.
+                                Ask an administrator to open <span className="font-semibold">Admin → Credential Types</span> and
+                                add form fields for this credential type.
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-white mb-2">
-                                    CGPA <span className="text-red-400">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="0"
-                                    max="10"
-                                    step="0.01"
-                                    value={formData.cgpa}
-                                    onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
-                                    placeholder="Enter CGPA (0-10)"
-                                />
-                                <p className="text-xs text-slate-400 mt-1">Range: 0.00 - 10.00</p>
-                            </div>
-                        </div>
+                        )}
 
-                        {/* Subjects Section */}
-                        <div>
-                            <div className="flex justify-between items-center mb-4">
-                                <label className="block text-sm font-semibold text-white">
-                                    Subjects <span className="text-red-400">*</span>
-                                </label>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setSubjects([...subjects, {
-                                            id: Date.now().toString(),
-                                            subject_code: '',
-                                            subject_name: '',
-                                            marks: '',
-                                            grade: '',
-                                            credits: ''
-                                        }]);
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors text-sm font-medium"
-                                >
-                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                                    </svg>
-                                    Add Subject
-                                </button>
-                            </div>
+                        {/* Dynamic extra fields driven by CredentialTypesTab fields */}
+                        {selectedType?.fields && selectedType.fields.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {selectedType.fields.map((field: CredentialFieldConfig) => {
+                                    const value = (formData.extra || {})[field.key] ?? '';
+                                    const setValue = (v: any) =>
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            extra: { ...(prev.extra || {}), [field.key]: v },
+                                        }));
 
-                            {/* Subjects Table */}
-                            <div className="border-2 border-cyan-500/30 rounded-lg overflow-hidden shadow-sm bg-slate-800/50">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700">
-                                            <tr>
-                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[15%]">Subject Code</th>
-                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[30%]">Subject Name</th>
-                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[12%]">Marks</th>
-                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[15%]">Grade</th>
-                                                <th className="px-6 py-3.5 text-left text-xs font-bold text-white uppercase tracking-wider w-[12%]">Credits</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-slate-800/30 divide-y divide-white/10">
-                                            {subjects.map((subject, index) => (
-                                                <tr key={subject.id} className="hover:bg-white/5 transition-colors">
-                                                    <td className="px-6 py-3">
-                                                        <input
-                                                            type="text"
-                                                            required
-                                                            value={subject.subject_code}
-                                                            onChange={(e) => {
-                                                                const updated = [...subjects];
-                                                                updated[index].subject_code = e.target.value;
-                                                                setSubjects(updated);
-                                                            }}
-                                                            className="w-full min-w-[140px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
-                                                            placeholder="e.g., CS101"
-                                                        />
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        <input
-                                                            type="text"
-                                                            required
-                                                            value={subject.subject_name}
-                                                            onChange={(e) => {
-                                                                const updated = [...subjects];
-                                                                updated[index].subject_name = e.target.value;
-                                                                setSubjects(updated);
-                                                            }}
-                                                            className="w-full min-w-[280px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
-                                                            placeholder="e.g., Data Structures"
-                                                        />
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        <input
-                                                            type="number"
-                                                            required
-                                                            min="0"
-                                                            max="100"
-                                                            value={subject.marks}
-                                                            onChange={(e) => {
-                                                                const updated = [...subjects];
-                                                                updated[index].marks = e.target.value;
-                                                                setSubjects(updated);
-                                                            }}
-                                                            className="w-full min-w-[120px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
-                                                            placeholder="0-100"
-                                                        />
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        <select
-                                                            value={subject.grade}
-                                                            onChange={(e) => {
-                                                                const updated = [...subjects];
-                                                                updated[index].grade = e.target.value;
-                                                                setSubjects(updated);
-                                                            }}
-                                                            className="w-full min-w-[140px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
-                                                        >
-                                                            <option value="" className="text-slate-400 bg-slate-800">Select</option>
-                                                            <option value="S" className="text-white bg-slate-800">S (10)</option>
-                                                            <option value="A+" className="text-white bg-slate-800">A+ (9)</option>
-                                                            <option value="A" className="text-white bg-slate-800">A (8)</option>
-                                                            <option value="B+" className="text-white bg-slate-800">B+ (7)</option>
-                                                            <option value="B" className="text-white bg-slate-800">B (6)</option>
-                                                            <option value="C+" className="text-white bg-slate-800">C+ (5)</option>
-                                                            <option value="C" className="text-white bg-slate-800">C (4)</option>
-                                                            <option value="D" className="text-white bg-slate-800">D (3)</option>
-                                                            <option value="F" className="text-white bg-slate-800">F (0)</option>
-                                                        </select>
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        <input
-                                                            type="number"
-                                                            required
-                                                            min="0"
-                                                            max="10"
-                                                            step="0.5"
-                                                            value={subject.credits}
-                                                            onChange={(e) => {
-                                                                const updated = [...subjects];
-                                                                updated[index].credits = e.target.value;
-                                                                setSubjects(updated);
-                                                            }}
-                                                            className="w-full min-w-[120px] px-4 py-2.5 bg-white/10 border-2 border-white/20 rounded-md text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
-                                                            placeholder="e.g., 3"
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                    switch (field.type) {
+                                        case 'number':
+                                            return (
+                                                <div key={field.key}>
+                                                    <label className="block text-sm font-semibold text-white mb-2">
+                                                        {field.label} {field.required && <span className="text-red-400">*</span>}
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        required={field.required}
+                                                        value={value}
+                                                        onChange={e => setValue(e.target.value)}
+                                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
+                                                    />
+                                                </div>
+                                            );
+                                        case 'date':
+                                            return (
+                                                <div key={field.key}>
+                                                    <label className="block text-sm font-semibold text-white mb-2">
+                                                        {field.label} {field.required && <span className="text-red-400">*</span>}
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        required={field.required}
+                                                        value={value}
+                                                        onChange={e => setValue(e.target.value)}
+                                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
+                                                    />
+                                                </div>
+                                            );
+                                        case 'select':
+                                            return (
+                                                <div key={field.key}>
+                                                    <label className="block text-sm font-semibold text-white mb-2">
+                                                        {field.label} {field.required && <span className="text-red-400">*</span>}
+                                                    </label>
+                                                    <select
+                                                        required={field.required}
+                                                        value={value}
+                                                        onChange={e => setValue(e.target.value)}
+                                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
+                                                    >
+                                                        <option value="" className="text-slate-400 bg-slate-800">
+                                                            Select {field.label}
+                                                        </option>
+                                                        {(field.options || []).map(opt => (
+                                                            <option key={opt} value={opt} className="text-white bg-slate-800">
+                                                                {opt}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            );
+                                        case 'bool':
+                                            return (
+                                                <div key={field.key} className="flex items-center gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!!value}
+                                                        onChange={e => setValue(e.target.checked)}
+                                                        className="h-4 w-4 rounded border-white/30 bg-slate-900"
+                                                    />
+                                                    <span className="text-sm text-white">{field.label}</span>
+                                                </div>
+                                            );
+                                        case 'text':
+                                        default:
+                                            return (
+                                                <div key={field.key}>
+                                                    <label className="block text-sm font-semibold text-white mb-2">
+                                                        {field.label} {field.required && <span className="text-red-400">*</span>}
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        required={field.required}
+                                                        value={value}
+                                                        onChange={e => setValue(e.target.value)}
+                                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:bg-white/20 transition-all"
+                                                    />
+                                                </div>
+                                            );
+                                    }
+                                })}
                             </div>
-                            <p className="text-xs text-slate-400 mt-2">Add multiple subjects using the "+" button above</p>
-                        </div>
+                        )}
 
                         <div className="flex justify-end space-x-4 pt-4 border-t border-white/10">
                             <button

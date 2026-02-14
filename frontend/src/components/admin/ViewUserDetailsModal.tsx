@@ -44,7 +44,7 @@ export const ViewUserDetailsModal: React.FC<ViewUserDetailsModalProps> = ({ user
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-slate-400">Role</p>
-                                    <p className="text-base text-white font-medium">{getRoleDisplayName(user.role)}</p>
+                                    <p className="text-base text-white font-medium">{user.role_name || getRoleDisplayName(user.role)}</p>
                                 </div>
                                 {user.student_id && (
                                     <div>

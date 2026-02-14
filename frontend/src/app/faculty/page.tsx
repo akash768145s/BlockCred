@@ -18,28 +18,22 @@ import {
     Shield,
     XCircle
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useFaculty } from '@/hooks/useFaculty';
-import { Student } from '@/types/dashboard';
+import { Student, IssueCertificateFormData } from '@/types/dashboard';
 import { facultyService } from '@/services/facultyService';
+import { DashboardHeader } from '@/components/DashboardHeader';
+import { adminService } from '@/services/adminService';
+import { CredentialTypesTab, IssuedTab } from '@/components/issuer';
+import type { CredentialTypeConfig, CredentialFieldConfig } from '@/types/rbac';
 
 const FacultyDashboard: React.FC = () => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('overview');
+    const { user } = useAuth();
     const { students, credentials, loading, fetchCredentials } = useFaculty();
     const [showIssueCredential, setShowIssueCredential] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterType, setFilterType] = useState('all');
-
-    const filteredStudents = (Array.isArray(students) ? students : []).filter(student => {
-        const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            student.student_id.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesSearch;
-    });
-
-    const filteredCredentials = (Array.isArray(credentials) ? credentials : []).filter(credential => {
-        if (filterType === 'all') return true;
-        return (credential.cert_type || credential.type) === filterType;
-    });
+    const [initialCredentialType, setInitialCredentialType] = useState<CredentialTypeConfig | null>(null);
 
     const stats = {
         totalStudents: Array.isArray(students) ? students.length : 0,
@@ -120,231 +114,25 @@ const FacultyDashboard: React.FC = () => {
                     </button>
 
                     <button
-                        onClick={() => setActiveTab('students')}
+                        onClick={() => setActiveTab('credentials')}
                         className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
-                            <Users className="h-5 w-5 text-purple-400" />
-                            <span className="ml-2 font-medium text-white">View Students</span>
+                            <BookOpen className="h-5 w-5 text-purple-400" />
+                            <span className="ml-2 font-medium text-white">View Credentials</span>
                         </div>
-                        <p className="text-sm text-slate-300">Browse and manage student records</p>
+                        <p className="text-sm text-slate-300">Browse credential types you can issue</p>
                     </button>
                 </div>
             </div>
         </div>
     );
 
-    const renderStudents = () => (
-        <div className="space-y-6">
-            {/* Search */}
-            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search students..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:bg-white/20"
-                            />
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => setShowIssueCredential(true)}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-semibold flex items-center"
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Issue Certificate
-                    </button>
-                </div>
-            </div>
-
-            {/* Students Table */}
-            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-white/10">
-                        <thead className="bg-slate-900/50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Student
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Student ID
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Department
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Semester
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-slate-800/30 divide-y divide-white/10">
-                            {filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="flex-shrink-0 h-10 w-10">
-                                                <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center">
-                                                    <Users className="h-5 w-5 text-emerald-400" />
-                                                </div>
-                                            </div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-semibold text-white">{student.name}</div>
-                                                <div className="text-sm text-indigo-200">{student.email}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        {student.student_id}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        {student.department}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        Semester {student.semester}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center space-x-2">
-                                            {student.is_active ? (
-                                                <CheckCircle className="h-4 w-4 text-emerald-400" />
-                                            ) : (
-                                                <Clock className="h-4 w-4 text-amber-400" />
-                                            )}
-                                            <span className={`text-sm font-semibold ${student.is_active ? 'text-emerald-300' : 'text-amber-300'}`}>
-                                                {student.is_active ? 'Active' : 'Pending'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                                        <div className="flex items-center space-x-2">
-                                            <button className="text-indigo-300 hover:text-white transition-colors">
-                                                <Eye className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => setShowIssueCredential(true)}
-                                                className="text-emerald-300 hover:text-emerald-200 transition-colors"
-                                            >
-                                                <FileText className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-
-    const renderCredentials = () => (
-        <div className="space-y-6">
-            {/* Filter */}
-            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 p-6 rounded-lg shadow-lg">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search certificates..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-white/20 rounded-lg text-white placeholder-slate-400 bg-white/10 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:bg-white/20"
-                            />
-                        </div>
-                    </div>
-                    <div className="md:w-48">
-                        <select
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className="w-full px-3 py-2 border border-white/20 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400"
-                        >
-                            <option value="all">All Types</option>
-                            <option value="noc">NOC</option>
-                            <option value="bonafide">Bonafide</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Certificates Table */}
-            <div className="bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-white/10">
-                        <thead className="bg-slate-900/50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Certificate
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Student
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Purpose
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Date
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-slate-800/30 divide-y divide-white/10">
-                            {filteredCredentials.map((credential) => (
-                                <tr key={credential.id} className="hover:bg-white/5">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-white">{credential.title || ((credential as any).cert_type || 'certificate').replace('_', ' ').toUpperCase()}</div>
-                                        <div className="text-sm text-slate-400">{((credential as any).cert_type || credential.type || 'certificate').replace('_', ' ').toUpperCase()}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        {credential.student_name || (credential as any).metadata?.student_name || 'Unknown Student'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                        {credential.purpose || (credential as any).metadata?.description || ''}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                                        {credential.issued_date || (credential as any).issued_at ? new Date(credential.issued_date || (credential as any).issued_at).toLocaleDateString() : ''}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${credential.status === 'issued' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                                            credential.status === 'verified' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                                                'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                                            }`}>
-                                            {credential.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex items-center space-x-2">
-                                            <button className="text-blue-400 hover:text-blue-300">
-                                                <Eye className="h-4 w-4" />
-                                            </button>
-                                            <button className="text-green-400 hover:text-green-300">
-                                                <Download className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
+    };
 
     if (loading) {
         return (
@@ -352,7 +140,7 @@ const FacultyDashboard: React.FC = () => {
                 <div className="text-center">
                     <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto mt-4 mb-4"></div>
-                    <p className="text-sm text-slate-300">Loading faculty dashboard...</p>
+                    <p className="text-sm text-slate-300">Loading dashboard...</p>
                 </div>
             </main>
         );
@@ -360,67 +148,28 @@ const FacultyDashboard: React.FC = () => {
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white">
-            {/* Header */}
-            <header className="border-b border-white/10 bg-white/5 backdrop-blur-sm">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl border border-white/20 bg-white/10 flex items-center justify-center shadow-lg">
-                            <GraduationCap className="h-6 w-6 text-emerald-300" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] uppercase tracking-[0.4em] text-indigo-300 font-semibold">BlockCred</p>
-                            <h1 className="text-xl font-semibold text-white mt-1">Faculty Dashboard</h1>
-                            <p className="text-xs text-indigo-200">Manage student certificates & documents</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-emerald-200 border border-white/20">
-                            Department Faculty
-                        </span>
-                        <button
-                            onClick={() => {
-                                localStorage.removeItem('token');
-                                localStorage.removeItem('user');
-                                router.push('/login');
-                            }}
-                            className="px-4 py-2 text-xs font-semibold text-white border border-white/20 rounded-lg hover:bg-white/10 transition-all"
-                        >
-                            Logout
-                        </button>
-                    </div>
-                </div>
-            </header>
+            <DashboardHeader user={user ?? null} onLogout={handleLogout} maxWidth="max-w-6xl" />
 
-            {/* Navigation Tabs */}
             <div className="border-b border-white/10 bg-white/5 backdrop-blur-sm">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex space-x-1">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'overview'
-                                ? 'bg-white/10 text-white border-t border-x border-white/20'
-                                : 'text-indigo-200 hover:text-white'
-                                }`}
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'overview' ? 'bg-white/10 text-white border-t border-x border-white/20' : 'text-indigo-200 hover:text-white'}`}
                         >
                             Overview
                         </button>
                         <button
-                            onClick={() => setActiveTab('students')}
-                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'students'
-                                ? 'bg-white/10 text-white border-t border-x border-white/20'
-                                : 'text-indigo-200 hover:text-white'
-                                }`}
+                            onClick={() => setActiveTab('credentials')}
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'credentials' ? 'bg-white/10 text-white border-t border-x border-white/20' : 'text-indigo-200 hover:text-white'}`}
                         >
-                            Students
+                            Credentials
                         </button>
                         <button
-                            onClick={() => setActiveTab('credentials')}
-                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'credentials'
-                                ? 'bg-white/10 text-white border-t border-x border-white/20'
-                                : 'text-indigo-200 hover:text-white'
-                                }`}
+                            onClick={() => setActiveTab('issued')}
+                            className={`px-6 py-3 text-sm font-semibold transition-all rounded-t-lg ${activeTab === 'issued' ? 'bg-white/10 text-white border-t border-x border-white/20' : 'text-indigo-200 hover:text-white'}`}
                         >
-                            Certificates
+                            Issued
                         </button>
                     </nav>
                 </div>
@@ -429,19 +178,25 @@ const FacultyDashboard: React.FC = () => {
             {/* Main Content */}
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {activeTab === 'overview' && renderOverview()}
-                {activeTab === 'students' && renderStudents()}
-                {activeTab === 'credentials' && renderCredentials()}
+                {activeTab === 'credentials' && (
+                    <CredentialTypesTab onIssue={(t) => { setInitialCredentialType(t); setShowIssueCredential(true); }} accent="emerald" />
+                )}
+                {activeTab === 'issued' && (
+                    <IssuedTab credentials={credentials as any} onRefresh={fetchCredentials} accent="emerald" />
+                )}
             </div>
 
             {/* Issue Certificate Modal */}
             {showIssueCredential && (
                 <IssueCertificateModal
-                    onClose={() => setShowIssueCredential(false)}
+                    onClose={() => { setShowIssueCredential(false); setInitialCredentialType(null); }}
                     onCertificateIssued={() => {
                         setShowIssueCredential(false);
+                        setInitialCredentialType(null);
                         fetchCredentials();
                     }}
                     students={students}
+                    initialCredentialType={initialCredentialType}
                 />
             )}
         </main>
@@ -453,19 +208,45 @@ const IssueCertificateModal: React.FC<{
     onClose: () => void;
     onCertificateIssued: () => void;
     students: Student[];
-}> = ({ onClose, onCertificateIssued, students }) => {
-    const [formData, setFormData] = useState({
+    initialCredentialType?: CredentialTypeConfig | null;
+}> = ({ onClose, onCertificateIssued, students, initialCredentialType }) => {
+    const [formData, setFormData] = useState<IssueCertificateFormData>({
         student_id: '',
-        type: 'noc',
+        type: initialCredentialType?.name ?? '',
         title: '',
         purpose: '',
         description: '',
-        valid_until: ''
+        valid_until: '',
+        extra: {},
     });
     const [loading, setLoading] = useState(false);
     const [studentSearch, setStudentSearch] = useState('');
     const [showStudentDropdown, setShowStudentDropdown] = useState(false);
     const dropdownRef = React.useRef<HTMLDivElement>(null);
+    const [credentialTypes, setCredentialTypes] = useState<CredentialTypeConfig[]>([]);
+    const [selectedType, setSelectedType] = useState<CredentialTypeConfig | null>(initialCredentialType ?? null);
+    const [typesError, setTypesError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadTypes = async () => {
+            try {
+                const types = await adminService.listIssuerCredentialTypes();
+                const listArr = types || [];
+                setCredentialTypes(listArr);
+                setTypesError(null);
+                if (initialCredentialType) {
+                    const found = listArr.find((t) => t.id === initialCredentialType.id || t.name === initialCredentialType.name);
+                    setSelectedType(found ?? initialCredentialType);
+                    setFormData((prev) => ({ ...prev, type: (found ?? initialCredentialType).name, extra: {} }));
+                }
+            } catch (err) {
+                console.error(err);
+                setTypesError('Unable to load credential types for this role. Ask admin to configure them.');
+                setCredentialTypes([]);
+            }
+        };
+        loadTypes();
+    }, [initialCredentialType?.id]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -581,60 +362,151 @@ const IssueCertificateModal: React.FC<{
                                     <input type="hidden" name="student_id" value={formData.student_id} required />
                                 )}
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-white mb-2">
-                                    Certificate Type <span className="text-red-400">*</span>
-                                </label>
-                                <select
-                                    required
-                                    value={formData.type}
-                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
-                                >
-                                    <option value="noc" className="text-white bg-slate-800">No Objection Certificate (NOC)</option>
-                                    <option value="bonafide" className="text-white bg-slate-800">Bonafide Certificate</option>
-                                </select>
+                        </div>
+
+                        {/* Dynamic extra fields driven by CredentialTypesTab fields */}
+                        {typesError && (
+                            <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                                {typesError}
                             </div>
-                        </div>
+                        )}
 
-                        <div>
-                            <label className="block text-sm font-semibold text-white mb-2">
-                                Purpose <span className="text-red-400">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.purpose}
-                                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
-                                placeholder="Enter purpose of the certificate"
-                            />
-                        </div>
+                        {!typesError && credentialTypes.length > 0 && (
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-white mb-2">
+                                        Credential Template (Admin configured)
+                                    </label>
+                                    <select
+                                        value={selectedType?.id || ''}
+                                        onChange={e => {
+                                            const ct = credentialTypes.find(t => t.id === e.target.value) || null;
+                                            setSelectedType(ct);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                type: ct?.name || prev.type,
+                                                extra: {},
+                                            }));
+                                        }}
+                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
+                                    >
+                                        <option value="" className="text-slate-400 bg-slate-800">
+                                            Select credential template
+                                        </option>
+                                        {credentialTypes.map(ct => (
+                                            <option key={ct.id} value={ct.id} className="text-white bg-slate-800">
+                                                {ct.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-white mb-2">
-                                Description
-                            </label>
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={3}
-                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all resize-none"
-                                placeholder="Enter additional details"
-                            />
-                        </div>
+                                {selectedType && (!selectedType.fields || selectedType.fields.length === 0) && (
+                                    <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                                        No fields are configured for <span className="font-semibold">{selectedType.name}</span>.
+                                        Ask an administrator to open <span className="font-semibold">Admin → Credential Types</span> and
+                                        add form fields for this credential type.
+                                    </div>
+                                )}
 
-                        <div>
-                            <label className="block text-sm font-semibold text-white mb-2">
-                                Valid Until
-                            </label>
-                            <input
-                                type="date"
-                                value={formData.valid_until}
-                                onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
-                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
-                            />
-                        </div>
+                                {selectedType?.fields && selectedType.fields.length > 0 && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {selectedType.fields.map((field: CredentialFieldConfig) => {
+                                            const value = (formData.extra || {})[field.key] ?? '';
+                                            const setValue = (v: any) =>
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    extra: { ...(prev.extra || {}), [field.key]: v },
+                                                }));
+
+                                            switch (field.type) {
+                                                case 'number':
+                                                    return (
+                                                        <div key={field.key}>
+                                                            <label className="block text-sm font-semibold text-white mb-2">
+                                                                {field.label} {field.required && <span className="text-red-400">*</span>}
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                required={field.required}
+                                                                value={value}
+                                                                onChange={e => setValue(e.target.value)}
+                                                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
+                                                            />
+                                                        </div>
+                                                    );
+                                                case 'date':
+                                                    return (
+                                                        <div key={field.key}>
+                                                            <label className="block text-sm font-semibold text-white mb-2">
+                                                                {field.label} {field.required && <span className="text-red-400">*</span>}
+                                                            </label>
+                                                            <input
+                                                                type="date"
+                                                                required={field.required}
+                                                                value={value}
+                                                                onChange={e => setValue(e.target.value)}
+                                                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
+                                                            />
+                                                        </div>
+                                                    );
+                                                case 'select':
+                                                    return (
+                                                        <div key={field.key}>
+                                                            <label className="block text-sm font-semibold text-white mb-2">
+                                                                {field.label} {field.required && <span className="text-red-400">*</span>}
+                                                            </label>
+                                                            <select
+                                                                required={field.required}
+                                                                value={value}
+                                                                onChange={e => setValue(e.target.value)}
+                                                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
+                                                            >
+                                                                <option value="" className="text-slate-400 bg-slate-800">
+                                                                    Select {field.label}
+                                                                </option>
+                                                                {(field.options || []).map(opt => (
+                                                                    <option key={opt} value={opt} className="text-white bg-slate-800">
+                                                                        {opt}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    );
+                                                case 'bool':
+                                                    return (
+                                                        <div key={field.key} className="flex items-center gap-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!value}
+                                                                onChange={e => setValue(e.target.checked)}
+                                                                className="h-4 w-4 rounded border-white/30 bg-slate-900"
+                                                            />
+                                                            <span className="text-sm text-white">{field.label}</span>
+                                                        </div>
+                                                    );
+                                                case 'text':
+                                                default:
+                                                    return (
+                                                        <div key={field.key}>
+                                                            <label className="block text-sm font-semibold text-white mb-2">
+                                                                {field.label} {field.required && <span className="text-red-400">*</span>}
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                required={field.required}
+                                                                value={value}
+                                                                onChange={e => setValue(e.target.value)}
+                                                                className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white/20 transition-all"
+                                                            />
+                                                        </div>
+                                                    );
+                                            }
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         <div className="flex justify-end space-x-4 pt-4 border-t border-white/10">
                             <button

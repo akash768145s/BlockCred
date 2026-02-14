@@ -1,37 +1,110 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
+import type { CredentialTypeConfig, CredentialFieldConfig } from "@/types/rbac";
 
 interface CertificateDisplayProps {
     certificate: any;
+    credentialTypes?: CredentialTypeConfig[];
     onVerify?: (certId: string) => void;
 }
 
-export default function CertificateDisplay({ certificate, onVerify }: CertificateDisplayProps) {
-    const [onChainData, setOnChainData] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
-    const nftData = certificate?.metadata?.additional_data?.nft || certificate?.metadata?.nft;
+function matchType(certType: string, types: CredentialTypeConfig[]): CredentialTypeConfig | null {
+    if (!certType || !types?.length) return null;
+    const n = certType.toLowerCase().replace(/\s+/g, "_");
+    return (
+        types.find((t) => t.name === certType) ??
+        types.find((t) => t.name.toLowerCase().replace(/\s+/g, "_") === n) ??
+        types.find((t) => t.name.toLowerCase().includes(n.replace(/_/g, ""))) ??
+        null
+    );
+}
 
-    useEffect(() => {
-        if (certificate?.cert_id) {
-            fetchOnChainData(certificate.cert_id);
-        }
-    }, [certificate?.cert_id]);
+const STANDARD_META_KEYS = new Set([
+    "student_name", "student_email", "issuer_name", "issuer_role", "institution", "department", "course",
+    "academic_year", "valid_from", "valid_until", "description", "additional_data", "metadata_hash",
+]);
+function buildFallbackFromMetadata(metadata: Record<string, unknown> | undefined): Record<string, unknown> {
+    if (!metadata || typeof metadata !== "object") return {};
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(metadata)) {
+        if (STANDARD_META_KEYS.has(k) || v === undefined) continue;
+        if (k === "extra" && v && typeof v === "object") continue;
+        if (k === "additional_data" && v && typeof v === "object") continue;
+        out[k] = v;
+    }
+    return out;
+}
 
-    const fetchOnChainData = async (certId: string) => {
-        setLoading(true);
-        try {
-            const response = await fetch(`http://localhost:8080/api/blockchain/certificate?cert_id=${certId}`);
-            if (response.ok) {
-                const data = await response.json();
-                setOnChainData(data.data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch on-chain data:", error);
-        } finally {
-            setLoading(false);
-        }
+function DynamicDetailSection({
+    extra,
+    fields,
+    fallback,
+}: {
+    extra?: Record<string, unknown>;
+    fields?: CredentialFieldConfig[];
+    fallback?: Record<string, unknown>;
+}) {
+    const COMMON_LABELS: Record<string, string> = {
+        semester: "Semester",
+        cgpa: "CGPA",
+        grade: "Grade",
+        department: "Department",
+        course: "Course",
+        purpose: "Purpose",
+        event_name: "Event name",
+        position: "Position",
+        description: "Description",
+        valid_from: "Valid from",
+        valid_until: "Valid until",
     };
+
+    const labelForKey = (key: string): string => {
+        const fromField = fields?.find((f) => f.key === key);
+        if (fromField) return fromField.label;
+        if (COMMON_LABELS[key]) return COMMON_LABELS[key];
+        return key
+            .replace(/_/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+    };
+
+    const data: Record<string, unknown> = { ...(fallback ?? {}), ...(extra ?? {}) };
+    if (fields?.length) {
+        return (
+            <div className="grid grid-cols-2 gap-4 text-sm">
+                {fields.map((f) => {
+                    const value = data[f.key];
+                    const isEmpty = value === undefined || value === null || value === "";
+                    return (
+                        <div key={f.key} className="border border-gray-200 p-3 bg-gray-50">
+                            <dt className="text-xs font-semibold text-gray-600 mb-1">{f.label}</dt>
+                            <dd className="text-gray-900">
+                                {isEmpty ? "—" : typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}
+                            </dd>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+    const entries = Object.entries(data).filter(([, v]) => v !== undefined && v !== null && v !== "");
+    if (entries.length === 0) return <p className="text-sm text-gray-500">No additional details recorded.</p>;
+    return (
+        <div className="grid grid-cols-2 gap-4 text-sm">
+            {entries.map(([k, v]) => (
+                <div key={k} className="border border-gray-200 p-3 bg-gray-50">
+                    <dt className="text-xs font-semibold text-gray-600 mb-1">{labelForKey(k)}</dt>
+                    <dd className="text-gray-900">{typeof v === "boolean" ? (v ? "Yes" : "No") : String(v)}</dd>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+export default function CertificateDisplay({ certificate, credentialTypes = [], onVerify }: CertificateDisplayProps) {
+    const nftData = certificate?.metadata?.additional_data?.nft || certificate?.metadata?.nft;
 
     const formatDate = (date: string | Date) => {
         if (!date) return "N/A";
@@ -46,6 +119,22 @@ export default function CertificateDisplay({ certificate, onVerify }: Certificat
         if (!hash) return "N/A";
         return `${hash.substring(0, length)}...${hash.substring(hash.length - length)}`;
     };
+
+    const typeConfig = useMemo(
+        () => matchType(certificate?.cert_type, credentialTypes),
+        [certificate?.cert_type, credentialTypes]
+    );
+    const certTitle =
+        typeConfig?.name ?? certificate?.cert_type?.replace(/_/g, " ").toUpperCase() ?? "CERTIFICATE";
+    const ad = certificate?.metadata?.additional_data as { extra?: Record<string, unknown> } | undefined;
+    const extra = (certificate?.metadata?.extra ?? ad?.extra) as Record<string, unknown> | undefined;
+    const fallback = useMemo(
+        () => buildFallbackFromMetadata(certificate?.metadata),
+        [certificate?.metadata]
+    );
+    const hasFields = (typeConfig?.fields?.length ?? 0) > 0;
+    const hasData = (extra && Object.keys(extra).length > 0) || Object.keys(fallback).length > 0;
+    const hasDynamicDetails = hasFields || hasData;
 
     return (
         <div className="max-w-5xl mx-auto bg-white shadow-lg border border-gray-300">
@@ -70,7 +159,7 @@ export default function CertificateDisplay({ certificate, onVerify }: Certificat
                                 </div>
                             </div>
                             <h1 className="text-3xl font-serif font-bold text-center text-gray-900 tracking-wide">
-                                {certificate?.cert_type?.replace(/_/g, " ").toUpperCase() || "CERTIFICATE"}
+                                {certTitle}
                             </h1>
                         </div>
                     </div>
@@ -106,103 +195,24 @@ export default function CertificateDisplay({ certificate, onVerify }: Certificat
                         </div>
                     </div>
 
-                    {/* Blockchain Verification Section */}
+                    {/* Credential details (dynamic fields or placeholder) */}
                     <div className="mb-8">
                         <h3 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b border-gray-300 flex items-center gap-2">
                             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                                <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
                             </svg>
-                            Blockchain Verification
+                            Credential details
                         </h3>
-
-                        {loading ? (
-                            <div className="text-center py-8">
-                                <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-900 border-t-transparent"></div>
-                                <p className="mt-3 text-sm text-gray-600">Loading verification data...</p>
-                            </div>
+                        {hasDynamicDetails ? (
+                            <DynamicDetailSection
+                                extra={extra}
+                                fields={typeConfig?.fields}
+                                fallback={fallback}
+                            />
                         ) : (
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div className="border border-gray-200 p-3 bg-gray-50">
-                                    <dt className="text-xs font-semibold text-gray-600 mb-1">Credential Hash</dt>
-                                    <dd className="font-mono text-xs text-gray-900 break-all">
-                                        {certificate?.file_hash ? truncateHash(certificate.file_hash, 16) : "N/A"}
-                                    </dd>
-                                </div>
-                                <div className="border border-gray-200 p-3 bg-gray-50">
-                                    <dt className="text-xs font-semibold text-gray-600 mb-1">Metadata Hash</dt>
-                                    <dd className="font-mono text-xs text-gray-900 break-all">
-                                        {certificate?.metadata?.additional_data?.metadata_hash 
-                                            ? truncateHash(certificate.metadata.additional_data.metadata_hash, 16)
-                                            : "N/A"}
-                                    </dd>
-                                </div>
-                                <div className="border border-gray-200 p-3 bg-gray-50">
-                                    <dt className="text-xs font-semibold text-gray-600 mb-1">Transaction Hash</dt>
-                                    <dd className="font-mono text-xs text-gray-900 break-all">
-                                        {certificate?.tx_hash ? truncateHash(certificate.tx_hash, 16) : "N/A"}
-                                    </dd>
-                                </div>
-                                <div className="border border-gray-200 p-3 bg-gray-50">
-                                    <dt className="text-xs font-semibold text-gray-600 mb-1">Block Number</dt>
-                                    <dd className="font-semibold text-gray-900">
-                                        {certificate?.block_number ? `#${certificate.block_number}` : "N/A"}
-                                    </dd>
-                                </div>
-                                <div className="border border-gray-200 p-3 bg-gray-50">
-                                    <dt className="text-xs font-semibold text-gray-600 mb-1">Student Wallet</dt>
-                                    <dd className="font-mono text-xs text-gray-900 break-all">
-                                        {certificate?.metadata?.additional_data?.student_wallet 
-                                            ? truncateHash(certificate.metadata.additional_data.student_wallet, 16)
-                                            : "N/A"}
-                                    </dd>
-                                </div>
-                                <div className="border border-gray-200 p-3 bg-gray-50">
-                                    <dt className="text-xs font-semibold text-gray-600 mb-1">Issuer Address</dt>
-                                    <dd className="font-mono text-xs text-gray-900 break-all">
-                                        {certificate?.metadata?.additional_data?.issuer_wallet 
-                                            ? truncateHash(certificate.metadata.additional_data.issuer_wallet, 16)
-                                            : "N/A"}
-                                    </dd>
-                                </div>
-                            </div>
+                            <p className="text-sm text-gray-500 py-2">No additional details recorded for this credential.</p>
                         )}
-                    </div>
-
-                    {/* Document Storage Section */}
-                    <div className="mb-8">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b border-gray-300 flex items-center gap-2">
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
-                            </svg>
-                            Document Storage
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div className="border border-gray-200 p-3 bg-gray-50">
-                                <dt className="text-xs font-semibold text-gray-600 mb-1">IPFS Content ID</dt>
-                                <dd className="font-mono text-xs text-gray-900 break-all">
-                                    {certificate?.ipfs_cid ? truncateHash(certificate.ipfs_cid, 16) : "N/A"}
-                                </dd>
-                            </div>
-                            <div className="border border-gray-200 p-3 bg-gray-50">
-                                <dt className="text-xs font-semibold text-gray-600 mb-2">Certificate Document</dt>
-                                {certificate?.ipfs_url ? (
-                                    <a
-                                        href={certificate.ipfs_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center text-blue-700 hover:text-blue-900 font-medium underline text-xs"
-                                    >
-                                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                                        </svg>
-                                        View on IPFS
-                                    </a>
-                                ) : (
-                                    <span className="text-gray-400 text-xs">Not available</span>
-                                )}
-                            </div>
-                        </div>
                     </div>
 
                     {/* NFT Metadata Section */}

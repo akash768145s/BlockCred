@@ -72,6 +72,8 @@ type CertificateMetadata struct {
 	ValidUntil     time.Time              `bson:"valid_until" json:"valid_until"`
 	Description    string                 `bson:"description,omitempty" json:"description,omitempty"`
 	AdditionalData map[string]interface{} `bson:"additional_data,omitempty" json:"additional_data,omitempty"`
+	// Extra holds dynamic fields defined in Admin Credential Types (key -> value).
+	Extra map[string]interface{} `bson:"extra,omitempty" json:"extra,omitempty"`
 }
 
 // IssueCertificateRequest represents the request to issue a certificate

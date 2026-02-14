@@ -11,10 +11,10 @@ interface OverviewTabProps {
         pendingVerification: number;
     };
     onIssueCredential: () => void;
-    onViewStudents: () => void;
+    onViewCredentials: () => void;
 }
 
-export const OverviewTab: React.FC<OverviewTabProps> = ({ stats, onIssueCredential, onViewStudents }) => {
+export const OverviewTab: React.FC<OverviewTabProps> = ({ stats, onIssueCredential, onViewCredentials }) => {
     return (
         <div className="space-y-6">
             {/* Stats Cards */}
@@ -79,14 +79,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ stats, onIssueCredenti
                     </button>
 
                     <button
-                        onClick={onViewStudents}
+                        onClick={onViewCredentials}
                         className="p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-colors text-left bg-white/5"
                     >
                         <div className="flex items-center mb-2">
                             <Users className="h-5 w-5 text-purple-400" />
-                            <span className="ml-2 font-medium text-white">View Students</span>
+                            <span className="ml-2 font-medium text-white">View Credentials</span>
                         </div>
-                        <p className="text-sm text-slate-300">Browse and manage student records</p>
+                        <p className="text-sm text-slate-300">Browse credential types you can issue</p>
                     </button>
                 </div>
             </div>

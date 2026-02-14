@@ -19,6 +19,7 @@ type CertificateService struct {
 	blockchainService    BlockchainServiceInterface // Deprecated, kept for backward compatibility
 	cryptographicService *CryptographicService       // NEW: Cryptographic service
 	transparencyLog      *TransparencyLogService     // NEW: Transparency log service
+	rbac                 *RBACService                // NEW: Dynamic RBAC / issuance authorization
 }
 
 func NewCertificateService(s store.Store, ipfs *IPFSService, blockchain BlockchainServiceInterface) *CertificateService {
@@ -28,6 +29,7 @@ func NewCertificateService(s store.Store, ipfs *IPFSService, blockchain Blockcha
 		blockchainService:    blockchain,
 		cryptographicService: NewCryptographicService(),
 		transparencyLog:      NewTransparencyLogService(),
+		rbac:                 NewRBACService(s),
 	}
 }
 
@@ -45,10 +47,13 @@ func (c *CertificateService) IssueCertificate(req models.IssueCertificateRequest
 		return nil, fmt.Errorf("issuer not found: %w", err)
 	}
 
-	// Check if issuer has permission to issue this type of certificate
-	hasPermission := c.canIssueCertificate(issuer.Role, req.CertType)
-	if !hasPermission {
-		return nil, fmt.Errorf("issuer does not have permission to issue %s certificates (issuer role: %s, cert type: %s)", req.CertType, issuer.Role, req.CertType)
+	// Check if issuer has permission to issue this type of certificate (dynamic RBAC)
+	ok, err := c.rbac.CanIssueCredential(issuer, req.CertType)
+	if err != nil {
+		return nil, fmt.Errorf("issuer is not authorized to issue %s certificates: %w", req.CertType, err)
+	}
+	if !ok {
+		return nil, fmt.Errorf("issuer is not authorized to issue %s certificates", req.CertType)
 	}
 
 	// 3. Compute file hash (Credential Hash - SHA-256)
@@ -65,6 +70,9 @@ func (c *CertificateService) IssueCertificate(req models.IssueCertificateRequest
 	}
 	// Merge with request metadata
 	for k, v := range req.Metadata.AdditionalData {
+		metadata[k] = v
+	}
+	for k, v := range req.Metadata.Extra {
 		metadata[k] = v
 	}
 

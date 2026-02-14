@@ -59,6 +59,9 @@ export const useAuth = () => {
                 phone: userFromResponse.phone || '',
                 student_id: userFromResponse.student_id || '',
                 role: userFromResponse.role,
+                role_id: userFromResponse.role_id,
+                role_name: userFromResponse.role_name || '',
+                dashboard_route: userFromResponse.dashboard_route || '',
                 department: userFromResponse.department || '',
                 institution: userFromResponse.institution || '',
                 club_name: userFromResponse.club_name || '',
@@ -95,11 +98,7 @@ export const useAuth = () => {
             AuthService.storeUserSession(userData, token);
             setUser(userData);
 
-            // Debug: log the role received from backend
-            console.log('User role from backend:', userData.role);
-            console.log('User permissions:', userData.permissions);
-
-            const redirectPath = AuthService.getRoleRedirectPath(userData.role, userData.permissions);
+            const redirectPath = AuthService.getRoleRedirectPath(userData);
             console.log('Redirect path:', redirectPath);
             router.push(redirectPath);
 

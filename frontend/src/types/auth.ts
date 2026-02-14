@@ -29,6 +29,9 @@ export interface User {
     phone: string;
     student_id?: string;
     role: UserRole;
+    role_id?: string;
+    role_name?: string;
+    dashboard_route?: string;
     department?: string;
     institution?: string;
     club_name?: string;

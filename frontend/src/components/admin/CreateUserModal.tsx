@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { XCircle } from 'lucide-react';
+import { adminService } from '@/services/adminService';
 
 interface CreateUserModalProps {
     onClose: () => void;
@@ -14,56 +15,86 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onUse
         email: '',
         phone: '',
         password: '',
-        role: 'coe',
+        role_id: '',
+        role: '',
         department: '',
         institution: 'SSN College of Engineering',
         club_name: ''
     });
     const [loading, setLoading] = useState(false);
+    const [metaLoading, setMetaLoading] = useState(true);
+    const [roles, setRoles] = useState<any[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
+
+    useEffect(() => {
+        const load = async () => {
+            setMetaLoading(true);
+            try {
+                const [r, d] = await Promise.all([adminService.listRoles(), adminService.listDepartments()]);
+                setRoles(Array.isArray(r) ? r : []);
+                setDepartments(Array.isArray(d) ? d : []);
+            } catch (err) {
+                console.error(err);
+                setRoles([]);
+                setDepartments([]);
+            } finally {
+                setMetaLoading(false);
+            }
+        };
+        load();
+    }, []);
+
+    const selectedRole = useMemo(() => roles.find((r) => r.id === formData.role_id), [roles, formData.role_id]);
+    const isStudentRole = (selectedRole?.name ?? '').toString().toLowerCase() === 'student';
+    const departmentsForSelect = useMemo(() =>
+        isStudentRole ? departments.filter((d: any) => d.academic_department) : departments,
+    [departments, isStudentRole]);
+    const allowedDepartmentIDs: string[] = Array.isArray(selectedRole?.department_ids) ? selectedRole.department_ids : [];
+    const allowedDepartments = useMemo(() => {
+        if (!allowedDepartmentIDs.length) return departmentsForSelect;
+        return departmentsForSelect.filter((d) => allowedDepartmentIDs.includes(d.id));
+    }, [departmentsForSelect, allowedDepartmentIDs]);
+    const showDepartment = departmentsForSelect.length > 0;
+    const departmentRequired = allowedDepartmentIDs.length > 0;
+    const showClubName = (selectedRole?.name || '').toString().toLowerCase().includes('club');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validate department for Department Faculty and Club Coordinator
-        if ((formData.role === 'department_faculty' || formData.role === 'club_coordinator') && !formData.department) {
+        if (!formData.role_id) {
+            alert('Role is required');
+            return;
+        }
+
+        if (departmentRequired && !formData.department) {
             alert('Department is required for this role');
             return;
         }
 
-        // Validate club_name for Club Coordinator
-        if (formData.role === 'club_coordinator' && !formData.club_name) {
-            alert('Club name is required for Club Coordinator');
+        if (showClubName && !formData.club_name) {
+            alert('Club name is required for this role');
             return;
         }
 
         setLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-            console.log('Creating user with data:', formData);
-            console.log('Using token:', token);
-
-            const response = await fetch('http://localhost:8080/api/admin/onboard', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
+            await adminService.createUser({
+                name: formData.name,
+                email: formData.email,
+                phone: formData.phone,
+                password: formData.password,
+                role_id: formData.role_id,
+                role: formData.role || undefined, // optional legacy fallback
+                department: formData.department || undefined,
+                institution: formData.institution || undefined,
+                club_name: formData.club_name || undefined,
             });
-
-            const data = await response.json();
-            console.log('User creation response:', data);
-
-            if (response.ok) {
-                alert('User created successfully!');
-                onUserCreated();
-            } else {
-                alert(`Error: ${data.message || 'Failed to create user'}`);
-            }
+            alert('User created successfully!');
+            onUserCreated();
         } catch (error) {
             console.error('Error creating user:', error);
-            alert('Failed to create user. Please check if the backend server is running.');
+            alert(error instanceof Error ? error.message : 'Failed to create user. Please check if the backend server is running.');
         } finally {
             setLoading(false);
         }
@@ -132,23 +163,23 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onUse
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-white mb-2">
-                                    Issuing Authority Role <span className="text-red-400">*</span>
+                                    Role <span className="text-red-400">*</span>
                                 </label>
                                 <select
                                     required
-                                    value={formData.role}
-                                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                    value={formData.role_id}
+                                    disabled={metaLoading}
+                                    onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
                                     className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
                                 >
-                                    <optgroup label="Issuing Authorities" className="bg-slate-800">
-                                        <option value="coe" className="text-white bg-slate-800">COE - Controller of Examinations</option>
-                                        <option value="department_faculty" className="text-white bg-slate-800">Faculty - Department Faculty</option>
-                                        <option value="club_coordinator" className="text-white bg-slate-800">Club - Club Coordinator</option>
-                                    </optgroup>
-                                    <optgroup label="Verifiers" className="bg-slate-800">
-                                        <option value="student_verifier" className="text-white bg-slate-800">Student Verifier (approve registrations)</option>
-                                        <option value="external_verifier" className="text-white bg-slate-800">External Verifier (verify credentials)</option>
-                                    </optgroup>
+                                    <option value="" className="text-slate-400 bg-slate-800">
+                                        {metaLoading ? 'Loading roles...' : 'Select role'}
+                                    </option>
+                                    {roles.map((r) => (
+                                        <option key={r.id} value={r.id} className="text-white bg-slate-800">
+                                            {r.name}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -167,67 +198,41 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onUse
                             />
                         </div>
 
-                        {formData.role === 'department_faculty' && (
+                        {showDepartment && (
                             <div>
                                 <label className="block text-sm font-semibold text-white mb-2">
-                                    Department <span className="text-red-400">*</span>
+                                    Department {departmentRequired && <span className="text-red-400">*</span>}
                                 </label>
                                 <select
-                                    required
+                                    required={departmentRequired}
                                     value={formData.department}
                                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                                     className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
                                 >
                                     <option value="" className="text-slate-400 bg-slate-800">Select Department</option>
-                                    <option value="Electrical and Electronics Engineering" className="text-white bg-slate-800">Electrical and Electronics Engineering</option>
-                                    <option value="Electronics and Communication Engineering" className="text-white bg-slate-800">Electronics and Communication Engineering</option>
-                                    <option value="Computer Science and Engineering" className="text-white bg-slate-800">Computer Science and Engineering</option>
-                                    <option value="Information Technology" className="text-white bg-slate-800">Information Technology</option>
-                                    <option value="Mechanical Engineering" className="text-white bg-slate-800">Mechanical Engineering</option>
-                                    <option value="Chemical Engineering" className="text-white bg-slate-800">Chemical Engineering</option>
-                                    <option value="Biomedical Engineering" className="text-white bg-slate-800">Biomedical Engineering</option>
-                                    <option value="Civil Engineering" className="text-white bg-slate-800">Civil Engineering</option>
+                                    {allowedDepartments.map((d) => (
+                                        <option key={d.id} value={d.name} className="text-white bg-slate-800">
+                                            {d.name}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                         )}
 
-                        {formData.role === 'club_coordinator' && (
-                            <>
-                                <div>
-                                    <label className="block text-sm font-semibold text-white mb-2">
-                                        Department <span className="text-red-400">*</span>
-                                    </label>
-                                    <select
-                                        required
-                                        value={formData.department}
-                                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
-                                    >
-                                        <option value="" className="text-slate-400 bg-slate-800">Select Department</option>
-                                        <option value="Electrical and Electronics Engineering" className="text-white bg-slate-800">Electrical and Electronics Engineering</option>
-                                        <option value="Electronics and Communication Engineering" className="text-white bg-slate-800">Electronics and Communication Engineering</option>
-                                        <option value="Computer Science and Engineering" className="text-white bg-slate-800">Computer Science and Engineering</option>
-                                        <option value="Information Technology" className="text-white bg-slate-800">Information Technology</option>
-                                        <option value="Mechanical Engineering" className="text-white bg-slate-800">Mechanical Engineering</option>
-                                        <option value="Chemical Engineering" className="text-white bg-slate-800">Chemical Engineering</option>
-                                        <option value="Biomedical Engineering" className="text-white bg-slate-800">Biomedical Engineering</option>
-                                        <option value="Civil Engineering" className="text-white bg-slate-800">Civil Engineering</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-white mb-2">
-                                        Club Name <span className="text-red-400">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.club_name}
-                                        onChange={(e) => setFormData({ ...formData, club_name: e.target.value })}
-                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
-                                        placeholder="Enter club name"
-                                    />
-                                </div>
-                            </>
+                        {showClubName && (
+                            <div>
+                                <label className="block text-sm font-semibold text-white mb-2">
+                                    Club Name <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.club_name}
+                                    onChange={(e) => setFormData({ ...formData, club_name: e.target.value })}
+                                    className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
+                                    placeholder="Enter club name"
+                                />
+                            </div>
                         )}
 
                         <div className="flex justify-end space-x-4 pt-4 border-t border-white/10">

@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 	"unicode"
@@ -28,7 +27,10 @@ type OnboardInput struct {
 	Email       string           `json:"email"`
 	Phone       string           `json:"phone"`
 	Password    string           `json:"password"`
-	Role        models.UserRole  `json:"role"`
+	// Role is the legacy role string (e.g. "coe"). Kept for backward compatibility.
+	Role        models.UserRole  `json:"role,omitempty"`
+	// RoleID is the dynamic RBAC role document id (hex ObjectID).
+	RoleID      string           `json:"role_id,omitempty"`
 	Department  string           `json:"department"`
 	Institution string           `json:"institution"`
 	ClubName    string           `json:"club_name"`
@@ -55,7 +57,8 @@ type UpdateUserInput struct {
 	Name             string          `json:"name,omitempty"`
 	Email            string          `json:"email,omitempty"`
 	Phone            string          `json:"phone,omitempty"`
-	Role             models.UserRole `json:"role"` // Remove omitempty to ensure role is always processed when sent
+	Role             models.UserRole `json:"role,omitempty"`
+	RoleID           string          `json:"role_id,omitempty"`
 	DOB              string          `json:"dob,omitempty"`
 	SchoolName       string          `json:"school_name,omitempty"`
 	FatherName       string          `json:"father_name,omitempty"`
@@ -73,8 +76,17 @@ type UpdateUserInput struct {
 }
 
 func (u *UserService) Onboard(in OnboardInput) (models.User, error) {
-	// Validate role
-	if !models.IsValidRole(string(in.Role)) {
+	var roleDoc *models.Role
+	if strings.TrimSpace(in.RoleID) != "" {
+		r, err := u.store.GetRoleByID(strings.TrimSpace(in.RoleID))
+		if err != nil {
+			return models.User{}, fmt.Errorf("invalid role_id: %w", err)
+		}
+		roleDoc = &r
+	}
+
+	// Validate legacy role if provided and no role_id
+	if roleDoc == nil && strings.TrimSpace(string(in.Role)) != "" && !models.IsValidRole(string(in.Role)) {
 		return models.User{}, fmt.Errorf("invalid role: %s", in.Role)
 	}
 	
@@ -91,7 +103,41 @@ func (u *UserService) Onboard(in OnboardInput) (models.User, error) {
 		IsApproved:  true,
 		CreatedAt:   time.Now(),
 	}
+
+	// If dynamic role was provided, attach it (and best-effort legacy mapping)
+	if roleDoc != nil {
+		user.RoleID = &roleDoc.ID
+		user.RoleName = roleDoc.Name
+
+		// If legacy Role wasn't provided, map from role name for backward compatibility.
+		if strings.TrimSpace(string(in.Role)) == "" {
+			if legacy, ok := legacyRoleFromName(roleDoc.Name); ok {
+				user.Role = legacy
+			}
+		}
+	}
+
 	return u.store.CreateUser(user)
+}
+
+func legacyRoleFromName(name string) (models.UserRole, bool) {
+	n := strings.ToLower(strings.TrimSpace(name))
+	switch n {
+	case "admin", "ssn main admin", "ssn_main_admin":
+		return models.RoleSSNMainAdmin, true
+	case "coe", "controller of examinations":
+		return models.RoleCOE, true
+	case "faculty", "department faculty", "department_faculty":
+		return models.RoleDepartmentFaculty, true
+	case "club", "club coordinator", "club_coordinator", "clubcoordinator":
+		return models.RoleClubCoordinator, true
+	case "student verifier", "student_verifier":
+		return models.RoleStudentVerifier, true
+	case "external verifier", "external_verifier", "verifier":
+		return models.RoleExternalVerifier, true
+	default:
+		return "", false
+	}
 }
 
 func (u *UserService) RegisterStudent(in RegisterStudentInput) (models.User, error) {
@@ -139,6 +185,18 @@ func (u *UserService) RegisterStudent(in RegisterStudentInput) (models.User, err
 		NodeAssigned:   false,
 		CreatedAt:      time.Now(),
 	}
+
+	// Attach dynamic "Student" role (RoleID/RoleName) so login can route using role.dashboard_route (/student).
+	// If the role isn't present (misconfigured DB), we keep the legacy enum Role only.
+	if roles, err := u.store.ListRoles(); err == nil {
+		for _, r := range roles {
+			if strings.EqualFold(strings.TrimSpace(r.Name), "student") {
+				user.RoleID = &r.ID
+				user.RoleName = r.Name
+				break
+			}
+		}
+	}
 	return u.store.CreateUser(user)
 }
 
@@ -170,24 +228,33 @@ func (u *UserService) UpdateUser(userID string, in UpdateUserInput) (models.User
 	if in.Phone != "" {
 		existingUser.Phone = in.Phone
 	}
-	// Update role if provided (for staff users)
-	// Always update role if it's provided and not empty
-	if in.Role != "" {
-		log.Printf("Updating role from %s to %s for user %s", existingUser.Role, in.Role, userID)
+	// Update role: prefer role_id (dynamic), else legacy role string
+	if strings.TrimSpace(in.RoleID) != "" {
+		r, err := u.store.GetRoleByID(strings.TrimSpace(in.RoleID))
+		if err != nil {
+			return models.User{}, fmt.Errorf("invalid role_id: %w", err)
+		}
+		existingUser.RoleID = &r.ID
+		existingUser.RoleName = r.Name
+		if legacy, ok := legacyRoleFromName(r.Name); ok {
+			existingUser.Role = legacy
+		}
+		if r.Name == "COE" || existingUser.Role == models.RoleCOE {
+			existingUser.Department = ""
+			existingUser.ClubName = ""
+		}
+		if existingUser.Role == models.RoleDepartmentFaculty {
+			existingUser.ClubName = ""
+		}
+	} else if in.Role != "" {
 		existingUser.Role = in.Role
-		// Clear role-specific fields when role changes to avoid data inconsistency
-		// If changing to COE, clear department and club_name
 		if in.Role == models.RoleCOE {
 			existingUser.Department = ""
 			existingUser.ClubName = ""
 		}
-		// If changing to Department Faculty, clear club_name
 		if in.Role == models.RoleDepartmentFaculty {
 			existingUser.ClubName = ""
 		}
-		// If changing to Club Coordinator, ensure department is set (handled below)
-	} else {
-		log.Printf("No role provided in update request for user %s, keeping existing role: %s", userID, existingUser.Role)
 	}
 	if in.DOB != "" {
 		existingUser.DOB = in.DOB
@@ -222,9 +289,7 @@ func (u *UserService) UpdateUser(userID string, in UpdateUserInput) (models.User
 	if in.Institution != "" {
 		existingUser.Institution = in.Institution
 	}
-	if in.ClubName != "" {
-		existingUser.ClubName = in.ClubName
-	}
+	existingUser.ClubName = in.ClubName
 	if in.IsActive != nil {
 		existingUser.IsActive = *in.IsActive
 	}

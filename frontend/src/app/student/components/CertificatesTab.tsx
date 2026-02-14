@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CertificateDisplay from "@/components/CertificateDisplay";
+import { adminService } from "@/services/adminService";
+import type { CredentialTypeConfig, CredentialFieldConfig } from "@/types/rbac";
 
 interface Certificate {
     id: string;
@@ -12,8 +14,14 @@ interface Certificate {
     status: string;
     issued_date?: string;
     issued_at?: string;
-    metadata?: any;
-    additional_data?: any;
+    metadata?: {
+        student_name?: string;
+        institution?: string;
+        semester?: string;
+        cgpa?: number | string;
+        extra?: Record<string, unknown>;
+        [key: string]: unknown;
+    };
 }
 
 interface CertificatesTabProps {
@@ -24,6 +32,84 @@ interface CertificatesTabProps {
     onVerify: (certId: string, e?: React.MouseEvent) => void;
 }
 
+const CARD_STANDARD_META_KEYS = new Set([
+    "student_name", "student_email", "issuer_name", "issuer_role", "institution", "department", "course",
+    "academic_year", "valid_from", "valid_until", "description", "additional_data", "metadata_hash",
+]);
+function buildFallbackFromMetadata(metadata: Record<string, unknown> | undefined): Record<string, unknown> {
+    if (!metadata || typeof metadata !== "object") return {};
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(metadata)) {
+        if (CARD_STANDARD_META_KEYS.has(k) || v === undefined) continue;
+        if (k === "extra" && v && typeof v === "object") continue;
+        if (k === "additional_data" && v && typeof v === "object") continue;
+        out[k] = v;
+    }
+    return out;
+}
+
+function matchCredentialType(certType: string, types: CredentialTypeConfig[]): CredentialTypeConfig | null {
+    if (!certType || !types?.length) return null;
+    const normalized = certType.toLowerCase().replace(/\s+/g, "_");
+    return (
+        types.find((t) => t.name === certType) ??
+        types.find((t) => t.name.toLowerCase().replace(/\s+/g, "_") === normalized) ??
+        types.find((t) => t.name.toLowerCase().includes(normalized.replace(/_/g, ""))) ??
+        null
+    );
+}
+
+function DynamicFields({
+    extra,
+    fields,
+    fallbackMetadata,
+    dark = false,
+}: {
+    extra?: Record<string, unknown>;
+    fields?: CredentialFieldConfig[];
+    fallbackMetadata?: Record<string, unknown>;
+    dark?: boolean;
+}) {
+    const data = extra ?? fallbackMetadata ?? {};
+    const labelCls = dark ? "text-slate-400" : "text-slate-500";
+    const valueCls = dark ? "text-slate-200 font-medium" : "font-medium text-slate-800";
+    if (fields?.length) {
+        return (
+            <div className="space-y-2">
+                {fields.map((f) => {
+                    const value = data[f.key];
+                    if (value === undefined || value === null || value === "") return null;
+                    return (
+                        <div key={f.key} className="flex justify-between items-center text-sm gap-2">
+                            <span className={labelCls}>{f.label}</span>
+                            <span className={`${valueCls} truncate max-w-[60%] text-right`}>
+                                {typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+    return (
+        <div className="space-y-2">
+            {Object.entries(data).map(
+                ([k, v]) =>
+                    v !== undefined &&
+                    v !== null &&
+                    v !== "" && (
+                        <div key={k} className="flex justify-between items-center text-sm gap-2">
+                            <span className={`${labelCls} capitalize`}>{k.replace(/_/g, " ")}</span>
+                            <span className={`${valueCls} truncate max-w-[60%] text-right`}>
+                                {typeof v === "boolean" ? (v ? "Yes" : "No") : String(v)}
+                            </span>
+                        </div>
+                    )
+            )}
+        </div>
+    );
+}
+
 export default function CertificatesTab({
     certificates,
     certificatesLoading,
@@ -32,27 +118,35 @@ export default function CertificatesTab({
     onVerify,
 }: CertificatesTabProps) {
     const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
+    const [credentialTypes, setCredentialTypes] = useState<CredentialTypeConfig[]>([]);
+
+    useEffect(() => {
+        adminService
+            .listPublicCredentialTypes()
+            .then((data) => setCredentialTypes(Array.isArray(data) ? data : []))
+            .catch(() => setCredentialTypes([]));
+    }, []);
 
     if (certificatesLoading) {
         return (
-            <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400 mx-auto"></div>
-                <p className="mt-4 text-indigo-200">Loading certificates...</p>
+            <div className="flex flex-col items-center justify-center py-16 rounded-xl bg-slate-800/30 border border-slate-700/50">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent" />
+                <p className="mt-4 text-sm text-slate-400">Loading certificates...</p>
             </div>
         );
     }
 
-    if (!certificates || certificates.length === 0) {
+    if (!certificates?.length) {
         return (
-            <div className="rounded-3xl bg-white/10 border border-white/10 backdrop-blur-lg shadow-2xl p-8 text-center">
-                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex flex-col items-center justify-center py-16 rounded-xl bg-slate-800/30 border border-slate-700/50 text-center">
+                <div className="w-14 h-14 rounded-full bg-slate-700/50 flex items-center justify-center mb-4">
+                    <svg className="w-7 h-7 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">No Certificates Yet</h3>
-                <p className="text-indigo-200">
-                    Your certificates will appear here once they are issued by institutions.
+                <h3 className="text-base font-semibold text-white mb-1">No certificates yet</h3>
+                <p className="text-sm text-slate-400 max-w-sm">
+                    Your certificates will appear here once issued by your institution.
                 </p>
             </div>
         );
@@ -62,16 +156,18 @@ export default function CertificatesTab({
         return (
             <div className="space-y-4">
                 <button
+                    type="button"
                     onClick={() => setSelectedCertificate(null)}
-                    className="text-indigo-300 hover:text-white font-semibold flex items-center transition-colors"
+                    className="text-indigo-400 hover:text-white text-sm font-medium flex items-center gap-2"
                 >
-                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
                     </svg>
-                    Back to Certificates
+                    Back to list
                 </button>
                 <CertificateDisplay
                     certificate={selectedCertificate}
+                    credentialTypes={credentialTypes}
                     onVerify={onVerify}
                 />
             </div>
@@ -80,89 +176,68 @@ export default function CertificatesTab({
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">BlockCred</p>
-                    <h2 className="text-xl font-semibold text-white mt-1">My Certificates</h2>
-                </div>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <h2 className="text-lg font-semibold text-white">My certificates</h2>
                 <button
+                    type="button"
                     onClick={onRefresh}
-                    className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-2xl hover:bg-white/20 transition-all text-sm font-semibold"
+                    className="px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600 text-slate-200 text-sm font-medium hover:bg-slate-700"
                 >
                     Refresh
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {certificates.map((certificate) => {
-                    const nftData = certificate?.metadata?.additional_data?.nft;
-                    const isNFT = certificate?.cert_type === 'nft_certificate' || !!nftData;
-                    const certTitle = certificate.title || certificate.cert_type?.replace('_', ' ').toUpperCase() || 'CERTIFICATE';
-                    const institution = certificate.institution || certificate.metadata?.institution || 'SSN College of Engineering';
-                    const issuedDate = certificate.issued_date || certificate.issued_at;
-                    const formattedDate = issuedDate ? new Date(issuedDate).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    }) : '';
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {certificates.map((cert) => {
+                    const typeConfig = matchCredentialType(cert.cert_type, credentialTypes);
+                    const title =
+                        typeConfig?.name ?? cert.cert_type?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ?? "Certificate";
+                    const institution = cert.metadata?.institution ?? "Institution";
+                    const issuedAt = cert.issued_at ?? cert.issued_date;
+                    const dateStr =
+                        issuedAt &&
+                        new Date(issuedAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                        });
+                    const ad = cert.metadata?.additional_data as { extra?: Record<string, unknown> } | undefined;
+                    const extra = (cert.metadata?.extra ?? ad?.extra) as Record<string, unknown> | undefined;
+                    const fallback = buildFallbackFromMetadata(cert.metadata as Record<string, unknown> | undefined);
+                    const hasDetails = (extra && Object.keys(extra).length > 0) || Object.keys(fallback).length > 0;
 
                     return (
-                        <div
-                            key={certificate.id}
-                            className="relative bg-white rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 p-6 border border-gray-200 cursor-pointer overflow-hidden group"
-                            onClick={() => setSelectedCertificate(certificate)}
+                        <button
+                            type="button"
+                            key={cert.cert_id}
+                            onClick={() => setSelectedCertificate(cert)}
+                            className="text-left bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600 hover:bg-slate-800/70 transition-all"
                         >
-                            {/* NFT Badge */}
-                            {isNFT && (
-                                <div className="absolute top-3 left-3 bg-purple-600 text-white text-[9px] tracking-[0.2em] font-bold px-2.5 py-1 rounded-full shadow-lg z-20">
-                                    NFT
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="font-semibold text-white truncate">{title}</h3>
+                                    <p className="text-xs text-slate-400 mt-0.5 truncate">{institution}</p>
                                 </div>
-                            )}
-
-                            {/* Certificate Content */}
-                            <div className="flex items-start gap-4 mb-4">
-                                {/* SSN Logo Icon - No Background */}
-                                <div className="w-14 h-14 flex items-center justify-center flex-shrink-0 p-2">
-                                    <img
-                                        src="/ssnlogo.png"
-                                        alt="SSN"
-                                        className="w-full h-full object-contain"
+                                {dateStr && (
+                                    <span className="text-xs text-slate-500 shrink-0">{dateStr}</span>
+                                )}
+                            </div>
+                            <div className="border-t border-slate-700/50 pt-3 min-h-[2.5rem]">
+                                {hasDetails ? (
+                                    <DynamicFields
+                                        extra={extra}
+                                        fields={typeConfig?.fields}
+                                        fallbackMetadata={Object.keys(fallback).length > 0 ? fallback : undefined}
+                                        dark
                                     />
-                                </div>
-
-                                {/* Certificate Title and Info */}
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-2xl text-gray-800 mb-1 leading-tight">{certTitle}</h3>
-                                    <p className="text-sm text-gray-600 mb-2">{institution}</p>
-                                    {formattedDate && (
-                                        <p className="text-xs text-gray-500">Issued: {formattedDate}</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Academic Details */}
-                            <div className="space-y-3">
-                                {certificate.metadata?.semester && (
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-500 font-medium">Semester</span>
-                                        <span className="text-2xl font-bold text-emerald-600">{certificate.metadata.semester}</span>
-                                    </div>
-                                )}
-                                {certificate.metadata?.cgpa && (
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-500 font-medium">CGPA</span>
-                                        <span className="text-2xl font-bold text-emerald-600">{certificate.metadata.cgpa}</span>
-                                    </div>
+                                ) : (
+                                    <p className="text-xs text-slate-500 pt-1">Click to view details</p>
                                 )}
                             </div>
-
-                            {/* Hover Effect Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"></div>
-                        </div>
+                        </button>
                     );
                 })}
             </div>
         </div>
     );
 }
-

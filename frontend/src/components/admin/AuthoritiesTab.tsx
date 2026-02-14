@@ -16,6 +16,8 @@ interface AuthoritiesTabProps {
     onViewUser: (user: any) => void;
     onEditUser: (user: any) => void;
     onDeleteUser: (user: any) => void;
+    /** Roles from admin dashboard (GET /api/admin/roles). Used for filter dropdown. */
+    roles?: { id: string; name: string }[];
 }
 
 export const AuthoritiesTab: React.FC<AuthoritiesTabProps> = ({
@@ -29,19 +31,27 @@ export const AuthoritiesTab: React.FC<AuthoritiesTabProps> = ({
     onViewUser,
     onEditUser,
     onDeleteUser,
+    roles: adminRoles,
 }) => {
-    // Filter only issuing authorities
-    const issuingAuthorityRoles = ['coe', 'department_faculty', 'club_coordinator'];
-    const filteredAuthorities = (Array.isArray(users) ? users : []).filter(user => {
-        const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase());
-        const isIssuingAuthority = issuingAuthorityRoles.includes(user.role);
+    // Treat everyone except students as authorities/verifiers
+    const authorityUsers = (Array.isArray(users) ? users : []).filter((user) => user.role !== 'student');
 
-        if (filterRole === 'all' || filterRole === 'issuing_authorities') {
-            return matchesSearch && isIssuingAuthority;
-        } else {
-            return matchesSearch && user.role === filterRole && isIssuingAuthority;
-        }
+    // Role filter options: from admin-created roles only
+    const roleOptions = Array.isArray(adminRoles) && adminRoles.length > 0
+        ? adminRoles
+        : [];
+
+    const filteredAuthorities = authorityUsers.filter((user) => {
+        const matchesSearch =
+            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesRole =
+            filterRole === 'all' ||
+            (user.role_name && user.role_name === filterRole) ||
+            (user.role && user.role === filterRole);
+
+        return matchesSearch && matchesRole;
     });
 
     return (
@@ -67,10 +77,12 @@ export const AuthoritiesTab: React.FC<AuthoritiesTabProps> = ({
                             onChange={(e) => onFilterChange(e.target.value)}
                             className="w-full px-3 py-2 border border-white/20 rounded-lg text-white bg-white/10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
-                            <option value="all">All Authorities</option>
-                            <option value="coe">COE</option>
-                            <option value="department_faculty">Faculty</option>
-                            <option value="club_coordinator">Club Coordinator</option>
+                            <option value="all">All Roles</option>
+                            {roleOptions.map((r) => (
+                                <option key={r.id} value={r.name} className="bg-slate-800">
+                                    {r.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
                     <button
@@ -129,7 +141,7 @@ export const AuthoritiesTab: React.FC<AuthoritiesTabProps> = ({
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                                                {getRoleDisplayName(user.role)}
+                                                {user.role_name || getRoleDisplayName(user.role)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

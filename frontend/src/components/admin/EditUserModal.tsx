@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { XCircle } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 
@@ -17,8 +17,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onU
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
+        role_id: (user.role_id || user.roleId || '') as string,
         role: user.role || '',
         department: user.department || '',
+        institution: user.institution || 'SSN College of Engineering',
         club_name: (!isStudent ? (user.club_name || '') : ''),
         tenth_school: user.tenth_school || '',
         twelfth_school: user.twelfth_school || '',
@@ -30,48 +32,87 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onU
         aadhar_number: user.aadhar_number || ''
     });
     const [loading, setLoading] = useState(false);
+    const [metaLoading, setMetaLoading] = useState(!isStudent);
+    const [roles, setRoles] = useState<any[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
+    const [academicDepartments, setAcademicDepartments] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (isStudent) return;
+        const load = async () => {
+            setMetaLoading(true);
+            try {
+                const [r, d] = await Promise.all([adminService.listRoles(), adminService.listDepartments()]);
+                const roleList = Array.isArray(r) ? r : [];
+                setRoles(roleList);
+                setDepartments(Array.isArray(d) ? d : []);
+                const currentRoleId = user.role_id || user.roleId || '';
+                if (!currentRoleId && (user.role_name || user.role)) {
+                    const byName = (arr: any[]) => arr.find((x) => (x.name || '').toLowerCase() === (user.role_name || user.role || '').toLowerCase());
+                    const matched = byName(roleList);
+                    if (matched) setFormData((prev) => ({ ...prev, role_id: matched.id }));
+                }
+            } catch (err) {
+                console.error(err);
+                setRoles([]);
+                setDepartments([]);
+            } finally {
+                setMetaLoading(false);
+            }
+        };
+        load();
+    }, [isStudent, user.role_id, user.roleId, user.role_name, user.role]);
+
+    useEffect(() => {
+        if (!isStudent) return;
+        // Students should only see academic departments; use public endpoint (no admin permission required).
+        adminService.listPublicDepartments()
+            .then((list: any[]) => {
+                if (Array.isArray(list)) {
+                    setAcademicDepartments(list.filter((d: any) => d.academic_department));
+                }
+            })
+            .catch(() => setAcademicDepartments([]));
+    }, [isStudent]);
+
+    const selectedRole = useMemo(() => roles.find((r) => r.id === formData.role_id), [roles, formData.role_id]);
+    const allowedDepartmentIDs: string[] = Array.isArray(selectedRole?.department_ids) ? selectedRole.department_ids : [];
+    const allowedDepartments = useMemo(() => {
+        if (!allowedDepartmentIDs.length) return departments;
+        return departments.filter((d) => allowedDepartmentIDs.includes(d.id));
+    }, [departments, allowedDepartmentIDs]);
+    const showDepartment = departments.length > 0;
+    const departmentRequired = allowedDepartmentIDs.length > 0;
+    const showClubName = (selectedRole?.name || '').toString().toLowerCase().includes('club');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // For staff users, allow role, department, and club_name changes
         if (!isStudent) {
+            if (!formData.role_id) {
+                alert('Role is required');
+                return;
+            }
+            if (departmentRequired && !formData.department) {
+                alert('Department is required for this role');
+                return;
+            }
+            if (showClubName && !formData.club_name) {
+                alert('Club name is required for this role');
+                return;
+            }
             setLoading(true);
             try {
-                const token = localStorage.getItem('token');
-
-                // Ensure role is always included and not empty
-                if (!formData.role || formData.role.trim() === '') {
-                    alert('Role is required');
-                    setLoading(false);
-                    return;
-                }
-
-                const updateData: any = {
-                    role: formData.role.trim()
-                };
-
-                // Add department for Department Faculty and Club Coordinator
-                if (formData.role === 'department_faculty' || formData.role === 'club_coordinator') {
-                    if (!formData.department) {
-                        alert('Department is required for this role');
-                        setLoading(false);
-                        return;
-                    }
-                    updateData.department = formData.department;
-                }
-
-                // Add club_name for Club Coordinator
-                if (formData.role === 'club_coordinator') {
-                    if (!formData.club_name) {
-                        alert('Club name is required for Club Coordinator');
-                        setLoading(false);
-                        return;
-                    }
-                    updateData.club_name = formData.club_name;
-                }
-
-                await adminService.updateUser(user.id, updateData);
+                await adminService.updateUser(user.id, {
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    role_id: formData.role_id,
+                    role: formData.role || undefined,
+                    department: formData.department || undefined,
+                    institution: formData.institution || undefined,
+                    club_name: showClubName ? (formData.club_name || '') : '',
+                });
                 alert('User updated successfully!');
                 onUserUpdated();
             } catch (error: any) {
@@ -154,67 +195,89 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onU
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {!isStudent ? (
-                            // Staff/Other Roles - Role, Department (for Faculty/Club), Club Name (for Club)
+                            // Same layout as Create User: name, email, phone, role, department, institution, club_name
                             <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-semibold text-white mb-2">
-                                        Issuing Authority Role <span className="text-red-400">*</span>
-                                    </label>
-                                    <select
-                                        required
-                                        value={formData.role}
-                                        onChange={(e) => {
-                                            const newRole = e.target.value;
-                                            // Clear department and club_name when changing to COE
-                                            if (newRole === 'coe') {
-                                                setFormData({ ...formData, role: newRole, department: '', club_name: '' });
-                                            } else if (newRole === 'department_faculty') {
-                                                // Clear club_name when changing to Department Faculty
-                                                setFormData({ ...formData, role: newRole, club_name: '' });
-                                            } else {
-                                                setFormData({ ...formData, role: newRole });
-                                            }
-                                        }}
-                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
-                                    >
-                                        <option value="ssn_main_admin" className="bg-slate-800 text-white">SSN Main Admin</option>
-                                        <optgroup label="Issuing Authorities" className="bg-slate-800">
-                                            <option value="coe" className="bg-slate-800 text-white">COE - Controller of Examinations</option>
-                                            <option value="department_faculty" className="bg-slate-800 text-white">Faculty - Department Faculty</option>
-                                            <option value="club_coordinator" className="bg-slate-800 text-white">Club - Club Coordinator</option>
-                                        </optgroup>
-                                    </select>
-                                </div>
-
-                                {(formData.role === 'department_faculty' || formData.role === 'club_coordinator') && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-semibold text-white mb-2">
-                                            Department <span className="text-red-400">*</span>
-                                        </label>
+                                        <label className="block text-sm font-semibold text-white mb-2">Name <span className="text-red-400">*</span></label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
+                                            placeholder="Enter full name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-white mb-2">Email <span className="text-red-400">*</span></label>
+                                        <input
+                                            type="email"
+                                            required
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
+                                            placeholder="Enter email address"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-white mb-2">Phone <span className="text-red-400">*</span></label>
+                                        <input
+                                            type="tel"
+                                            required
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
+                                            placeholder="Enter phone number"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-white mb-2">Role <span className="text-red-400">*</span></label>
                                         <select
                                             required
+                                            value={formData.role_id}
+                                            disabled={metaLoading}
+                                            onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
+                                            className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
+                                        >
+                                            <option value="" className="text-slate-400 bg-slate-800">{metaLoading ? 'Loading roles...' : 'Select role'}</option>
+                                            {roles.map((r) => (
+                                                <option key={r.id} value={r.id} className="text-white bg-slate-800">{r.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                {showDepartment && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-white mb-2">Department {departmentRequired && <span className="text-red-400">*</span>}</label>
+                                        <select
+                                            required={departmentRequired}
                                             value={formData.department}
                                             onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                                             className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
                                         >
-                                            <option value="" className="bg-slate-800 text-slate-400">Select Department</option>
-                                            <option value="Electrical and Electronics Engineering" className="bg-slate-800 text-white">Electrical and Electronics Engineering</option>
-                                            <option value="Electronics and Communication Engineering" className="bg-slate-800 text-white">Electronics and Communication Engineering</option>
-                                            <option value="Computer Science and Engineering" className="bg-slate-800 text-white">Computer Science and Engineering</option>
-                                            <option value="Information Technology" className="bg-slate-800 text-white">Information Technology</option>
-                                            <option value="Mechanical Engineering" className="bg-slate-800 text-white">Mechanical Engineering</option>
-                                            <option value="Chemical Engineering" className="bg-slate-800 text-white">Chemical Engineering</option>
-                                            <option value="Biomedical Engineering" className="bg-slate-800 text-white">Biomedical Engineering</option>
-                                            <option value="Civil Engineering" className="bg-slate-800 text-white">Civil Engineering</option>
+                                            <option value="" className="text-slate-400 bg-slate-800">Select Department</option>
+                                            {allowedDepartments.map((d) => (
+                                                <option key={d.id} value={d.name} className="text-white bg-slate-800">{d.name}</option>
+                                            ))}
                                         </select>
                                     </div>
                                 )}
-
-                                {formData.role === 'club_coordinator' && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-white mb-2">Institution</label>
+                                    <input
+                                        type="text"
+                                        value={formData.institution}
+                                        onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
+                                        placeholder="e.g. SSN College of Engineering"
+                                    />
+                                </div>
+                                {showClubName && (
                                     <div>
-                                        <label className="block text-sm font-semibold text-white mb-2">
-                                            Club Name <span className="text-red-400">*</span>
-                                        </label>
+                                        <label className="block text-sm font-semibold text-white mb-2">Club Name <span className="text-red-400">*</span></label>
                                         <input
                                             type="text"
                                             required
@@ -302,14 +365,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onU
                                         className="w-full px-4 py-3 bg-white/10 border-2 border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white/20 transition-all"
                                     >
                                         <option value="" className="bg-slate-800 text-slate-400">Select Department</option>
-                                        <option value="Electrical and Electronics Engineering" className="bg-slate-800 text-white">Electrical and Electronics Engineering</option>
-                                        <option value="Electronics and Communication Engineering" className="bg-slate-800 text-white">Electronics and Communication Engineering</option>
-                                        <option value="Computer Science and Engineering" className="bg-slate-800 text-white">Computer Science and Engineering</option>
-                                        <option value="Information Technology" className="bg-slate-800 text-white">Information Technology</option>
-                                        <option value="Mechanical Engineering" className="bg-slate-800 text-white">Mechanical Engineering</option>
-                                        <option value="Chemical Engineering" className="bg-slate-800 text-white">Chemical Engineering</option>
-                                        <option value="Biomedical Engineering" className="bg-slate-800 text-white">Biomedical Engineering</option>
-                                        <option value="Civil Engineering" className="bg-slate-800 text-white">Civil Engineering</option>
+                                        {academicDepartments.map((d) => (
+                                            <option key={d.id || d.name} value={d.name} className="bg-slate-800 text-white">{d.name}</option>
+                                        ))}
                                     </select>
                                 </div>
 

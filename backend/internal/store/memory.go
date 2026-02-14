@@ -14,6 +14,9 @@ type MemoryStore struct {
 	users         []models.User
 	credentials   []models.Credential
 	certificates   []models.Certificate
+	roles         []models.Role
+	departments   []models.Department
+	credentialTypes []models.CredentialTypeConfig
 	courses       []models.Course
 	resultDetails []models.ResultDetail
 	nextUserID    int
@@ -29,6 +32,9 @@ func NewMemoryStore() *MemoryStore {
 		users:          make([]models.User, 0, 32),
 		credentials:    make([]models.Credential, 0, 64),
 		certificates:   make([]models.Certificate, 0, 64),
+		roles:          make([]models.Role, 0, 16),
+		departments:    make([]models.Department, 0, 16),
+		credentialTypes: make([]models.CredentialTypeConfig, 0, 16),
 		courses:        make([]models.Course, 0, 128),
 		resultDetails:  make([]models.ResultDetail, 0, 512),
 	}
@@ -38,14 +44,77 @@ func NewMemoryStore() *MemoryStore {
 }
 
 func (s *MemoryStore) seed() {
-	s.CreateUser(models.User{
+	now := time.Now()
+
+	// Seed default roles (so role-based dashboard routing works in memory mode)
+	adminRole, _ := s.CreateRole(models.Role{
+		Name:                "Admin",
+		Description:         "System administrator",
+		CanIssueCredentials: false,
+		Permissions:         []string{"manage_roles", "manage_departments", "manage_credential_types", "manage_users", "view_system_data"},
+		DashboardRoute:      "/admin",
+		CreatedAt:           now,
+	})
+	_, _ = s.CreateRole(models.Role{
+		Name:                "COE",
+		Description:         "Controller of Examinations",
+		CanIssueCredentials: true,
+		Permissions:         []string{"issue_credentials", "view_system_data"},
+		DashboardRoute:      "/coe",
+		CreatedAt:           now,
+	})
+	_, _ = s.CreateRole(models.Role{
+		Name:                "Faculty",
+		Description:         "Department Faculty",
+		CanIssueCredentials: true,
+		Permissions:         []string{"issue_credentials", "view_system_data"},
+		DashboardRoute:      "/faculty",
+		CreatedAt:           now,
+	})
+	_, _ = s.CreateRole(models.Role{
+		Name:                "ClubCoordinator",
+		Description:         "Club Coordinator",
+		CanIssueCredentials: true,
+		Permissions:         []string{"issue_credentials", "view_system_data"},
+		DashboardRoute:      "/club",
+		CreatedAt:           now,
+	})
+	_, _ = s.CreateRole(models.Role{
+		Name:                "Verifier",
+		Description:         "External Verifier / Data Entry",
+		CanIssueCredentials: false,
+		Permissions:         []string{"manage_students", "view_system_data"},
+		DashboardRoute:      "/verifier",
+		CreatedAt:           now,
+	})
+	_, _ = s.CreateRole(models.Role{
+		Name:                "Student Verifier",
+		Description:         "Review and approve new student registrations",
+		CanIssueCredentials: false,
+		Permissions:         []string{"can_approve_students", "manage_students", "view_system_data"},
+		DashboardRoute:      "/student-verifier",
+		CreatedAt:           now,
+	})
+	_, _ = s.CreateRole(models.Role{
+		Name:                "Student",
+		Description:         "Student self-service portal",
+		CanIssueCredentials: false,
+		Permissions:         []string{"view_own_credentials"},
+		DashboardRoute:      "/student",
+		CreatedAt:           now,
+	})
+
+	// Seed admin user for memory store (link dynamic role too)
+	_, _ = s.CreateUser(models.User{
 		Name:        "SSN Main Admin",
 		Email:       "admin@ssn.edu.in",
 		Phone:       "9876543210",
 		Role:        models.RoleSSNMainAdmin,
+		RoleID:      &adminRole.ID,
+		RoleName:    adminRole.Name,
 		IsActive:    true,
 		IsApproved:  true,
-		CreatedAt:   time.Now(),
+		CreatedAt:   now,
 		Department:  "Administration",
 		Institution: "SSN College of Engineering",
 	})
@@ -288,6 +357,197 @@ func (s *MemoryStore) DeleteCertificate(certID string) error {
 		}
 	}
 	return fmt.Errorf("certificate not found")
+}
+
+// === Dynamic RBAC: roles / departments / credential types ===
+
+func (s *MemoryStore) CreateRole(role models.Role) (models.Role, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	role.ID = primitive.NewObjectID()
+	if role.CreatedAt.IsZero() {
+		role.CreatedAt = time.Now()
+	}
+	s.roles = append(s.roles, role)
+	return role, nil
+}
+
+func (s *MemoryStore) ListRoles() ([]models.Role, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]models.Role, len(s.roles))
+	copy(out, s.roles)
+	return out, nil
+}
+
+func (s *MemoryStore) GetRoleByID(id string) (models.Role, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return models.Role{}, fmt.Errorf("invalid role ID")
+	}
+	for _, r := range s.roles {
+		if r.ID == oid {
+			return r, nil
+		}
+	}
+	return models.Role{}, fmt.Errorf("role not found")
+}
+
+func (s *MemoryStore) UpdateRole(id string, updates models.Role) (models.Role, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return models.Role{}, fmt.Errorf("invalid role ID")
+	}
+	for i := range s.roles {
+		if s.roles[i].ID == oid {
+			s.roles[i].Name = updates.Name
+			s.roles[i].Description = updates.Description
+			s.roles[i].DepartmentID = updates.DepartmentID
+			s.roles[i].CanIssueCredentials = updates.CanIssueCredentials
+			s.roles[i].Permissions = updates.Permissions
+			s.roles[i].DashboardRoute = updates.DashboardRoute
+			return s.roles[i], nil
+		}
+	}
+	return models.Role{}, fmt.Errorf("role not found")
+}
+
+func (s *MemoryStore) DeleteRole(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid role ID")
+	}
+	for i, r := range s.roles {
+		if r.ID == oid {
+			s.roles = append(s.roles[:i], s.roles[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("role not found")
+}
+
+func (s *MemoryStore) CreateDepartment(dept models.Department) (models.Department, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	dept.ID = primitive.NewObjectID()
+	if dept.CreatedAt.IsZero() {
+		dept.CreatedAt = time.Now()
+	}
+	s.departments = append(s.departments, dept)
+	return dept, nil
+}
+
+func (s *MemoryStore) ListDepartments() ([]models.Department, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]models.Department, len(s.departments))
+	copy(out, s.departments)
+	return out, nil
+}
+
+func (s *MemoryStore) UpdateDepartment(id string, updates models.Department) (models.Department, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return models.Department{}, fmt.Errorf("invalid department ID")
+	}
+	for i := range s.departments {
+		if s.departments[i].ID == oid {
+			s.departments[i].Name = updates.Name
+			s.departments[i].Description = updates.Description
+			s.departments[i].AcademicDepartment = updates.AcademicDepartment
+			return s.departments[i], nil
+		}
+	}
+	return models.Department{}, fmt.Errorf("department not found")
+}
+
+func (s *MemoryStore) DeleteDepartment(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid department ID")
+	}
+	for i, d := range s.departments {
+		if d.ID == oid {
+			s.departments = append(s.departments[:i], s.departments[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("department not found")
+}
+
+func (s *MemoryStore) CreateCredentialType(ct models.CredentialTypeConfig) (models.CredentialTypeConfig, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ct.ID = primitive.NewObjectID()
+	if ct.CreatedAt.IsZero() {
+		ct.CreatedAt = time.Now()
+	}
+	s.credentialTypes = append(s.credentialTypes, ct)
+	return ct, nil
+}
+
+func (s *MemoryStore) ListCredentialTypes() ([]models.CredentialTypeConfig, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]models.CredentialTypeConfig, len(s.credentialTypes))
+	copy(out, s.credentialTypes)
+	return out, nil
+}
+
+func (s *MemoryStore) GetCredentialTypeByName(name string) (models.CredentialTypeConfig, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, ct := range s.credentialTypes {
+		if ct.Name == name {
+			return ct, nil
+		}
+	}
+	return models.CredentialTypeConfig{}, fmt.Errorf("credential type not found")
+}
+
+func (s *MemoryStore) UpdateCredentialType(id string, updates models.CredentialTypeConfig) (models.CredentialTypeConfig, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return models.CredentialTypeConfig{}, fmt.Errorf("invalid credential type ID")
+	}
+	for i := range s.credentialTypes {
+		if s.credentialTypes[i].ID == oid {
+			s.credentialTypes[i].Name = updates.Name
+			s.credentialTypes[i].Description = updates.Description
+			s.credentialTypes[i].IssuerRoleIDs = updates.IssuerRoleIDs
+			s.credentialTypes[i].Fields = updates.Fields
+			return s.credentialTypes[i], nil
+		}
+	}
+	return models.CredentialTypeConfig{}, fmt.Errorf("credential type not found")
+}
+
+func (s *MemoryStore) DeleteCredentialType(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid credential type ID")
+	}
+	for i, ct := range s.credentialTypes {
+		if ct.ID == oid {
+			s.credentialTypes = append(s.credentialTypes[:i], s.credentialTypes[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("credential type not found")
 }
 
 func (s *MemoryStore) UpsertCourses(courses []models.Course) error {
