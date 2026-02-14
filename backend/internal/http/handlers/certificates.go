@@ -94,8 +94,7 @@ func (h *CertificateHandler) ListCertificates(w http.ResponseWriter, r *http.Req
 }
 
 func (h *CertificateHandler) ListCertificatesByStudent(w http.ResponseWriter, r *http.Request) {
-	// For security and correctness, always derive the student ID from the authenticated user.
-	// This endpoint is only used by the student dashboard in the frontend.
+	// Student dashboard: list only this student's certs by Mongo user ID (and legacy student_id).
 	user, ok := r.Context().Value("user").(models.User)
 	if !ok {
 		httpx.JSON(w, http.StatusUnauthorized, false, "user not authenticated", nil)
@@ -105,9 +104,8 @@ func (h *CertificateHandler) ListCertificatesByStudent(w http.ResponseWriter, r 
 		httpx.JSON(w, http.StatusForbidden, false, "student profile not linked", nil)
 		return
 	}
-	studentID := user.StudentID
 
-	certificates, err := h.Certificates.ListCertificatesByStudent(studentID)
+	certificates, err := h.Certificates.ListCertificatesByStudentUserID(user.ID.Hex(), user.StudentID)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, false, "failed to retrieve certificates", nil)
 		return

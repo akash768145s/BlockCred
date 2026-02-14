@@ -39,6 +39,7 @@ type Store interface {
 	GetCertificateByCertID(certID string) (models.Certificate, error)
 	ListCertificates() ([]models.Certificate, error)
 	ListCertificatesByStudent(studentID string) ([]models.Certificate, error)
+	ListCertificatesByStudentUserID(studentUserIDHex string, fallbackStudentID string) ([]models.Certificate, error)
 	ListCertificatesByIssuer(issuerID string) ([]models.Certificate, error)
 	UpdateCertificate(certID string, updates models.Certificate) (models.Certificate, error)
 	DeleteCertificate(certID string) error

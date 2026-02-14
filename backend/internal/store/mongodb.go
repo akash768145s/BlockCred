@@ -827,18 +827,41 @@ func (s *MongoDBStore) ListCertificates() ([]models.Certificate, error) {
 func (s *MongoDBStore) ListCertificatesByStudent(studentID string) ([]models.Certificate, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
 	cursor, err := s.certificates.Find(ctx, bson.M{"student_id": studentID})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list certificates: %w", err)
 	}
 	defer cursor.Close(ctx)
-
 	var certificates []models.Certificate
 	if err = cursor.All(ctx, &certificates); err != nil {
 		return nil, fmt.Errorf("failed to decode certificates: %w", err)
 	}
+	return certificates, nil
+}
 
+func (s *MongoDBStore) ListCertificatesByStudentUserID(studentUserIDHex string, fallbackStudentID string) ([]models.Certificate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	userOID, err := primitive.ObjectIDFromHex(studentUserIDHex)
+	if err != nil {
+		return nil, fmt.Errorf("invalid student user id: %w", err)
+	}
+	filter := bson.M{
+		"$or": []bson.M{
+			{"student_user_id": userOID},
+			{"student_user_id": bson.M{"$exists": false}, "student_id": fallbackStudentID},
+			{"student_user_id": nil, "student_id": fallbackStudentID},
+		},
+	}
+	cursor, err := s.certificates.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list certificates: %w", err)
+	}
+	defer cursor.Close(ctx)
+	var certificates []models.Certificate
+	if err = cursor.All(ctx, &certificates); err != nil {
+		return nil, fmt.Errorf("failed to decode certificates: %w", err)
+	}
 	return certificates, nil
 }
 

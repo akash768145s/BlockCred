@@ -167,9 +167,15 @@ func (c *CertificateService) IssueCertificate(req models.IssueCertificateRequest
 	}
 
 	// 12. Create certificate record (OFF-CHAIN in MongoDB)
+	// Overwrite metadata student name/email from DB so client cannot spoof
+	certMeta := req.Metadata
+	certMeta.StudentName = student.Name
+	certMeta.StudentEmail = student.Email
+
 	certificate := models.Certificate{
 		CertID:              certID,
 		StudentID:           req.StudentID,
+		StudentUserID:       &student.ID, // Authoritative link to the student user (for per-student dashboard)
 		IssuerID:            issuerID,
 		CertType:            req.CertType,
 		FileHash:            fileHash, // Credential Hash
@@ -192,7 +198,7 @@ func (c *CertificateService) IssueCertificate(req models.IssueCertificateRequest
 		
 		Status:      models.CertStatusIssued,
 		IssuedAt:    issuedAt,
-		Metadata:    req.Metadata,
+		Metadata:    certMeta,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -443,9 +449,14 @@ func (c *CertificateService) ListCertificates() ([]models.Certificate, error) {
 	return c.store.ListCertificates()
 }
 
-// ListCertificatesByStudent returns certificates for a specific student
+// ListCertificatesByStudent returns certificates for a specific student (by student_id string)
 func (c *CertificateService) ListCertificatesByStudent(studentID string) ([]models.Certificate, error) {
 	return c.store.ListCertificatesByStudent(studentID)
+}
+
+// ListCertificatesByStudentUserID returns certificates for the student dashboard: by student_user_id (authoritative) or legacy by student_id
+func (c *CertificateService) ListCertificatesByStudentUserID(studentUserIDHex string, fallbackStudentID string) ([]models.Certificate, error) {
+	return c.store.ListCertificatesByStudentUserID(studentUserIDHex, fallbackStudentID)
 }
 
 // ListCertificatesByIssuer returns certificates issued by a specific issuer

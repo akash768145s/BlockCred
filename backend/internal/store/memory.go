@@ -307,10 +307,27 @@ func (s *MemoryStore) ListCertificates() ([]models.Certificate, error) {
 func (s *MemoryStore) ListCertificatesByStudent(studentID string) ([]models.Certificate, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
 	var result []models.Certificate
 	for _, cert := range s.certificates {
 		if cert.StudentID == studentID {
+			result = append(result, cert)
+		}
+	}
+	return result, nil
+}
+
+func (s *MemoryStore) ListCertificatesByStudentUserID(studentUserIDHex string, fallbackStudentID string) ([]models.Certificate, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	userOID, err := primitive.ObjectIDFromHex(studentUserIDHex)
+	if err != nil {
+		return nil, err
+	}
+	var result []models.Certificate
+	for _, cert := range s.certificates {
+		if cert.StudentUserID != nil && *cert.StudentUserID == userOID {
+			result = append(result, cert)
+		} else if cert.StudentUserID == nil && cert.StudentID == fallbackStudentID {
 			result = append(result, cert)
 		}
 	}

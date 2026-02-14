@@ -8,10 +8,11 @@ import (
 
 // Certificate represents a digital certificate issued to a student
 type Certificate struct {
-	ID           primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
-	CertID       string              `bson:"cert_id" json:"cert_id"`           // keccak256(fileHash + studentId + issuedAt)
-	StudentID    string              `bson:"student_id" json:"student_id"`     // Student's unique ID
-	IssuerID     string              `bson:"issuer_id" json:"issuer_id"`       // COE/Dept/Club user ID
+	ID             primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
+	CertID         string               `bson:"cert_id" json:"cert_id"`           // keccak256(fileHash + studentId + issuedAt)
+	StudentID      string               `bson:"student_id" json:"student_id"`     // Student's unique ID (e.g. 22ECR023)
+	StudentUserID  *primitive.ObjectID   `bson:"student_user_id,omitempty" json:"student_user_id,omitempty"` // Mongo user _id of the student (authoritative for dashboard filter)
+	IssuerID       string               `bson:"issuer_id" json:"issuer_id"`       // COE/Dept/Club user ID
 	CertType     CredentialType      `bson:"cert_type" json:"cert_type"`       // marksheet, degree, bonafide, etc.
 	FileHash     string              `bson:"file_hash" json:"file_hash"`       // SHA256 hash of the certificate file
 	IPFSCID      string              `bson:"ipfs_cid" json:"ipfs_cid"`         // IPFS Content Identifier
