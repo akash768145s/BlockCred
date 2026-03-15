@@ -1,988 +1,576 @@
 # BlockCred
 
-A **cost-efficient DApp credential management system** for educational institutions with comprehensive Role-Based Access Control (RBAC). BlockCred ensures tamper-proof credential storage using **cryptographic signatures, Merkle trees, and transparency logs** with IPFS for decentralized file storage.
+**BlockCred** is a cost-efficient credential management system for educational institutions. It provides **tamper-evident, verifiable certificates** using **cryptographic signatures**, an **append-only transparency log (Merkle tree)**, and **IPFS** for decentralized file storage—without requiring live blockchain infrastructure.
 
-> **🚀 New Architecture:** BlockCred has been redesigned as a DApp that eliminates blockchain infrastructure costs while maintaining equivalent security guarantees. See [DApp Architecture](#dapp-architecture) for details. The original blockchain-based architecture is documented for reference.
+---
 
 ## Table of Contents
 
+- [Overview](#overview)
 - [Technology Stack](#technology-stack)
-- [DApp Architecture](#dapp-architecture) ⭐ **NEW**
-- [Project Structure](#project-structure)
-- [Application Flow](#application-flow)
-- [Quick Start](#quick-start)
-- [Complete File Structure](#complete-file-structure)
-- [API Endpoints](#api-endpoints)
+- [System Architecture](#system-architecture)
+- [Features & Functionality](#features--functionality)
+- [User Roles & Permissions](#user-roles--permissions)
+- [Certificate Types](#certificate-types)
+- [Application Flows](#application-flows)
+- [API Reference](#api-reference)
 - [Frontend Routes](#frontend-routes)
-- [Blockchain Integration](#blockchain-integration) (Legacy - See DApp Architecture)
-- [System Roles](#system-roles)
+- [Project Structure](#project-structure)
+- [Setup & Configuration](#setup--configuration)
+- [Quick Start](#quick-start)
+- [Security](#security)
+- [Documentation](#documentation)
+
+---
+
+## Overview
+
+BlockCred allows:
+
+- **Students** to register, get approved, and view/share their digital certificates.
+- **Issuing authorities** (COE, Faculty, Club coordinators) to issue marksheets, degree certificates, Bonafide, NOC, and participation certificates.
+- **Admins** to manage users, roles, departments, credential types, and approve students.
+- **Student verifiers** to approve students and manage student-facing verification workflows.
+- **External verifiers** and anyone with a certificate ID to verify authenticity via cryptographic proofs and Merkle verification.
+- **Bulk data**: upload courses and result details via Excel for use in issuance.
+
+Certificates are **signed by the issuer**, appended to a **transparency log**, and stored on **IPFS**; verification uses signature check + Merkle proof—no blockchain in the active code path.
+
+---
 
 ## Technology Stack
 
-### Backend
-- **Language**: Go 1.21+
-- **Framework**: Gorilla Mux (HTTP router)
-- **Database**: MongoDB (with in-memory fallback)
-- **Cryptography**: Ed25519/ECDSA signatures, Merkle trees
-- **Storage**: IPFS (InterPlanetary File System via Pinata)
-- **Authentication**: JWT (JSON Web Tokens)
-- **Hot Reload**: Air
-- **Optional**: Public blockchain anchoring (Ethereum/Polygon) for periodic timestamping
+| Layer | Technology |
+|-------|------------|
+| **Backend** | Go 1.21+, Gorilla Mux, MongoDB (with in-memory fallback) |
+| **Auth** | JWT (HS256), bcrypt password hashing |
+| **Frontend** | Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4 |
+| **Storage** | MongoDB (metadata + proofs), IPFS via Pinata (files + signed documents) |
+| **Integrity** | Ed25519/ECDSA signatures, SHA-256 hashes, Merkle tree (transparency log) |
+| **Tools** | Biome (lint/format), Air (backend hot-reload), Lucide React, react-dropzone, xlsx, qrcode.react |
 
-### Frontend
-- **Framework**: Next.js 15+ (React 19)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS 4
-- **Icons**: Lucide React
-- **Linting**: Biome
+---
 
-### Trust Model (DApp Architecture)
-- **Cryptographic Signatures**: Ed25519/ECDSA for certificate signing
-- **Transparency Log**: Append-only Merkle tree for tamper detection
-- **Public Key Infrastructure**: Issuer public key registry
-- **Optional Anchoring**: Periodic Merkle root anchoring to public blockchain (Ethereum/Polygon)
-- **Revocation Log**: Signed revocation records in append-only log
-
-### Legacy Blockchain (Reference)
-- **Network**: Hyperledger Besu (Proof of Authority) - **Deprecated**
-- **Consensus**: Clique PoA
-- **Network ID**: 1337
-- **RPC**: JSON-RPC over HTTP/WebSocket
-
-## DApp Architecture
-
-BlockCred uses a **cost-efficient DApp architecture** that eliminates blockchain infrastructure while maintaining cryptographic integrity and public verifiability.
-
-### Architecture Overview
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    FRONTEND (Next.js)                       │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ HTTP/REST API
-┌──────────────────────▼──────────────────────────────────────┐
+│                  FRONTEND (Next.js 15)                       │
+│  Role-based dashboards, verification UI, Excel upload        │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ REST API (JWT where required)
+┌──────────────────────────▼──────────────────────────────────┐
 │                    BACKEND (Go)                              │
-│  - Certificate Service                                       │
-│  - Cryptographic Service (Signatures, Merkle Trees)        │
-│  - Transparency Log Service (Append-only log)                │
-│  - IPFS Service (Pinata)                                    │
-│  - Optional: Public Blockchain Anchor Service               │
-└──────┬──────────────┬──────────────┬────────────────────────┘
-       │              │              │
-┌──────▼──────┐ ┌─────▼──────┐ ┌─────▼──────────────┐
-│  MongoDB   │ │   IPFS     │ │ Public Blockchain  │
-│  (Metadata │ │  (Pinata)  │ │  (Ethereum/Polygon)│
-│  + Proofs) │ │  (Files +  │ │  (Optional Anchor)│
-│            │ │  Signatures)│ │  (Periodic Only)  │
-└────────────┘ └────────────┘ └────────────────────┘
+│  Auth · Users · Certificates · Credentials · Dashboard       │
+│  RBAC (roles, departments, credential-types) · Courses       │
+│  CryptographicService · TransparencyLogService · IPFSService  │
+└──────┬──────────────────┬──────────────────┬────────────────┘
+       │                  │                  │
+┌──────▼──────┐   ┌───────▼───────┐   ┌──────▼──────┐
+│  MongoDB    │   │  IPFS (Pinata)│   │ (Optional   │
+│  Users,     │   │  PDFs, signed │   │  blockchain │
+│  Certs,     │   │  documents    │   │  anchor)    │
+│  RBAC data  │   │               │   │  not wired  │
+└─────────────┘   └───────────────┘   └─────────────┘
 ```
 
-### Key Components
+- **Certificate issuance**: Validate issuer/student → hash file & metadata → upload to IPFS → sign document → append to transparency log → store certificate (with signatures, Merkle path, IPFS URLs) in MongoDB.
+- **Verification**: Load certificate → verify issuer signature → verify Merkle proof against current log root → return result (valid/revoked/invalid).
 
-#### 1. **Cryptographic Signatures**
-- Each certificate is **signed** by the issuer's private key (Ed25519/ECDSA)
-- Public keys are registered and publicly accessible
-- Anyone can verify signatures without blockchain infrastructure
+---
 
-#### 2. **Transparency Log**
-- Append-only Merkle tree of all certificate issuances
-- Root hash published periodically (daily/weekly)
-- Enables tamper detection and auditability
-- No blockchain consensus required
+## Features & Functionality
 
-#### 3. **Signed Certificate Documents**
-- Certificates stored as signed JSON documents (JWT/VC format)
-- Includes: certificate data, issuer signature, timestamp, revocation status
-- Stored in IPFS for public access
+### Authentication & Users
 
-#### 4. **Optional Public Blockchain Anchoring**
-- Periodically anchor Merkle root hash to Ethereum/Polygon (monthly batch)
-- Single transaction anchors thousands of certificates
-- **Cost:** ~$0.01-0.10 per anchor (vs $0.50+ per certificate on-chain)
+- **Login**: Email/username + password → JWT; redirect by role using `dashboard_route` (e.g. `/admin`, `/coe`, `/student`).
+- **Student registration**: Self-service or admin-created; optional photo and 12th marksheet; KYC-style fields (name, DOB, father name, Aadhar, 10th/12th school & marks, cutoff, department). New students are inactive until approved.
+- **Admin onboarding**: Create COE, department faculty, club coordinators (and other roles) with role, department/institution/club as needed.
+- **User management**: List, approve, update, delete users (admin); list filtered by role, department, search.
 
-### Certificate Issuance Flow (DApp)
+### Role-Based Access Control (RBAC)
 
-```
-Issuer → Dashboard → Fill Form → POST /api/certificates/issue
-→ Backend Service:
-  1. Validate student exists
-  2. Compute file hash (SHA-256)
-  3. Upload PDF to IPFS → Get IPFS CID
-  4. Compute metadata hash
-  5. Generate certificate ID
-  6. Sign certificate with issuer's private key ← NEW
-  7. Append to transparency log → Get Merkle proof ← NEW
-  8. Store signed document in IPFS ← NEW
-  9. Store certificate in MongoDB (with cryptographic proofs)
-  10. Optional: Queue for public blockchain anchoring ← NEW
-→ Return: cert_id, issuer_signature, merkle_root, ipfs_url
-```
+- **Roles**: CRUD for roles (name, permissions, `dashboard_route`). Roles define who can onboard, issue which credential types, approve students, manage users, etc.
+- **Departments**: CRUD for departments (used for filtering students and for faculty/club scope).
+- **Credential types**: CRUD for credential-type configs (used by issuance UI and permissions).
+- **Public endpoints**: `/api/public/departments`, `/api/public/credential-types` for dropdowns without auth.
+- **Issuer config**: Issuers can list allowed credential types for their role.
 
-### Certificate Verification Flow (DApp)
+### Certificates (DApp Model)
 
-```
-Verifier → Enter Certificate ID → GET /api/certificates/verify/{certId}
-→ Backend:
-  1. Query MongoDB for certificate
-  2. Verify issuer signature ← NEW
-  3. Verify issuer public key is trusted ← NEW
-  4. Verify Merkle proof in transparency log ← NEW
-  5. Check revocation log ← NEW
-  6. Verify file integrity (hash match)
-  7. Optional: Verify public blockchain anchor ← NEW
-→ Return: Verification result with cryptographic proofs
-```
+- **Issue**: Upload PDF + metadata (student, cert type, course/semester/CGPA, etc.) → backend hashes file, uploads to IPFS, signs document, appends to transparency log, stores full record in MongoDB.
+- **List**: All certificates (admin), by student ID, by current issuer.
+- **Verify**: Public endpoint by `cert_id`; returns validity, signature status, Merkle proof status, IPFS links, revocation.
+- **Revoke / Delete**: Revoke or delete certificate (admin/authorized).
+- **Public student profile**: `/api/public/student/{student_id}` for share page and wallet view.
 
-### Cost Comparison
+### Legacy Credentials
 
-| Component | Blockchain (Besu) | DApp Architecture | Savings |
-|-----------|------------------|-------------------|---------|
-| **Validator Nodes** | $50-200/month | $0 | **100%** |
-| **Gas Fees** | $0.50+ per cert | $0 (or $0.01/month batch) | **98-99%** |
-| **Total (1000 certs/month)** | $85-800/month | $35-150/month | **59-81%** |
+- **Issue / List**: Simpler credential issue and list endpoints (no crypto/Merkle); still available for backward compatibility.
 
-### Security Guarantees
+### Dashboard & Data
 
-✅ **Tamper Detection** - Cryptographic hashing and signature verification  
-✅ **Public Verifiability** - Anyone can verify without authentication  
-✅ **Cryptographic Integrity** - Digital signatures and Merkle proofs  
-✅ **Trust Minimization** - Issuer public keys and transparency logs  
-✅ **Shareable Verification** - QR codes with embedded verification URLs  
+- **Dashboard stats**: Counts for users, students, pending approvals, credentials (for admin overview).
+- **Student detail**: Get student + certificates; get student credentials aggregate.
+- **Courses & results**: Upload courses (course code, title, semester, credit) and result details via Excel (`/api/courses`, `/api/result-details`) for use in issuance.
 
-### Migration from Blockchain
+### Frontend-Specific
 
-The system maintains backward compatibility while transitioning to the DApp architecture:
+- **Add Result**: Page to upload Excel for courses and result details (parses sheets, preview, submit).
+- **Student Verifier dashboard**: Approve students, view/edit/delete users, filters (department, approval, active, student ID, semester, graduation year).
+- **Share & verify**: Public share URL by `student_id`; public verify page by `cert_id` or QR; wallet-style shareable profile with QR.
 
-- **Old certificates:** Can still be verified via blockchain (if available)
-- **New certificates:** Use cryptographic signatures and transparency logs
-- **Gradual migration:** Both systems can coexist during transition
+---
 
-For complete architecture details, see [`DAPP_ARCHITECTURE.md`](DAPP_ARCHITECTURE.md)
+## User Roles & Permissions
+
+| Role | Description | Typical dashboard_route | Key permissions |
+|------|-------------|-------------------------|------------------|
+| **ssn_main_admin** | Full system control | `/admin` | Onboard, manage users, roles, departments, credential types, approve students, view all credentials, issue all cert types |
+| **coe** | Controller of Examinations | `/coe` | Issue marksheet, degree; verify; view credentials |
+| **department_faculty** | Department faculty | `/faculty` | Issue Bonafide, NOC; verify |
+| **club_coordinator** | Club coordinator | `/club` | Issue participation certificates; verify |
+| **external_verifier** | External verifier | `/verifier` | Verify credentials only |
+| **student_verifier** | Student verifier | `/student-verifier` | Approve students, read-only |
+| **student** | Student | `/student` | View own profile and certificates |
+
+Redirect after login uses the role’s `dashboard_route` from the backend; if unset, users land on `/dashboard`, which can redirect to the configured route.
+
+---
+
+## Certificate Types
+
+- **marksheet** – Semester marksheets (COE)
+- **degree** – Degree certificates (COE)
+- **bonafide** – Bonafide certificates (Faculty)
+- **noc** – No Objection Certificates (Faculty)
+- **participation_cert** – Event participation (Club)
+- **nft_certificate** – NFT-style certificate (if enabled)
+
+Issuer permissions determine which types each role can issue.
+
+---
+
+## Application Flows
+
+### 1. Student registration
+
+1. Student opens `/register`, fills form (optional photo/marksheet).
+2. Frontend sends `POST /api/register` (multipart or JSON).
+3. Backend creates user with role `student`, `is_approved=false`, generates `student_id`.
+4. Admin/student_verifier approves via `POST /api/users/{id}/approve`; student can then log in.
+
+### 2. Admin onboarding
+
+1. Admin logs in → redirected to `/admin` (or configured route).
+2. Creates COE/Faculty/Club (or other) via “Create user” → `POST /api/admin/onboard` with role, department/club, etc.
+3. New user is active and can log in and access their dashboard.
+
+### 3. Certificate issuance (DApp)
+
+1. Issuer (COE/Faculty/Club) logs in and opens their dashboard.
+2. Fills issuance form (student, cert type, file, metadata) and submits.
+3. Frontend sends `POST /api/certificates/issue` (multipart with file).
+4. Backend: validate student & issuer → hash file & metadata → upload to IPFS → generate cert ID → sign document → append to transparency log → store certificate in MongoDB.
+5. Frontend refreshes lists; certificate appears with IPFS link and verification info.
+
+### 4. Certificate verification & sharing
+
+1. Anyone can open `/verify` and enter `cert_id`, or scan QR to a verification/share URL.
+2. Frontend calls `GET /api/certificates/verify/{cert_id}` (or uses public student profile).
+3. Backend loads certificate, verifies signature and Merkle proof, checks revocation.
+4. Frontend shows result (valid/revoked/invalid), IPFS link, issuer, timestamps, proof status.
+
+### 5. Courses & result upload
+
+1. Authorized user opens `/add-result`.
+2. Uploads Excel: one sheet for courses (course code, title, semester, credit), one for result details.
+3. Frontend parses and sends `POST /api/courses` and `POST /api/result-details`.
+4. Data is stored for use in certificate issuance (e.g. course list, grades).
+
+---
+
+## API Reference
+
+Base path: `/api`. Auth: `Authorization: Bearer <token>` unless noted.
+
+### Authentication
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/login` | No | Login; returns JWT and user (including `dashboard_route`) |
+| POST | `/register` | No | Student registration (JSON or multipart) |
+
+### User management
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/users` | Yes | List users (filters by role, department, etc.) |
+| POST | `/admin/onboard` | Yes | Create issuing authority / user |
+| POST | `/users/{id}/approve` | Yes | Approve pending student |
+| PUT | `/admin/users/{id}` | Yes | Update user (admin) |
+| DELETE | `/admin/users/{id}` | Yes | Delete user (admin) |
+
+### RBAC
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/public/departments` | No | List departments (public) |
+| GET | `/public/credential-types` | No | List credential types (public) |
+| GET | `/admin/roles` | Yes | List roles |
+| POST | `/admin/roles` | Yes | Create role |
+| PUT | `/admin/roles/{id}` | Yes | Update role |
+| DELETE | `/admin/roles/{id}` | Yes | Delete role |
+| GET | `/admin/departments` | Yes | List departments |
+| POST | `/admin/departments` | Yes | Create department |
+| PUT | `/admin/departments/{id}` | Yes | Update department |
+| DELETE | `/admin/departments/{id}` | Yes | Delete department |
+| GET | `/admin/credential-types` | Yes | List credential types |
+| POST | `/admin/credential-types` | Yes | Create credential type |
+| PUT | `/admin/credential-types/{id}` | Yes | Update credential type |
+| DELETE | `/admin/credential-types/{id}` | Yes | Delete credential type |
+| GET | `/issuer/credential-types` | Yes | List credential types allowed for current issuer |
+
+### Certificates
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/certificates/issue` | Yes | Issue certificate (multipart: file + metadata) |
+| GET | `/certificates` | Yes | List all certificates |
+| GET | `/certificates/student/{student_id}` | Yes | List by student |
+| GET | `/certificates/issuer` | Yes | List by current issuer |
+| GET | `/certificates/verify/{cert_id}` | No | Verify certificate (public) |
+| POST | `/certificates/{cert_id}/revoke` | Yes | Revoke certificate |
+| DELETE | `/certificates/{cert_id}` | Yes | Delete certificate |
+| GET | `/certificates/test-ipfs` | No | IPFS connectivity check |
+| GET | `/public/student/{student_id}` | No | Public student profile + certificates |
+
+### Credentials (legacy)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/credentials` | Yes | List credentials |
+| POST | `/credentials/issue` | Yes | Issue legacy credential |
+
+### Dashboard
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/dashboard/stats` | Yes | Dashboard counts (users, students, pending, credentials) |
+| GET | `/dashboard/students/{id}` | Yes | Student detail + certs |
+| GET | `/dashboard/students/{student_id}/credentials` | Yes | Student credentials aggregate |
+
+### Bulk data
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/courses` | Yes | Upload courses (from Excel) |
+| POST | `/result-details` | Yes | Upload result details (from Excel) |
+
+### Health
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/health` | No | Server health (no `/api` prefix) |
+
+---
+
+## Frontend Routes
+
+| Path | Description | Auth |
+|------|-------------|------|
+| `/` | Landing; redirects to login | No |
+| `/login` | Login (all roles) | No |
+| `/register` | Student registration | No |
+| `/dashboard` | Generic dashboard; redirects to role route if set | Yes |
+| `/admin` | Admin dashboard (users, authorities, students, credentials, RBAC) | Yes (admin) |
+| `/coe` | COE dashboard (issue marksheets, degrees; students, certs) | Yes (COE) |
+| `/faculty` | Faculty dashboard (issue Bonafide, NOC) | Yes (Faculty) |
+| `/club` | Club dashboard (issue participation certs) | Yes (Club) |
+| `/verifier` | External verifier (verify credentials) | Yes (Verifier) |
+| `/student-verifier` | Student verifier (approve students, filters) | Yes (Student verifier) |
+| `/student` | Student dashboard (overview, certificates) | Yes (Student) |
+| `/student-wallet` | Shareable student wallet (profile + certs, QR) | Yes (Student) |
+| `/share/[studentId]` | Public student portfolio (certificates, verification links) | No |
+| `/verify` | Public verification (enter cert_id or QR) | No |
+| `/add-result` | Upload courses and result details (Excel) | Yes |
+
+---
 
 ## Project Structure
 
 ```
 BlockCred/
-├── backend/                          # Go backend application
-│   ├── main.go                       # Application entry point (loads config, starts server)
-│   ├── go.mod                        # Go module dependencies
-│   ├── go.sum                        # Dependency checksums
-│   ├── .air.toml                     # Air hot-reload configuration
-│   │
-│   ├── internal/                     # Private application code
-│   │   ├── config/                   # Configuration management
-│   │   │   └── config.go             # Loads env vars, provides Config struct
-│   │   │
-│   │   ├── models/                   # Domain models and data structures
-│   │   │   ├── user.go               # User model (roles, student info, etc.)
-│   │   │   ├── certificate.go        # Certificate model (on-chain data)
-│   │   │   ├── credential.go         # Credential model (off-chain metadata)
-│   │   │   └── types.go              # UserRole enum and type definitions
-│   │   │
-│   │   ├── store/                    # Data persistence layer (abstraction)
-│   │   │   ├── interface.go          # Store interface (contract)
-│   │   │   ├── mongodb.go            # MongoDB implementation
-│   │   │   └── memory.go             # In-memory fallback store
-│   │   │
-│   │   ├── services/                 # Business logic layer
-│   │   │   ├── auth.go               # Authentication & JWT generation
-│   │   │   ├── user.go               # User management (CRUD, approval)
-│   │   │   ├── certificate.go        # Certificate issuance & verification
-│   │   │   ├── credentials.go        # Legacy credential service
-│   │   │   ├── ipfs.go               # IPFS file upload/download
-│   │   │   ├── ipfs_debug.go         # IPFS debugging utilities
-│   │   │   ├── blockchain.go        # Mock blockchain service (fallback)
-│   │   │   ├── blockchain_interface.go # Blockchain service interface
-│   │   │   ├── blockchain_besu.go   # Hyperledger Besu integration
-│   │   │   └── blockchain_goeth.go  # Go-ethereum integration
-│   │   │
-│   │   ├── http/                     # HTTP layer
-│   │   │   ├── handlers/             # Request handlers
-│   │   │   │   ├── auth.go           # Login handler
-│   │   │   │   ├── users.go           # User CRUD, approval, delete
-│   │   │   │   ├── certificates.go    # Certificate issuance, listing, verification
-│   │   │   │   ├── credentials.go    # Legacy credential handlers
-│   │   │   │   └── blockchain.go     # Blockchain status, verification
-│   │   │   ├── middleware/           # HTTP middleware
-│   │   │   │   └── auth.go           # JWT authentication middleware
-│   │   │   └── response.go            # JSON response helpers
-│   │   │
-│   │   └── router/                   # HTTP routing
-│   │       └── router.go             # Route definitions, CORS, service initialization
-│   │
-│   ├── contracts/                    # Solidity smart contracts
-│   │   ├── CertificateManager.sol    # Main certificate contract (on-chain storage)
-│   │   ├── CredentialManager.sol     # Legacy credential contract
-│   │   └── RoleManager.sol           # Role management contract
-│   │
-│   ├── blockchain/                   # Blockchain network configuration & scripts
-│   │   ├── config/
-│   │   │   └── genesis.json          # Genesis block configuration (PoA setup)
-│   │   │
-│   │   ├── scripts/
-│   │   │   ├── setup/                # Network setup & management
-│   │   │   │   ├── install-besu.ps1   # Besu installation helper
-│   │   │   │   ├── start-besu.bat    # Start Besu (Windows)
-│   │   │   │   ├── start-besu.sh     # Start Besu (Linux/macOS)
-│   │   │   │   ├── check-status.bat  # Verify node status
-│   │   │   │   └── README.md         # Setup documentation
-│   │   │   │
-│   │   │   ├── deploy/               # Contract deployment
-│   │   │   │   ├── deploy-contract.js # Deploy CertificateManager.sol
-│   │   │   │   └── README.md         # Deployment guide
-│   │   │   │
-│   │   │   └── data/                 # Data interaction scripts
-│   │   │       ├── store-sample-data.ps1    # Store certificate via API
-│   │   │       ├── store-sample-data.go     # Store certificate (Go)
-│   │   │       ├── store-sample-data.sh     # Store certificate (Bash)
-│   │   │       ├── get-certificates.ps1     # Fetch all certificates
-│   │   │       ├── view-certificate.ps1     # View specific certificate
-│   │   │       ├── verify-on-chain.ps1      # Verify certificate on-chain
-│   │   │       ├── verify-besu-storage.ps1  # Check blockchain storage
-│   │   │       ├── check-besu-data.ps1      # Inspect blockchain data
-│   │   │       ├── view-blockchain-data.go   # View blockchain data (Go)
-│   │   │       ├── sample-certificate.json  # Sample certificate data
-│   │   │       ├── QUICK-START.md           # Quick start guide
-│   │   │       └── README.md                 # Data scripts documentation
-│   │   │
-│   │   ├── data/                     # Blockchain data (auto-generated by Besu)
-│   │   │   └── .gitkeep              # Keep directory in git
-│   │   │
-│   │   └── README.md                  # Complete blockchain documentation
-│   │
-│   ├── scripts/                      # Utility scripts
-│   │   ├── add-student.ps1          # Interactive student registration
-│   │   ├── add-student-quick.ps1    # Quick test student creation
-│   │   └── README.md                # Scripts documentation
-│   │
-│   ├── tmp/                          # Build artifacts (Air)
-│   │   └── main.exe                  # Compiled binary
-│   │
-│   └── README.md                     # Backend-specific documentation
-│
-├── frontend/                         # Next.js frontend application
+├── backend/
+│   ├── main.go                    # Entry: load config, start server
+│   ├── go.mod, go.sum
+│   ├── .air.toml                  # Hot-reload
+│   ├── internal/
+│   │   ├── config/config.go       # Env: PORT, JWT_SECRET, MONGO_*, PINATA_*, etc.
+│   │   ├── models/                # user, certificate, credential, types, rbac
+│   │   ├── store/                 # Store interface, mongodb, memory
+│   │   ├── services/              # auth, user, certificate, credentials, ipfs,
+│   │   │                           # cryptographic, transparency_log, dashboard,
+│   │   │                           # rbac, courses, issuer config
+│   │   ├── http/
+│   │   │   ├── handlers/          # auth, users, certificates, credentials,
+│   │   │   │                       # dashboard, rbac, courses
+│   │   │   ├── middleware/auth.go # JWT RequireAuth
+│   │   │   └── response.go        # JSON response helpers
+│   │   └── router/router.go       # Route registration, CORS, service init
+│   ├── contracts/                # Solidity (reference/legacy)
+│   ├── blockchain/               # Besu scripts (reference/legacy)
+│   └── scripts/                  # add-student, etc.
+├── frontend/
 │   ├── src/
-│   │   ├── app/                      # Next.js App Router pages
-│   │   │   ├── layout.tsx            # Root layout (fonts, metadata)
-│   │   │   ├── page.tsx              # Home/landing page
-│   │   │   ├── globals.css           # Global styles (Tailwind)
-│   │   │   ├── favicon.ico           # Site favicon
-│   │   │   │
-│   │   │   ├── login/                # Authentication
-│   │   │   │   └── page.tsx          # Unified login (all roles)
-│   │   │   │
-│   │   │   ├── register/             # Registration
-│   │   │   │   └── page.tsx          # Student registration form
-│   │   │   │
-│   │   │   ├── admin-dashboard/      # Admin dashboard
-│   │   │   │   └── page.tsx          # User management, approval, CRUD
-│   │   │   │
-│   │   │   ├── coe-dashboard/        # COE dashboard
-│   │   │   │   └── page.tsx          # Issue marksheets, degree certificates
-│   │   │   │
-│   │   │   ├── faculty-dashboard/    # Faculty dashboard
-│   │   │   │   └── page.tsx          # Issue NOC, Bonafide certificates
-│   │   │   │
-│   │   │   ├── club-dashboard/       # Club coordinator dashboard
-│   │   │   │   └── page.tsx          # Issue participation certificates
-│   │   │   │
-│   │   │   ├── verifier-dashboard/   # External verifier dashboard
-│   │   │   │   └── page.tsx          # Credential verification interface
-│   │   │   │
-│   │   │   ├── student-dashboard/    # Student dashboard
-│   │   │   │   └── page.tsx          # View own credentials, profile
-│   │   │   │
-│   │   │   ├── student-wallet/       # Public student wallet
-│   │   │   │   └── page.tsx          # Shareable profile with QR codes
-│   │   │   │
-│   │   │   ├── dashboard/            # Legacy dashboard
-│   │   │   │   └── page.tsx          # Old dashboard implementation
-│   │   │   │
-│   │   │   └── dashboard-enhanced/   # Enhanced dashboard
-│   │   │       └── page.tsx          # Alternative dashboard UI
-│   │   │
-│   │   ├── components/               # Reusable React components
-│   │   │   ├── RoleBasedDashboard.tsx # Dynamic dashboard switcher
-│   │   │   ├── CredentialIssuer.tsx   # Credential issuance form
-│   │   │   └── CertificateDisplay.tsx # Certificate display component
-│   │   │
-│   │   ├── hooks/                     # Custom React hooks
-│   │   │   ├── useAuth.ts            # Authentication state management
-│   │   │   ├── useApi.ts             # API calls (users, credentials, stats)
-│   │   │   └── useStudentWallet.ts   # Student wallet data fetching
-│   │   │
-│   │   ├── lib/                       # Utility libraries
-│   │   │   ├── api.ts                # API client functions
-│   │   │   ├── auth.ts               # Auth helpers (token storage)
-│   │   │   └── utils.ts              # Utility functions (formatting, roles)
-│   │   │
-│   │   └── types/                     # TypeScript type definitions
-│   │       └── auth.ts               # Auth-related types (User, Role, etc.)
-│   │
-│   ├── public/                       # Static assets
-│   │   ├── logo.png                  # Main logo
-│   │   ├── logob.png                 # Logo (black variant)
-│   │   ├── index.html                # Static HTML (if needed)
-│   │   └── *.svg                     # SVG icons
-│   │
-│   ├── package.json                  # Node.js dependencies & scripts
-│   ├── tsconfig.json                 # TypeScript configuration
-│   ├── next.config.ts                # Next.js configuration
-│   ├── postcss.config.mjs            # PostCSS (Tailwind) config
-│   ├── biome.json                    # Biome linter configuration
-│   └── README.md                     # Frontend documentation
-│
-└── README.md                         # This file (project overview)
+│   │   ├── app/                   # App Router: page.tsx per route
+│   │   ├── components/            # admin, coe, faculty, club, student, shared
+│   │   ├── hooks/                 # useAuth, useApi, role-specific
+│   │   ├── lib/                   # auth, api, utils, roleTheme
+│   │   ├── services/              # adminService, coeService, facultyService,
+│   │   │                           # clubService, addResultService
+│   │   └── types/                 # auth, dashboard
+│   ├── package.json
+│   ├── next.config.ts, postcss.config.mjs, biome.json
+│   └── public/
+├── PROJECT_STRUCTURE.md           # Code-level structure and flows
+└── README.md                     # This file
 ```
 
-## Application Flow
+---
 
-### 1. **Authentication Flow**
-```
-User → Login Page → POST /api/login → JWT Token → Stored in localStorage
-→ Role-based redirect → Dashboard (admin/coe/faculty/club/verifier/student)
-```
+## Setup & Configuration
 
-### 2. **Certificate Issuance Flow (DApp Architecture)**
+### Backend environment
 
-**New DApp Flow:**
-```
-Issuer (COE/Faculty/Club) → Dashboard → Fill Form → POST /api/certificates/issue
-→ Backend Service:
-  1. Validate student exists
-  2. Compute file hash (SHA-256)
-  3. Upload to IPFS → Get IPFS CID
-  4. Compute metadata hash
-  5. Generate certificate ID
-  6. Sign certificate with issuer's private key
-  7. Append to transparency log → Get Merkle proof
-  8. Store signed document in IPFS
-  9. Store certificate in MongoDB (with cryptographic proofs)
-  10. Optional: Queue for public blockchain anchoring
-→ Return: cert_id, issuer_signature, merkle_root, transparency_log_index, ipfs_url
-```
+Create `backend/.env` or set environment variables:
 
-**Legacy Blockchain Flow (Deprecated):**
-```
-Issuer → Dashboard → Fill Form → POST /api/certificates/issue
-→ Backend Service:
-  1. Validate student exists
-  2. Compute file hash (SHA-256)
-  3. Upload to IPFS → Get IPFS CID
-  4. Compute metadata hash
-  5. Generate certificate ID
-  6. ABI encode transaction data
-  7. Send to Besu blockchain → Get TX hash & block number
-  8. Store certificate in MongoDB (off-chain metadata)
-→ Return: cert_id, tx_hash, block_number, ipfs_url
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | HTTP server port | `8080` |
+| `JWT_SECRET` | JWT signing secret | `dev-secret` |
+| `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017` |
+| `MONGO_DATABASE` | Database name | `blockcred` |
+| `ALLOWED_ORIGINS` | CORS origins (comma-separated; `*` = allow all) | `*` |
+| `PINATA_API_KEY` | Pinata API key (IPFS) | — |
+| `PINATA_API_SECRET` | Pinata API secret | — |
+| `PINATA_GATEWAY_URL` | IPFS gateway base URL | `https://gateway.pinata.cloud/ipfs/` |
+| `BLOCKCHAIN_RPC_URL` | Optional; Besu / GoEth RPC URL for private chain anchoring | `http://127.0.0.1:8545` |
+| `CONTRACT_ADDRESS` | Optional; certificate contract address on Besu / GoEth | — |
+| `PRIVATE_KEY` | Optional; private key for on-chain signing (future use) | — |
 
-### 3. **Data Storage Strategy (DApp Architecture)**
+> If `BLOCKCHAIN_RPC_URL` and `CONTRACT_ADDRESS` are valid and the node is reachable, the backend will automatically enable the **private blockchain path** (Hyperledger Besu preferred, GoEth fallback). If not, the system runs purely in DApp mode (IPFS + signatures + transparency log) with no on-chain writes.
 
-**MongoDB (Off-Chain Metadata + Proofs):**
-- Full certificate metadata (student name, email, subjects, grades, CGPA)
-- IPFS URLs (PDF file, signed document)
-- **Cryptographic proofs** (signatures, Merkle paths, transparency log index)
-- **Issuer public keys** (for verification)
-- Status tracking (issued, verified, revoked)
-- Revocation records
+---
 
-**IPFS (Pinata Gateway):**
-- PDF certificate files (original)
-- **Signed certificate documents** (JSON with signature)
-- Merkle tree data (for batch verification)
+## Full Local Setup (Backend + Frontend + Besu)
 
-**Transparency Log (Append-Only):**
-- Merkle tree of all certificate issuances
-- Root hash (published periodically)
-- Revocation log (append-only list of revoked certificates)
+This is the recommended way to run everything locally with **optional** private blockchain anchoring.
 
-**Optional: Public Blockchain (Ethereum/Polygon):**
-- Merkle root hash (periodic anchor, e.g., monthly)
-- Timestamp (block timestamp)
-- Anchor transaction hash (proof of anchoring)
+### 1. Prerequisites
 
-**Legacy: On-Chain Data Storage (Deprecated)**
-When a certificate was issued on Besu blockchain, the following data was stored:
-- **Certificate Hash** (SHA-256 of file) - For verifiability & tamper detection
-- **Metadata Hash** - Prevents unauthorized edits
-- **Issuer Blockchain Address** - Establishes trust of authority
-- **Timestamp** - Immutable proof of issuance time
-- **Student Identity Mapping** - Links to student wallet address
-- **Revocation Flag** - Allows certificate invalidation
+- Go 1.21+
+- Node.js 18+
+- MongoDB (local or Atlas)
+- Pinata (for IPFS), or update IPFS config to your own node
+- Hyperledger Besu (for private chain, optional but recommended)
 
-### 4. **Verification Flow (DApp Architecture)**
+### 2. Start MongoDB
 
-**New DApp Flow:**
-```
-Verifier → Enter Certificate ID → GET /api/certificates/verify/{certId}
-→ Backend:
-  1. Query MongoDB for certificate
-  2. Verify issuer signature (cryptographic verification)
-  3. Verify issuer public key is trusted
-  4. Verify Merkle proof in transparency log
-  5. Check revocation log
-  6. Verify file integrity (hash match)
-  7. Optional: Verify public blockchain anchor
-→ Return: Verification result with cryptographic proofs
+Either:
+
+- Local MongoDB at `mongodb://localhost:27017`, or  
+- Update `MONGO_URI` to point to Atlas / another instance.
+
+The backend automatically falls back to an **in-memory store** if MongoDB is not reachable (good for quick demos, not for real data).
+
+### 3. (Optional but recommended) Start Hyperledger Besu
+
+You can reuse the Besu scripts from the legacy repo (`Blockcred_cert`) or from `backend/blockchain/scripts` if you’ve copied them here.
+
+On Windows (PowerShell), from the blockchain scripts folder:
+
+```powershell
+cd D:\Projects\FYP\BlockCred\Blockcred_cert\backend\blockchain\scripts\setup
+.\start-besu.bat
 ```
 
-**Legacy Blockchain Flow (Deprecated):**
-```
-Verifier → Enter Certificate ID → GET /api/blockchain/verify-certificate
-→ Backend:
-  1. Query blockchain for certificate data
-  2. Verify hashes match
-  3. Check revocation status
-  4. Validate issuer signature
-→ Return: Verification result (valid/invalid/revoked)
+This typically starts:
+
+- A Clique PoA private network
+- JSON‑RPC endpoint at `http://127.0.0.1:8545`
+
+Quick health check:
+
+```powershell
+curl http://127.0.0.1:8545 `
+  -H "Content-Type: application/json" `
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
 ```
 
-### 5. **Student Registration Flow**
+You should see a `result` like `"0x1a"` (block number in hex).  
+If you’re running on a different host/port, adjust the URL and keep it in sync with `BLOCKCHAIN_RPC_URL`.
+
+#### 3.1 Deploy the certificate contract
+
+Use the same deployment flow you had in `Blockcred_cert` (Hardhat, Remix, Truffle, etc.), but point it at the Besu RPC URL you just started.
+
+You need the deployed **contract address**, e.g.:
+
+```text
+0xAbCdEf1234567890abcdef1234567890AbCdEf12
 ```
-Student → Register Page → POST /api/register
-→ Backend:
-  1. Generate student_id (from name, school, marks)
-  2. Create user (pending approval)
-  3. Store in MongoDB
-→ Admin → Approve → POST /api/users/{id}/approve
-→ Student can now login
-```
+
+You’ll plug this into `CONTRACT_ADDRESS` for the backend.
+
+> If `CONTRACT_ADDRESS` is left empty, the Besu service will initialize but will fall back to **mock transactions** (no real on-chain writes, but everything else still works).
+
+### Frontend environment
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_API_BASE_URL` | Backend API base (e.g. `http://localhost:8080/api`) | `http://localhost:8080/api` |
+
+Used in verify and share pages; other frontend code may use a hardcoded base URL—ensure it matches the backend.
+
+---
 
 ## Quick Start
 
 ### Prerequisites
-- **Go 1.21+** - [Download](https://golang.org/dl/)
-- **Node.js 18+** - [Download](https://nodejs.org/)
-- **MongoDB Atlas** - [Sign up](https://cloud.mongodb.com) (or local MongoDB)
-- **IPFS/Pinata** - [Sign up](https://pinata.cloud) (for file storage)
-- **Optional:** Public blockchain wallet (Ethereum/Polygon) for periodic anchoring
 
-### Backend Setup
+- Go 1.21+
+- Node.js 18+
+- MongoDB (local or Atlas)
+- Pinata account (for IPFS)
 
-1. **Install dependencies:**
-   ```bash
-   cd backend
-   go mod tidy
-   ```
+### 4. Backend (Go)
 
-2. **Configure environment:**
-   Create `.env` file (optional, or use environment variables):
-   ```env
-   PORT=8080
-   JWT_SECRET=your-secret-key-here
-   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/
-   MONGO_DATABASE=blockcred
-   ALLOWED_ORIGIN=http://localhost:3000
-   BESU_RPC_URL=http://localhost:8545
-   IPFS_API_URL=http://localhost:5001
-   ```
+From `backend/`:
 
-3. **Run with hot-reload:**
 ```bash
 cd backend
-   air
-   ```
-   
-   Or run directly:
-   ```bash
-   go run main.go
-   ```
+go mod tidy
+```
 
-### Frontend Setup
+Create `backend/.env` (or set env vars in your shell) with at least:
 
-1. **Install dependencies:**
+```env
+PORT=8080
+
+MONGO_URI=mongodb://localhost:27017
+MONGO_DATABASE=blockcred
+
+JWT_SECRET=dev-secret
+ALLOWED_ORIGINS=http://localhost:3000
+
+PINATA_API_KEY=your_pinata_key
+PINATA_API_SECRET=your_pinata_secret
+PINATA_GATEWAY_URL=https://gateway.pinata.cloud/ipfs/
+
+# Optional: private blockchain (Besu / GoEth)
+BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545
+CONTRACT_ADDRESS=0xYourDeployedContractAddressHere
+PRIVATE_KEY=0xOptionalIfYouWireRealSigning
+```
+
+Run the backend (with Air or plain `go run`):
+
+```bash
+air
+# or
+go run ./main.go
+```
+
+Backend will log which blockchain mode is active:
+
+- `✅ Using Besu blockchain service` → Besu node reachable, on-chain path enabled.
+- `✅ Using GoEth blockchain service` → GoEth reachable, using that instead.
+- `⚠️ Using mock blockchain service` or `Certificate issuance will use pure DApp architecture` → no real blockchain, IPFS + crypto + transparency log only.
+
+Health check:
+
+```bash
+curl http://localhost:8080/health
+```
+
+Blockchain status (when enabled):
+
+```bash
+curl http://localhost:8080/api/blockchain/status
+```
+
+### 5. Frontend (Next.js)
+
+From `frontend/`:
+
 ```bash
 cd frontend
 npm install
-   ```
-
-2. **Start development server:**
-   ```bash
 npm run dev
 ```
 
-3. **Access application:**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8080/api
+Create `frontend/.env.local` if needed:
 
-### DApp Setup (No Blockchain Required)
-
-The DApp architecture **does not require blockchain infrastructure**. Setup is simplified:
-
-1. **Configure IPFS/Pinata:**
-   ```env
-   IPFS_API_URL=https://api.pinata.cloud
-   PINATA_JWT=your-pinata-jwt-token
-   ```
-
-2. **Generate Issuer Keys** (one-time setup):
-   ```bash
-   # Backend will auto-generate keys on first certificate issuance
-   # Or use: backend/scripts/generate-issuer-keys.sh
-   ```
-
-3. **Optional: Configure Public Blockchain Anchoring:**
-   ```env
-   ENABLE_PUBLIC_ANCHORING=true
-   ANCHOR_CHAIN=ethereum  # or polygon
-   ANCHOR_RPC_URL=https://mainnet.infura.io/v3/YOUR_KEY
-   ANCHOR_PRIVATE_KEY=your_wallet_private_key
-   ANCHOR_FREQUENCY=monthly  # or weekly
-   ```
-
-For detailed DApp setup, see [`DAPP_ARCHITECTURE.md`](DAPP_ARCHITECTURE.md)
-
-### Legacy Blockchain Setup (Deprecated)
-
-> **Note:** Blockchain setup is no longer required. This is kept for reference only.
-
-1. **Install Besu:**
-   ```powershell
-   cd backend
-   .\blockchain\scripts\setup\install-besu.ps1
-   ```
-
-2. **Start Besu network:**
-   ```powershell
-   .\blockchain\scripts\setup\start-besu.bat
-   ```
-
-3. **Verify it's running:**
-   ```powershell
-   .\blockchain\scripts\setup\check-status.bat
-   ```
-
-For detailed blockchain setup, see [`backend/blockchain/README.md`](backend/blockchain/README.md)
-
-## Complete File Structure
-
-### Backend Files Explained
-
-#### Core Application
-- **`main.go`**: Entry point. Loads config, initializes router, starts HTTP server.
-- **`go.mod`**: Go module definition and dependencies.
-- **`.air.toml`**: Air configuration for hot-reload (watches `.go` files, rebuilds on change).
-
-#### Configuration (`internal/config/`)
-- **`config.go`**: Loads environment variables, provides `Config` struct with defaults.
-
-#### Models (`internal/models/`)
-- **`user.go`**: User model with roles, student info, approval status.
-- **`certificate.go`**: Certificate model (on-chain data: hashes, timestamps, blockchain addresses).
-- **`credential.go`**: Legacy credential model (off-chain metadata).
-- **`types.go`**: UserRole enum, permission definitions.
-
-#### Store Layer (`internal/store/`)
-- **`interface.go`**: Store interface (contract for data operations).
-- **`mongodb.go`**: MongoDB implementation (production).
-- **`memory.go`**: In-memory store (development/fallback).
-
-#### Services (`internal/services/`)
-- **`auth.go`**: JWT generation, password hashing, login validation.
-- **`user.go`**: User CRUD, approval, student ID generation.
-- **`certificate.go`**: Certificate issuance orchestration (IPFS + blockchain).
-- **`credentials.go`**: Legacy credential service.
-- **`ipfs.go`**: IPFS file upload/download.
-- **`blockchain_besu.go`**: Hyperledger Besu integration (ABI encoding, transactions).
-- **`blockchain_goeth.go`**: Go-ethereum integration (alternative).
-- **`blockchain.go`**: Mock blockchain service (fallback).
-- **`blockchain_interface.go`**: Blockchain service interface.
-
-#### HTTP Layer (`internal/http/`)
-- **`handlers/auth.go`**: Login endpoint handler.
-- **`handlers/users.go`**: User CRUD, approval, delete handlers.
-- **`handlers/certificates.go`**: Certificate issuance, listing, verification handlers.
-- **`handlers/blockchain.go`**: Blockchain status, on-chain verification handlers.
-- **`middleware/auth.go`**: JWT authentication middleware (protects routes).
-- **`response.go`**: JSON response helpers (success/error formatting).
-
-#### Router (`internal/router/`)
-- **`router.go`**: Route definitions, CORS setup, service initialization, fallback chain (MongoDB → Memory, Besu → GoEth → Mock).
-
-#### Smart Contracts (`contracts/`)
-- **`CertificateManager.sol`**: Main contract for on-chain certificate storage.
-- **`CredentialManager.sol`**: Legacy credential contract.
-- **`RoleManager.sol`**: Role management contract.
-
-### Frontend Files Explained
-
-#### Pages (`src/app/`)
-- **`layout.tsx`**: Root layout with fonts, metadata.
-- **`page.tsx`**: Home/landing page.
-- **`login/page.tsx`**: Unified login (all roles, auto-redirect).
-- **`register/page.tsx`**: Student registration form.
-- **`admin-dashboard/page.tsx`**: Admin dashboard (user management, approval, CRUD).
-- **`coe-dashboard/page.tsx`**: COE dashboard (issue marksheets, degrees).
-- **`faculty-dashboard/page.tsx`**: Faculty dashboard (issue NOC, Bonafide).
-- **`club-dashboard/page.tsx`**: Club dashboard (issue participation certificates).
-- **`verifier-dashboard/page.tsx`**: Verifier dashboard (credential verification).
-- **`student-dashboard/page.tsx`**: Student dashboard (view credentials, profile).
-- **`student-wallet/page.tsx`**: Public shareable wallet (QR codes).
-
-#### Components (`src/components/`)
-- **`RoleBasedDashboard.tsx`**: Dynamic dashboard switcher based on user role.
-- **`CredentialIssuer.tsx`**: Reusable credential issuance form.
-- **`CertificateDisplay.tsx`**: Certificate display component.
-
-#### Hooks (`src/hooks/`)
-- **`useAuth.ts`**: Authentication state, login/logout, token management.
-- **`useApi.ts`**: API hooks (useUsers, useCredentials, useDashboardStats).
-- **`useStudentWallet.ts`**: Student wallet data fetching.
-
-#### Libraries (`src/lib/`)
-- **`api.ts`**: API client functions (fetch wrappers).
-- **`auth.ts`**: Auth helpers (token storage/retrieval).
-- **`utils.ts`**: Utility functions (date formatting, role icons, role names).
-
-#### Types (`src/types/`)
-- **`auth.ts`**: TypeScript types (User, Role, AuthResponse, etc.).
-
-## API Endpoints
-
-### Authentication
-```
-POST   /api/login                    # Login (returns JWT token)
-POST   /api/register                 # Student registration
-```
-
-### User Management
-```
-GET    /api/users                    # List all users (admin only)
-POST   /api/admin/onboard            # Create new user (admin only)
-POST   /api/users/{id}/approve       # Approve pending user (admin only)
-PUT    /api/admin/users/{id}         # Update user details (admin only)
-DELETE /api/admin/users/{id}          # Delete user (admin only)
-```
-
-### Certificates
-```
-POST   /api/certificates/issue       # Issue new certificate (authenticated)
-GET    /api/certificates              # List all certificates (authenticated)
-GET    /api/certificates/student/{student_id}  # Get student's certificates
-GET    /api/certificates/issuer     # Get certificates issued by current user
-GET    /api/certificates/verify/{cert_id}      # Verify certificate (public)
-POST   /api/certificates/{cert_id}/revoke      # Revoke certificate
-GET    /api/certificates/test-ipfs   # Test IPFS connection
-```
-
-### Certificates (DApp Architecture)
-```
-POST   /api/certificates/issue       # Issue new certificate (signed, Merkle proof)
-GET    /api/certificates              # List all certificates (authenticated)
-GET    /api/certificates/student/{student_id}  # Get student's certificates
-GET    /api/certificates/issuer     # Get certificates issued by current user
-GET    /api/certificates/verify/{cert_id}      # Verify certificate (public, cryptographic)
-POST   /api/certificates/{cert_id}/revoke      # Revoke certificate (signed revocation)
-GET    /api/certificates/test-ipfs   # Test IPFS connection
-```
-
-### Cryptographic Services (DApp)
-```
-GET    /api/cryptographic/status     # Get cryptographic service status
-POST   /api/issuers/register         # Register issuer public key
-GET    /api/issuers/{issuer_id}/public-key  # Get issuer public key
-GET    /api/transparency-log/root    # Get latest Merkle root
-GET    /api/transparency-log/proof/{cert_id}  # Get Merkle proof for certificate
-```
-
-### Legacy Blockchain (Deprecated)
-```
-GET    /api/blockchain/status        # Get blockchain network status (deprecated)
-POST   /api/blockchain/register-issuer         # Register issuer on-chain (deprecated)
-GET    /api/blockchain/verify-certificate      # Verify certificate on-chain (deprecated)
-GET    /api/blockchain/certificate              # Get certificate from blockchain (deprecated)
-```
-
-### Credentials (Legacy)
-```
-GET    /api/credentials              # List all credentials
-POST   /api/credentials/issue        # Issue new credential
-```
-
-### Health Check
-```
-GET    /health                       # Server health check
-```
-
-## Frontend Routes
-
-### Public Routes
-- **`/`** - Home/Landing page
-- **`/login`** - Unified login (auto-redirects based on role)
-- **`/register`** - Student registration
-
-### Protected Routes (Require Authentication)
-- **`/admin-dashboard`** - Admin dashboard
-  - User management (CRUD)
-  - User approval
-  - View user details
-  - Delete users
-  - System statistics
-
-- **`/coe-dashboard`** - Controller of Examinations dashboard
-  - Issue semester marksheets
-  - Issue degree certificates
-  - View issued credentials
-  - Student management
-
-- **`/faculty-dashboard`** - Department Faculty dashboard
-  - Issue NOC certificates
-  - Issue Bonafide certificates
-  - View issued certificates
-
-- **`/club-dashboard`** - Club Coordinator dashboard
-  - Issue participation certificates
-  - Event management
-
-- **`/verifier-dashboard`** - External Verifier dashboard
-  - Verify certificate authenticity
-  - Blockchain verification
-  - Certificate lookup
-
-- **`/student-dashboard`** - Student dashboard
-  - View own credentials
-  - Profile management
-  - Certificate history
-
-- **`/student-wallet`** - Public student wallet
-  - Shareable profile
-  - QR code generation
-  - Public credential viewing
-
-## Blockchain Integration (Legacy - Deprecated)
-
-> **Note:** The blockchain integration is deprecated in favor of the DApp architecture. See [DApp Architecture](#dapp-architecture) for the current implementation.
-
-### Legacy: On-Chain Data Storage
-
-When a certificate was issued on Besu blockchain, the following data was **immutably stored**:
-
-| Field | Purpose |
-|-------|---------|
-| **Certificate Hash** | SHA-256 hash of certificate file (verifiability & tamper detection) |
-| **Metadata Hash** | SHA-256 hash of metadata (prevents unauthorized edits) |
-| **Issuer Blockchain Address** | Establishes trust of authority |
-| **Timestamp** | Immutable proof of issuance time |
-| **Student Identity Mapping** | Links to student wallet address (persistent academic identity) |
-| **Revocation Flag** | Allows certificate invalidation |
-
-### Legacy Smart Contract
-
-**`CertificateManager.sol`** (deprecated) provided:
-- `issueCertificate()` - Store certificate data on-chain
-- `verifyCertificate()` - Verify certificate authenticity
-- `revokeCertificate()` - Mark certificate as revoked
-- `getCertificate()` - Retrieve certificate data
-
-### Legacy Blockchain Scripts
-
-**Setup Scripts** (`blockchain/scripts/setup/`):
-- `install-besu.ps1` - Install Hyperledger Besu
-- `start-besu.bat` / `start-besu.sh` - Start PoA network
-- `check-status.bat` - Verify node status
-
-**Data Scripts** (`blockchain/scripts/data/`):
-- `store-sample-data.ps1` - Store certificate via API
-- `get-certificates.ps1` - Fetch all certificates
-- `view-certificate.ps1` - View specific certificate
-- `verify-on-chain.ps1` - Verify certificate on blockchain
-
-**Deploy Scripts** (`blockchain/scripts/deploy/`):
-- `deploy-contract.js` - Deploy CertificateManager.sol
-
-## System Roles
-
-| Role | Permissions | Dashboard |
-|------|-------------|-----------|
-| **SSN Main Admin** | Full system control, onboard users, approve students, delete users | `/admin-dashboard` |
-| **COE (Sub-Admin)** | Issue semester marksheets, degree certificates | `/coe-dashboard` |
-| **Department Faculty** | Issue Bonafide, NOC certificates | `/faculty-dashboard` |
-| **Club Coordinators** | Issue participation certificates for events | `/club-dashboard` |
-| **External Verifiers** | Read-only credential verification | `/verifier-dashboard` |
-| **Students** | View and share own credentials | `/student-dashboard`, `/student-wallet` |
-
-## Demo Accounts
-
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@ssn.edu.in | admin123 |
-| COE | coe@ssn.edu.in | coe123 |
-| Faculty | faculty@ssn.edu.in | faculty123 |
-| Club Coordinator | club@ssn.edu.in | club123 |
-| Verifier | verifier@external.com | verifier123 |
-| Student | john@student.ssn.edu.in | student123 |
-
-## Utility Scripts
-
-### Student Management
-```powershell
-# Interactive student registration
-.\backend\scripts\add-student.ps1
-
-# Quick test student
-.\backend\scripts\add-student-quick.ps1
-```
-
-### Blockchain Data
-```powershell
-# Store certificate
-.\backend\blockchain\scripts\data\store-sample-data.ps1
-
-# View certificates
-.\backend\blockchain\scripts\data\get-certificates.ps1
-
-# Verify on-chain
-.\backend\blockchain\scripts\data\verify-on-chain.ps1 -CertId "0x..."
-```
-
-## Configuration
-
-### Environment Variables
-
-**Backend** (`.env` or system environment):
 ```env
-PORT=8080                              # Server port
-JWT_SECRET=your-secret-key              # JWT signing secret
-MONGO_URI=mongodb+srv://...            # MongoDB connection string
-MONGO_DATABASE=blockcred               # MongoDB database name
-ALLOWED_ORIGIN=http://localhost:3000   # CORS allowed origin
-BESU_RPC_URL=http://localhost:8545    # Besu JSON-RPC endpoint
-IPFS_API_URL=http://localhost:5001    # IPFS API endpoint
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
 ```
 
-### MongoDB Atlas Setup
+Then open:
 
-1. Create account at https://cloud.mongodb.com
-2. Create a free cluster
-3. Create database user
-4. Whitelist IP (0.0.0.0/0 for development)
-5. Get connection string from "Connect" → "Connect your application"
-6. Set `MONGO_URI` environment variable
+- App: `http://localhost:3000`
+- Login: `http://localhost:3000/login`
+- Register: `http://localhost:3000/register`
+- Verify: `http://localhost:3000/verify`
 
-## Development Workflow
+### First steps (end‑to‑end)
 
-### Backend Development
-```bash
-cd backend
-air  # Hot-reload on file changes
-```
+1. **Start services**  
+   - MongoDB  
+   - (Optional) Besu private chain  
+   - Backend at `http://localhost:8080`  
+   - Frontend at `http://localhost:3000`
 
-### Frontend Development
-```bash
-cd frontend
-npm run dev  # Next.js dev server with hot-reload
-```
+2. **Bootstrap users & RBAC**  
+   - Register a student at `/register` or insert an admin directly in MongoDB.  
+   - Log in as admin, create roles/departments/credential types as needed.  
+   - Onboard COE/Faculty/Club via `/admin` → `POST /api/admin/onboard`.
 
-### Testing Blockchain
-```bash
-# Terminal 1: Start Besu
-cd backend
-.\blockchain\scripts\setup\start-besu.bat
+3. **Approve student & log in**  
+   - Approve the student via `/admin` or student verifier dashboard.  
+   - Log in as the student → check `/student` dashboard and `/student-wallet`.
 
-# Terminal 2: Start Backend
-cd backend
-air
+4. **Issue a certificate**  
+   - Log in as COE / Faculty / Club.  
+   - Use issuance UI to upload a PDF + metadata.  
+   - Backend will:
+     - Upload to IPFS
+     - Sign document + append to transparency log
+     - **If Besu/GoEth enabled**: also call `IssueCertificateOnChain` to anchor on the private blockchain.
 
-# Terminal 3: Store test data
-.\blockchain\scripts\data\store-sample-data.ps1
-```
+5. **Verify**  
+   - Copy the `cert_id` from the issuance response or dashboard.  
+   - Go to `/verify` and enter the `cert_id`, or use the share link / QR.  
+   - Optionally check on‑chain status via `GET /api/blockchain/certificate?cert_id=...` when blockchain is enabled.
 
-## Architecture Patterns
+---
 
-### Backend Architecture
-- **Clean Architecture**: Separation of concerns (models, store, services, handlers)
-- **Dependency Injection**: Services injected into handlers
-- **Interface-based Design**: Store and blockchain services use interfaces
-- **Fallback Chain**: MongoDB → Memory Store, Besu → GoEth → Mock
+## Security
 
-### Frontend Architecture
-- **Component-based**: Reusable React components
-- **Custom Hooks**: Encapsulated API logic
-- **Type Safety**: Full TypeScript coverage
-- **Role-based Routing**: Dynamic dashboard selection
+- **Authentication**: JWT (HS256); token in `Authorization: Bearer`.
+- **Passwords**: bcrypt hashing.
+- **Authorization**: Role and permission checks in backend (e.g. who can issue which cert type, approve students, manage users).
+- **CORS**: Configurable via `ALLOWED_ORIGINS`.
+- **Certificate integrity**: Issuer signature + Merkle proof + optional file hash check; revocation stored and checked on verify.
 
-## Security Features
-
-- **JWT Authentication**: Secure token-based auth
-- **Role-based Authorization**: Server-side permission checks
-- **Password Hashing**: bcrypt for password storage
-- **CORS Protection**: Configurable origin whitelist
-- **Input Validation**: Form validation on frontend and backend
-- **Blockchain Integrity**: Tamper-proof credential storage
-
-## Use Cases
-
-**Academic Institutions:**
-- Complete student lifecycle management
-- Automated credential issuance workflows
-- Regulatory compliance support
-- Immutable academic records
-
-**Employers/HR:**
-- Quick credential verification
-- Automated background checks
-- Fraud prevention through tamper-proof credentials
-- QR code scanning for instant verification
-
-**Students:**
-- Secure digital credential wallet
-- Easy sharing with employers
-- Academic portfolio management
-- Blockchain-verified credentials
-
-## Metrics & Performance
-
-BlockCred tracks comprehensive system metrics including:
-
-- **System Performance**: Response times, throughput, error rates, uptime
-- **User Activity**: DAU/MAU, user growth, role distribution, engagement
-- **Blockchain Metrics**: Transaction throughput, confirmation times, on-chain storage
-- **API Performance**: Endpoint response times, success rates, usage statistics
-- **Database Metrics**: Query performance, collection sizes, growth rates
-- **Business Metrics**: Credential issuance, verification rates, student statistics
-- **Security Metrics**: Authentication failures, tamper detection, data integrity
-
-For detailed metrics documentation, see [`METRICS.md`](METRICS.md)
-
-## Future Roadmap
-
-- Enhanced blockchain integration with smart contracts
-- Decentralized credential storage
-- Cross-institution credential sharing
-- AI-powered verification
-- Native mobile applications
-- W3C credential standards compliance
-- Advanced analytics and reporting
-- Real-time metrics dashboard
-- Predictive analytics
-- Multi-chain support
-- NFT-based credentials
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-[Add your license here]
+---
 
 ## Documentation
 
-- **[DAPP_ARCHITECTURE.md](DAPP_ARCHITECTURE.md)** - Complete DApp architecture documentation
-- **[SYSTEM_FLOW.md](SYSTEM_FLOW.md)** - Detailed system flows (legacy blockchain + new DApp)
-- **[backend/README.md](backend/README.md)** - Backend-specific documentation
-- **[frontend/README.md](frontend/README.md)** - Frontend documentation
-- **[backend/blockchain/README.md](backend/blockchain/README.md)** - Legacy blockchain setup (deprecated)
+- **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** – Code-level layout, services, handlers, and data flows.
+- **[DAPP_ARCHITECTURE.md](DAPP_ARCHITECTURE.md)** – DApp design, cost comparison, optional blockchain anchoring (if present).
+- **backend/README.md** – Backend-specific notes.
+- **frontend/README.md** – Frontend-specific notes.
+- **backend/blockchain/README.md** – Legacy blockchain/Besu (reference only; not used in current build).
 
-## Support
-
-For issues and questions:
-- Check [`DAPP_ARCHITECTURE.md`](DAPP_ARCHITECTURE.md) for DApp architecture details
-- Check [`backend/README.md`](backend/README.md) for backend documentation
-- Check [`frontend/README.md`](frontend/README.md) for frontend documentation
-- Check [`backend/blockchain/README.md`](backend/blockchain/README.md) for legacy blockchain setup (deprecated)
+---

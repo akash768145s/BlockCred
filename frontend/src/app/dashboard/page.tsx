@@ -11,14 +11,11 @@ export default function GenericDashboard() {
 
     useEffect(() => {
         if (authLoading) return;
-
         if (!isAuthenticated()) {
             router.push("/login");
             return;
         }
-
         // If user has a dashboard_route that's not /dashboard, redirect to it.
-        // Otherwise stay here and show the generic "not configured" dashboard.
         const route = (user?.dashboard_route || "").trim();
         if (route && route !== "/dashboard" && route.startsWith("/")) {
             router.push(route);

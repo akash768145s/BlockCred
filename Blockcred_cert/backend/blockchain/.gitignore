@@ -1,0 +1,7 @@
+# Blockchain data directory (auto-generated)
+data/
+*.log
+
+# Keep the directory structure
+!data/.gitkeep
+

@@ -1,6 +1,3 @@
-//go:build ignore
-// +build ignore
-
 package services
 
 import (
@@ -85,7 +82,7 @@ func (s *BesuBlockchainService) healthCheck() error {
 	// Verify we got a valid block number
 	blockNumber := new(big.Int)
 	blockNumber.SetString(strings.TrimPrefix(blockNumberHex, "0x"), 16)
-	
+
 	// Silently verify - no logging needed
 	_ = blockNumber
 	return nil
@@ -221,7 +218,7 @@ func (s *BesuBlockchainService) IssueCertificateOnChain(data *OnChainCertificate
 	fmt.Printf("   Timestamp: %d (immutable proof of time)\n", data.Timestamp)
 	fmt.Printf("   Student Wallet: %s (persistent academic identity)\n", data.StudentWallet)
 	fmt.Printf("   IPFS CID: %s\n", ipfsCID)
-	
+
 	// Get actual transaction from blockchain
 	txHash, blockNumber, err := s.sendTransaction(data, ipfsCID)
 	if err != nil {
@@ -247,7 +244,7 @@ func (s *BesuBlockchainService) sendTransaction(data *OnChainCertificateData, ip
 		// Fallback to validator if issuer address not provided
 		issuerAddr = "0x53b8be11aada878bbf830e426d5d3071c34facef"
 	}
-	
+
 	// Get nonce
 	nonce, err := s.getNonce(issuerAddr)
 	if err != nil {
@@ -621,4 +618,3 @@ func (s *BesuBlockchainService) RegisterIssuer(issuerAddress, name, role, instit
 func (s *BesuBlockchainService) Close() {
 	// No persistent connection to close
 }
-
